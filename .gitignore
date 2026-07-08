@@ -1,0 +1,15 @@
+# BMAD Local Working Folders
+.agent/
+.agents/
+.bmad-loop/state/     # Ignore the active state run logs
+.bmad-loop/runs/
+.bmad-loop/cache/
+**/.memlog.md         # Ignore local agent thought loops
+_bmad/config.user.toml
+_bmad/config.user.yaml
+_bmad/_tmp-config.json
+_bmad/_resolved-config.json
+
+# External CLI local configuration caches
+.claude/
+CLAUDE.local.md
