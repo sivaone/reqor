@@ -4,7 +4,8 @@
 .bmad-loop/state/     # Ignore the active state run logs
 .bmad-loop/runs/
 .bmad-loop/cache/
-**/.memlog.md         # Ignore local agent thought loops
+_bmad-output/**/.memlog.md
+.memlog.md            # Ignore local agent thought loops (any directory)
 _bmad/config.user.toml
 _bmad/config.user.yaml
 _bmad/_tmp-config.json
