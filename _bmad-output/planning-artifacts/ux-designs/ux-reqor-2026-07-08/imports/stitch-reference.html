@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reqor — API Workspace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#006c46',
+            'primary-light': '#49cc90',
+            header: '#2e3132',
+            surface: '#fafafa',
+            'surface-muted': '#f0f0f0',
+            border: '#d8dde7',
+            foreground: '#3b4151',
+            'foreground-muted': '#777777',
+            'method-get': '#49cc90',
+            'method-post': '#4990e2',
+            'method-del': '#f93e3e',
+          },
+          fontFamily: {
+            display: ['Hanken Grotesk', 'system-ui', 'sans-serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+      font-size: 20px;
+    }
+    body { font-family: Inter, system-ui, sans-serif; }
+  </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-white text-foreground text-sm">
+
+  <!-- App header -->
+  <header class="h-12 bg-header text-white flex items-center justify-between px-4 shrink-0">
+    <h1 class="font-display font-semibold text-lg text-primary-light tracking-tight">Reqor</h1>
+    <button class="flex items-center gap-1.5 px-3 py-1.5 rounded border border-white/20 bg-white/5 hover:bg-white/10 text-sm">
+      <span class="material-symbols-outlined text-base">public</span>
+      Development
+      <span class="material-symbols-outlined text-base">expand_more</span>
+    </button>
+  </header>
+
+  <div class="flex flex-1 min-h-0">
+
+    <!-- Sidebar -->
+    <aside class="w-[280px] border-r border-border bg-surface flex flex-col shrink-0">
+      <div class="flex border-b border-border">
+        <button class="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wide border-b-2 border-primary text-foreground">Collections</button>
+        <button class="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wide text-foreground-muted hover:text-foreground">History</button>
+      </div>
+
+      <div class="p-3 space-y-3 border-b border-border">
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground-muted text-lg">search</span>
+          <input type="text" placeholder="Filter requests..." class="w-full pl-9 pr-3 py-2 rounded border border-border bg-white text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+        </div>
+        <button class="w-full flex items-center justify-center gap-2 py-2 rounded bg-primary text-white font-medium hover:bg-primary/90">
+          <span class="material-symbols-outlined text-lg">add</span>
+          New Request
+        </button>
+      </div>
+
+      <nav class="flex-1 overflow-y-auto py-2">
+        <button class="w-full flex items-center gap-2 px-3 py-2 text-left bg-white border-l-2 border-primary">
+          <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-sm bg-method-get text-white">GET</span>
+          <span class="truncate font-mono text-xs">https://example.com/get</span>
+        </button>
+        <button class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/80">
+          <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-sm bg-method-post text-white">POST</span>
+          <span class="truncate font-mono text-xs text-foreground-muted">https://example.com/post</span>
+        </button>
+        <button class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/80">
+          <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-sm bg-method-del text-white">DEL</span>
+          <span class="truncate font-mono text-xs text-foreground-muted">https://example.com/delete</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main workspace -->
+    <main class="flex-1 flex flex-col min-w-0">
+
+      <!-- Request panel -->
+      <section class="flex-1 flex flex-col min-h-0 border-b border-border">
+        <div class="flex items-center gap-2 p-3 border-b border-border bg-white">
+          <select class="font-bold text-method-get bg-method-get/10 border border-method-get/30 rounded px-2 py-2 text-sm focus:outline-none">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+          </select>
+          <input type="text" value="https://example.com/get" class="flex-1 font-mono text-sm px-3 py-2 border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary" />
+          <button class="p-2 rounded border border-border text-foreground-muted hover:bg-surface-muted" title="Save">
+            <span class="material-symbols-outlined">save</span>
+          </button>
+          <button class="px-5 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 flex items-center gap-1">
+            Send
+            <span class="material-symbols-outlined text-lg">expand_more</span>
+          </button>
+        </div>
+
+        <div class="flex border-b border-border bg-white px-3">
+          <button class="px-3 py-2 text-xs font-semibold uppercase border-b-2 border-primary text-foreground">Params</button>
+          <button class="px-3 py-2 text-xs font-semibold uppercase text-foreground-muted hover:text-foreground">Authorization</button>
+          <button class="px-3 py-2 text-xs font-semibold uppercase text-foreground-muted hover:text-foreground">Headers <span class="text-foreground-muted font-normal">(7)</span></button>
+          <button class="px-3 py-2 text-xs font-semibold uppercase text-foreground-muted hover:text-foreground">Body</button>
+          <button class="px-3 py-2 text-xs font-semibold uppercase text-foreground-muted hover:text-foreground">Settings</button>
+        </div>
+
+        <div class="flex-1 overflow-auto p-3 bg-surface">
+          <p class="text-xs font-semibold uppercase text-foreground-muted mb-2">Query Params</p>
+          <table class="w-full text-sm border border-border rounded bg-white">
+            <thead class="bg-surface-muted text-left text-xs uppercase text-foreground-muted">
+              <tr>
+                <th class="px-3 py-2 font-semibold w-1/3">Key</th>
+                <th class="px-3 py-2 font-semibold w-1/3">Value</th>
+                <th class="px-3 py-2 font-semibold">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-t border-border">
+                <td class="px-3 py-2"><input class="w-full border-0 focus:outline-none font-mono text-xs" placeholder="Key" /></td>
+                <td class="px-3 py-2"><input class="w-full border-0 focus:outline-none font-mono text-xs" placeholder="Value" /></td>
+                <td class="px-3 py-2"><input class="w-full border-0 focus:outline-none text-xs text-foreground-muted" placeholder="Description" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Response panel -->
+      <section class="flex-1 flex flex-col min-h-0 bg-surface">
+        <div class="flex items-center justify-between px-3 py-2 border-b border-border bg-white">
+          <div class="flex">
+            <button class="px-3 py-1.5 text-xs font-semibold uppercase border-b-2 border-primary text-foreground">Body</button>
+            <button class="px-3 py-1.5 text-xs font-semibold uppercase text-foreground-muted hover:text-foreground">Headers <span class="font-normal">(7)</span></button>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <span class="font-semibold text-primary-light">200 OK</span>
+            <span class="text-foreground-muted">·</span>
+            <span class="text-foreground-muted">98 ms</span>
+            <span class="text-foreground-muted">·</span>
+            <span class="text-foreground-muted">897 B</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 px-3 py-1.5 border-b border-border bg-white text-xs">
+          <button class="px-2 py-1 rounded bg-surface-muted font-medium">Pretty</button>
+          <button class="px-2 py-1 text-foreground-muted hover:text-foreground">Raw</button>
+          <button class="px-2 py-1 text-foreground-muted hover:text-foreground">Preview</button>
+          <select class="ml-2 border border-border rounded px-2 py-1 text-xs bg-white">
+            <option>JSON</option>
+          </select>
+        </div>
+
+        <pre class="flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed text-foreground bg-surface"><code>{
+  "args": {},
+  "headers": {
+    "host": "example.com",
+    "x-request-start": "t=1750000000",
+    "user-agent": "Reqor/1.0",
+    "accept": "*/*"
+  },
+  "url": "https://example.com/get"
+}</code></pre>
+      </section>
+
+    </main>
+  </div>
+
+</body>
+</html>
