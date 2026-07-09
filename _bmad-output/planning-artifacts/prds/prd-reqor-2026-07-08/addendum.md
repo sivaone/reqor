@@ -86,11 +86,12 @@ Stored at Repository Root (gitignored by default):
 ```
 .reqor/
   history.db       # or history.json
-  secrets.env      # local secrets not committed
-  config.json      # port preference, UI state
+  config.json      # port preference, active environment, UI state
 ```
 
 Provide `.reqor/` entry in project `.gitignore` template on first run `[ASSUMPTION]`.
+
+Secrets resolve from repo `.env` variants (`.env`, `.env.local`, `.env.staging`, etc.) — read-only; not stored under `.reqor/` (per SPEC).
 
 ---
 

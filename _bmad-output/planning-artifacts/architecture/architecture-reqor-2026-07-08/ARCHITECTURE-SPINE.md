@@ -107,7 +107,7 @@ flowchart LR
 
 - **Binds:** FR-9, FR-15, FR-19; server
 - **Prevents:** secret leakage via bundle, logs, history, or exported snippets
-- **Rule:** Secrets resolve and persist server-side only (`.reqor/secrets.env`). API responses redact secret values. History, logs, and snippet export never contain plaintext secrets.
+- **Rule:** Secrets resolve server-side only from repo `.env` file variants (`.env`, `.env.local`, `.env.staging`, etc.) that users already maintain and gitignore. Reqor reads these files; it never writes to them. No separate `.reqor/secrets.env` vault (per SPEC). API responses redact secret values. History, logs, and snippet export never contain plaintext secrets.
 
 ### AD-8 — Environment resolution at send time [ADOPTED]
 
@@ -135,9 +135,9 @@ flowchart LR
 
 ### AD-12 — Local state in `.reqor/` [ADOPTED]
 
-- **Binds:** FR-15, FR-16; server
+- **Binds:** FR-14, FR-16; server
 - **Prevents:** polluting Git history and mixing repo content with runtime state
-- **Rule:** Runtime-local artifacts live under `.reqor/` at Repository Root: `history.db`, `config.json`, `secrets.env`. Directory is gitignored; CLI ensures ignore entry on first run.
+- **Rule:** Runtime-local artifacts live under `.reqor/` at Repository Root: `history.db` and `config.json` only. Secrets are not stored here — they resolve from repo `.env` variants per AD-7. Directory is gitignored; CLI ensures ignore entry on first run.
 
 ### AD-13 — History in SQLite [ADOPTED]
 
@@ -184,8 +184,8 @@ flowchart LR
 ### AD-20 — Environment and secret ownership [ADOPTED]
 
 - **Binds:** FR-7, FR-9, FR-14, FR-15; http-parser, server
-- **Prevents:** parser and server both owning vault resolution with conflicting precedence
-- **Rule:** Parser parses `http-client.env.json` and recognizes `{{$dotenv KEY}}` references. Server `EnvResolver` owns merge order at send time: active environment file → repo `.env` → `.reqor/secrets.env` (highest precedence for secrets). Only server reads/writes `.reqor/secrets.env`.
+- **Prevents:** parser and server both owning resolution with conflicting precedence
+- **Rule:** Parser parses `http-client.env.json` and recognizes `{{$dotenv KEY}}` references. Server `EnvResolver` owns merge order at send time: active environment file → repo `.env` variants (read-only). Reqor never writes to `.env` files. No `.reqor/secrets.env` vault.
 
 ### AD-21 — Request identity and rematch [ADOPTED]
 

@@ -233,11 +233,12 @@ Per addendum matrix — IN: request line, `###` separator, headers, body, query 
 ```
 .reqor/
   history.db      # SQLite — last 500 entries
-  config.json     # port preference, UI prefs
-  secrets.env     # server-side secret vault
+  config.json     # port preference, active environment, UI prefs
 ```
 
 Created on first run. Added to `.gitignore` automatically. Never committed.
+
+Secrets resolve from repo `.env` variants (`.env`, `.env.local`, `.env.staging`, etc.) — read-only; not stored under `.reqor/` (AD-7, AD-20, SPEC).
 
 ---
 
@@ -280,7 +281,7 @@ Parser AST types stay inside `@reqor/http-parser` and `server`. `@reqor/shared-t
 
 ### Environment merge order
 
-At send time, server resolves: active environment file → repo `.env` → `.reqor/secrets.env` (secrets win). Parser recognizes syntax; server owns merge (AD-20).
+At send time, server resolves: active environment file → repo `.env` variants (read-only). Parser recognizes syntax; server owns merge (AD-20). No `.reqor/secrets.env` vault.
 
 ### Dev vs prod
 
