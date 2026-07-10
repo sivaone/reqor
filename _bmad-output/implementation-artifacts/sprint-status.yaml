@@ -1,0 +1,84 @@
+# generated: 2026-07-09
+# last_updated: 2026-07-09
+# project: reqor
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
+
+generated: 2026-07-09
+last_updated: 2026-07-09T17:20:00
+project: reqor
+project_key: NOKEY
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  epic-1: in-progress
+  1-1-scaffold-monorepo-and-development-toolchain: ready-for-dev
+  1-2-jetbrains-request-parser-with-fixture-test-suite: backlog
+  1-3-collection-scan-and-rest-api: backlog
+  1-4-cli-start-and-web-ui-static-serve: backlog
+  1-5-app-shell-and-design-system-tokens: backlog
+  1-6-collections-sidebar-and-request-navigation: backlog
+  1-7-http-proxy-execution-and-response-panel: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-variable-and-dynamic-placeholder-parsing: backlog
+  2-2-environment-file-parsing-and-listing: backlog
+  2-3-environment-selection-with-persistence: backlog
+  2-4-secret-resolution-from-env-variants: backlog
+  2-5-send-time-variable-resolution-and-pre-send-preview: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-visual-request-editor: backlog
+  3-2-raw-http-editor-with-syntax-highlighting: backlog
+  3-3-server-side-save-with-minimal-diff-write: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-history-persistence-in-sqlite: backlog
+  4-2-history-sidebar-and-replay: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-curl-import: backlog
+  5-2-curl-export: backlog
+  5-3-code-snippet-export: backlog
+  epic-5-retrospective: optional
