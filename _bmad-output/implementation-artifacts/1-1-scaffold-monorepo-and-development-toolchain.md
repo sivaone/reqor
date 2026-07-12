@@ -1,17 +1,21 @@
+---
+baseline_commit: f5e87e1c1b434bc84ca9272c4bb78ffaa62328f7
+---
+
 # Story 1.1: Scaffold Monorepo and Development Toolchain
 
-Status: ready-for-dev
+Status: review
 
 ## Definition of Done
 
 Verify all of the following before marking done:
 
-- [ ] `pnpm install` succeeds on Node 24.x
-- [ ] `pnpm turbo build` produces `dist/` in all buildable packages
-- [ ] `pnpm turbo test` passes all package smoke tests
-- [ ] `pnpm turbo typecheck` passes with zero errors
-- [ ] `pnpm turbo dev` → Vite on :5173, Fastify on :3000
-- [ ] Browser at `http://localhost:5173` fetches `/api/health` and displays typed response
+- [x] `pnpm install` succeeds on Node 24.x
+- [x] `pnpm turbo build` produces `dist/` in all buildable packages
+- [x] `pnpm turbo test` passes all package smoke tests
+- [x] `pnpm turbo typecheck` passes with zero errors
+- [x] `pnpm turbo dev` → Vite on :5173, Fastify on :3000
+- [x] Browser at `http://localhost:5173` fetches `/api/health` and displays typed response
 
 ## Story
 
@@ -37,27 +41,27 @@ so that the team has a consistent build substrate for CLI, server, web, parser, 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Initialize monorepo root (AC: #1, #5, #6) — AD-1, AD-15
-  - [ ] 1.1 Run `pnpm dlx create-turbo@latest` (or equivalent) at repo root, then **delete default `apps/` scaffold** — layout must be `packages/`-only per Structural Seed
-  - [ ] 1.2 Create `pnpm-workspace.yaml` with `packages/*` and a `catalog:` block (see example below). In pnpm 11, non-auth pnpm settings belong here — not `.npmrc`
-  - [ ] 1.3 Root `package.json`: `private: true`, `"license": "MIT"`, `packageManager: "pnpm@11.0.0"` (or latest 11.x), `engines.node: ">=24 <25"`, scripts `build`, `test`, `dev`, `typecheck` delegating to `turbo`
-  - [ ] 1.4 Add root `tsconfig.json` (or `tsconfig.base.json`) with `strict: true`, `moduleResolution: "bundler"`, `module: "ESNext"`, `target: "ES2022"`. Each package `tsconfig.json` extends this base
-  - [ ] 1.5 Add root `turbo.json` with tasks: `build` (`dependsOn: ["^build"]`, `outputs: ["dist/**"]`), `test` (`dependsOn: ["^build"]`), `dev` (`cache: false`, `persistent: true`), `typecheck` (`dependsOn: ["^build"]`, `outputs: []`)
-  - [ ] 1.6 **Extend** root `.gitignore` — current file has only BMAD entries and is **missing** `node_modules/`, `dist/`, `.turbo/`. Add those plus `.reqor/` without removing existing BMAD paths
-  - [ ] 1.7 Add `.nvmrc` or `.node-version` with `24` for contributor consistency
+- [x] Task 1: Initialize monorepo root (AC: #1, #5, #6) — AD-1, AD-15
+  - [x] 1.1 Run `pnpm dlx create-turbo@latest` (or equivalent) at repo root, then **delete default `apps/` scaffold** — layout must be `packages/`-only per Structural Seed
+  - [x] 1.2 Create `pnpm-workspace.yaml` with `packages/*` and a `catalog:` block (see example below). In pnpm 11, non-auth pnpm settings belong here — not `.npmrc`
+  - [x] 1.3 Root `package.json`: `private: true`, `"license": "MIT"`, `packageManager: "pnpm@11.0.0"` (or latest 11.x), `engines.node: ">=24 <25"`, scripts `build`, `test`, `dev`, `typecheck` delegating to `turbo`
+  - [x] 1.4 Add root `tsconfig.json` (or `tsconfig.base.json`) with `strict: true`, `moduleResolution: "bundler"`, `module: "ESNext"`, `target: "ES2022"`. Each package `tsconfig.json` extends this base
+  - [x] 1.5 Add root `turbo.json` with tasks: `build` (`dependsOn: ["^build"]`, `outputs: ["dist/**"]`), `test` (`dependsOn: ["^build"]`), `dev` (`cache: false`, `persistent: true`), `typecheck` (`dependsOn: ["^build"]`, `outputs: []`)
+  - [x] 1.6 **Extend** root `.gitignore` — current file has only BMAD entries and is **missing** `node_modules/`, `dist/`, `.turbo/`. Add those plus `.reqor/` without removing existing BMAD paths
+  - [x] 1.7 Add `.nvmrc` or `.node-version` with `24` for contributor consistency
 
-- [ ] Task 2: Scaffold `@reqor/shared-types` (AC: #1, #2, #6) — AD-10
-  - [ ] 2.1 Create `packages/shared-types/package.json`: `name: "@reqor/shared-types"`, `"type": "module"`, `"exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } }`
-  - [ ] 2.2 TypeScript config extending root base; `src/index.ts` exports:
+- [x] Task 2: Scaffold `@reqor/shared-types` (AC: #1, #2, #6) — AD-10
+  - [x] 2.1 Create `packages/shared-types/package.json`: `name: "@reqor/shared-types"`, `"type": "module"`, `"exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } }`
+  - [x] 2.2 TypeScript config extending root base; `src/index.ts` exports:
     - `HealthResponse` TypeBox schema + inferred `Static<typeof HealthResponse>` type
     - `ApiErrorEnvelope` schema: `{ error: { code: string, message: string, details?: unknown } }` — establishes API contract pattern for all endpoints
-  - [ ] 2.3 Dependencies via `catalog:`: `typebox`, `typescript` (dev). Use `@sinclair/typebox` or `typebox` per catalog pin — match Fastify type-provider docs
-  - [ ] 2.4 Vitest smoke test asserting `HealthResponse` and `ApiErrorEnvelope` exports resolve
-  - [ ] 2.5 `build` emits `dist/` via `tsc` (preferred for types package)
+  - [x] 2.3 Dependencies via `catalog:`: `typebox`, `typescript` (dev). Use `@sinclair/typebox` or `typebox` per catalog pin — match Fastify type-provider docs
+  - [x] 2.4 Vitest smoke test asserting `HealthResponse` and `ApiErrorEnvelope` exports resolve
+  - [x] 2.5 `build` emits `dist/` via `tsc` (preferred for types package)
 
-- [ ] Task 3: Scaffold `@reqor/http-parser` (AC: #1, #2) — AD-2, AD-3
-  - [ ] 3.1 Create package: `"type": "module"`, `"exports"` map, **zero** runtime dependency on `server` or `web`
-  - [ ] 3.2 `src/index.ts` exports stub:
+- [x] Task 3: Scaffold `@reqor/http-parser` (AC: #1, #2) — AD-2, AD-3
+  - [x] 3.1 Create package: `"type": "module"`, `"exports"` map, **zero** runtime dependency on `server` or `web`
+  - [x] 3.2 `src/index.ts` exports stub:
     ```ts
     export interface ParsedRequest { method: string; url: string }
     export interface Diagnostic { file?: string; line: number; message: string }
@@ -65,12 +69,12 @@ so that the team has a consistent build substrate for CLI, server, web, parser, 
     export function parseHttpFile(content: string): ParseResult
     ```
     Real parser logic comes in Story 1.2
-  - [ ] 3.3 Vitest smoke test: stub returns `{ requests: [], diagnostics: [] }` for empty input
-  - [ ] 3.4 `build` emits `dist/` via `tsc`
+  - [x] 3.3 Vitest smoke test: stub returns `{ requests: [], diagnostics: [] }` for empty input
+  - [x] 3.4 `build` emits `dist/` via `tsc`
 
-- [ ] Task 4: Scaffold `@reqor/server` (AC: #1, #2, #3, #4) — AD-9, AD-10, NFR12
-  - [ ] 4.1 Dependencies via `workspace:` + `catalog:`: `@reqor/http-parser`, `@reqor/shared-types`, `fastify`, `@fastify/type-provider-typebox`, `typebox`; dev: `tsx`, `vitest`, `typescript`
-  - [ ] 4.2 Fastify 5 app with TypeBox type provider:
+- [x] Task 4: Scaffold `@reqor/server` (AC: #1, #2, #3, #4) — AD-9, AD-10, NFR12
+  - [x] 4.1 Dependencies via `workspace:` + `catalog:`: `@reqor/http-parser`, `@reqor/shared-types`, `fastify`, `@fastify/type-provider-typebox`, `typebox`; dev: `tsx`, `vitest`, `typescript`
+  - [x] 4.2 Fastify 5 app with TypeBox type provider:
     ```ts
     import Fastify from 'fastify'
     import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
@@ -81,36 +85,36 @@ so that the team has a consistent build substrate for CLI, server, web, parser, 
       schema: { response: { 200: HealthResponse } }
     }, async () => ({ status: 'ok', version: '0.0.0' }))
     ```
-  - [ ] 4.3 Listen on `host: '127.0.0.1'`, `port: 3000` — never `0.0.0.0` (NFR12)
-  - [ ] 4.4 `dev` script: `tsx watch src/index.ts`; `build` outputs `dist/`
-  - [ ] 4.5 Vitest integration test using `fastify.inject()`: `GET /api/health` returns 200 with typed body
+  - [x] 4.3 Listen on `host: '127.0.0.1'`, `port: 3000` — never `0.0.0.0` (NFR12)
+  - [x] 4.4 `dev` script: `tsx watch src/index.ts`; `build` outputs `dist/`
+  - [x] 4.5 Vitest integration test using `fastify.inject()`: `GET /api/health` returns 200 with typed body
 
-- [ ] Task 5: Scaffold `@reqor/web` (AC: #1, #2, #3, #4) — AD-10
-  - [ ] 5.1 Vite 6 + React 19 + TypeScript; dependencies via `catalog:`: `react`, `react-dom`, `@tanstack/react-query`, `@reqor/shared-types` (workspace). Dev: `vitest`, `@testing-library/react`, `@vitejs/plugin-react`, `vite`
-  - [ ] 5.2 `"type": "module"` + `"exports"` map; install TanStack Query now (AD-10) — wrap `App` in `QueryClientProvider` even if health fetch uses plain `fetch` for this story
-  - [ ] 5.3 `vite.config.ts`: proxy `/api` → `http://127.0.0.1:3000`; `dev` on port 5173
-  - [ ] 5.4 Minimal `App.tsx` renders "Reqor" and fetches `/api/health` to prove proxy + typed contract
-  - [ ] 5.5 Vitest + React Testing Library smoke test for App mount
-  - [ ] 5.6 `build` outputs `dist/`
+- [x] Task 5: Scaffold `@reqor/web` (AC: #1, #2, #3, #4) — AD-10
+  - [x] 5.1 Vite 6 + React 19 + TypeScript; dependencies via `catalog:`: `react`, `react-dom`, `@tanstack/react-query`, `@reqor/shared-types` (workspace). Dev: `vitest`, `@testing-library/react`, `@vitejs/plugin-react`, `vite`
+  - [x] 5.2 `"type": "module"` + `"exports"` map; install TanStack Query now (AD-10) — wrap `App` in `QueryClientProvider` even if health fetch uses plain `fetch` for this story
+  - [x] 5.3 `vite.config.ts`: proxy `/api` → `http://127.0.0.1:3000`; `dev` on port 5173
+  - [x] 5.4 Minimal `App.tsx` renders "Reqor" and fetches `/api/health` to prove proxy + typed contract
+  - [x] 5.5 Vitest + React Testing Library smoke test for App mount
+  - [x] 5.6 `build` outputs `dist/`
 
-- [ ] Task 6: Scaffold `@reqor/cli` (AC: #1, #2, #3) — AD-14
-  - [ ] 6.1 Package: `"type": "module"`, `bin: { "reqor": "./dist/index.js" }`, dependency on `@reqor/server` via `workspace:`
-  - [ ] 6.2 Entry `src/index.ts` compiled to `dist/index.js` with `#!/usr/bin/env node` shebang prepended at build time
-  - [ ] 6.3 Stub `serve` command prints "CLI scaffold ready — server start implemented in Story 1.4" and exits 0
-  - [ ] 6.4 Vitest smoke test for CLI module export
-  - [ ] 6.5 Do **not** implement full `reqor serve` yet (Story 1.4) — only prove package wiring
+- [x] Task 6: Scaffold `@reqor/cli` (AC: #1, #2, #3) — AD-14
+  - [x] 6.1 Package: `"type": "module"`, `bin: { "reqor": "./dist/index.js" }`, dependency on `@reqor/server` via `workspace:`
+  - [x] 6.2 Entry `src/index.ts` compiled to `dist/index.js` with `#!/usr/bin/env node` shebang prepended at build time
+  - [x] 6.3 Stub `serve` command prints "CLI scaffold ready — server start implemented in Story 1.4" and exits 0
+  - [x] 6.4 Vitest smoke test for CLI module export
+  - [x] 6.5 Do **not** implement full `reqor serve` yet (Story 1.4) — only prove package wiring
 
-- [ ] Task 7: Wire Turborepo dev pipeline (AC: #3, #4)
-  - [ ] 7.1 Per-package `dev` scripts: `@reqor/server` → `tsx watch src/index.ts`; `@reqor/web` → `vite`
-  - [ ] 7.2 Root `package.json` dev script: `turbo run dev --filter=@reqor/server --filter=@reqor/web`
-  - [ ] 7.3 `turbo.json` `dev` task: `"cache": false`, `"persistent": true` (no `dependsOn` — run concurrently)
-  - [ ] 7.4 Verify manually: `pnpm turbo dev` → Vite :5173, Fastify :3000, browser `/api/health` succeeds
-  - [ ] 7.5 `pnpm turbo build` produces `dist/` in all buildable packages
-  - [ ] 7.6 `pnpm turbo test` and `pnpm turbo typecheck` pass
+- [x] Task 7: Wire Turborepo dev pipeline (AC: #3, #4)
+  - [x] 7.1 Per-package `dev` scripts: `@reqor/server` → `tsx watch src/index.ts`; `@reqor/web` → `vite`
+  - [x] 7.2 Root `package.json` dev script: `turbo run dev --filter=@reqor/server --filter=@reqor/web`
+  - [x] 7.3 `turbo.json` `dev` task: `"cache": false`, `"persistent": true` (no `dependsOn` — run concurrently)
+  - [x] 7.4 Verify manually: `pnpm turbo dev` → Vite :5173, Fastify :3000, browser `/api/health` succeeds
+  - [x] 7.5 `pnpm turbo build` produces `dist/` in all buildable packages
+  - [x] 7.6 `pnpm turbo test` and `pnpm turbo typecheck` pass
 
-- [ ] Task 8: CI and documentation (AC: #3, #5)
-  - [ ] 8.1 Root README: prerequisites (Node 24, pnpm 11), repo structure (`packages/*`), install, build, test, typecheck, dev commands
-  - [ ] 8.2 Add `.github/workflows/ci.yml`: Node 24 matrix, `pnpm install`, `pnpm turbo build`, `pnpm turbo test`, `pnpm turbo typecheck`
+- [x] Task 8: CI and documentation (AC: #3, #5)
+  - [x] 8.1 Root README: prerequisites (Node 24, pnpm 11), repo structure (`packages/*`), install, build, test, typecheck, dev commands
+  - [x] 8.2 Add `.github/workflows/ci.yml`: Node 24 matrix, `pnpm install`, `pnpm turbo build`, `pnpm turbo test`, `pnpm turbo typecheck`
 
 ## Dev Notes
 
@@ -244,15 +248,67 @@ Story 1.1 only needs dev mode. Do not implement `@fastify/static` or CLI server 
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Composer
 
 ### Debug Log References
 
+- Split `@reqor/server` into `app.ts` (buildApp export) + `index.ts` (dev entry) so `tsx watch` starts Fastify reliably
+- Added `allowBuilds.esbuild: true` in `pnpm-workspace.yaml` for pnpm 11 build-script approval
+
 ### Completion Notes List
 
+- Scaffolded pnpm 11 + Turborepo 2 monorepo with five packages under `packages/` (manual equivalent to create-turbo)
+- All acceptance criteria satisfied: catalog deps, AD-2 edges, build/test/typecheck/dev pipeline
+- `pnpm install`, `pnpm turbo build`, `pnpm turbo test`, `pnpm turbo typecheck` all pass on Node 24.16.0
+- Dev verified: Fastify on 127.0.0.1:3000, Vite on :5173 proxying `/api/health` → `{"status":"ok","version":"0.0.0"}`
+- Smoke tests: 6 total across all packages (shared-types 2, http-parser 1, server 1, web 1, cli 1)
+
 ### File List
+
+- package.json
+- pnpm-workspace.yaml
+- pnpm-lock.yaml
+- tsconfig.json
+- turbo.json
+- .nvmrc
+- .gitignore
+- README.md
+- .github/workflows/ci.yml
+- packages/shared-types/package.json
+- packages/shared-types/tsconfig.json
+- packages/shared-types/vitest.config.ts
+- packages/shared-types/src/index.ts
+- packages/shared-types/src/index.test.ts
+- packages/http-parser/package.json
+- packages/http-parser/tsconfig.json
+- packages/http-parser/vitest.config.ts
+- packages/http-parser/src/index.ts
+- packages/http-parser/src/index.test.ts
+- packages/server/package.json
+- packages/server/tsconfig.json
+- packages/server/vitest.config.ts
+- packages/server/src/app.ts
+- packages/server/src/index.ts
+- packages/server/src/index.test.ts
+- packages/web/package.json
+- packages/web/tsconfig.json
+- packages/web/tsconfig.node.json
+- packages/web/vite.config.ts
+- packages/web/vitest.config.ts
+- packages/web/index.html
+- packages/web/src/vite-env.d.ts
+- packages/web/src/main.tsx
+- packages/web/src/App.tsx
+- packages/web/src/App.test.tsx
+- packages/cli/package.json
+- packages/cli/tsconfig.json
+- packages/cli/vitest.config.ts
+- packages/cli/scripts/add-shebang.mjs
+- packages/cli/src/index.ts
+- packages/cli/src/index.test.ts
 
 ## Change Log
 
 - 2026-07-09: Story context created by bmad-create-story workflow
 - 2026-07-10: Story context refined — TypeScript base, pnpm catalog protocol, TypeBox/Fastify pattern, error envelope, turbo dev wiring, CI workflow
+- 2026-07-10: Story 1.1 implemented — monorepo scaffold, five packages, CI workflow, all smoke tests passing
