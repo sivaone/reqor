@@ -14,3 +14,9 @@ _bmad/_resolved-config.json
 # External CLI local configuration caches
 .claude/
 CLAUDE.local.md
+
+# Node / build artifacts
+node_modules/
+dist/
+.turbo/
+.reqor/
