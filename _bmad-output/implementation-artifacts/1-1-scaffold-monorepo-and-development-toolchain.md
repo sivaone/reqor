@@ -4,7 +4,7 @@ baseline_commit: f5e87e1c1b434bc84ca9272c4bb78ffaa62328f7
 
 # Story 1.1: Scaffold Monorepo and Development Toolchain
 
-Status: review
+Status: done
 
 ## Definition of Done
 
