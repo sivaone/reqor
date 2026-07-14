@@ -165,6 +165,37 @@ GET https://api.example.com`
       }),
     )
     expect(result.requests).toHaveLength(1)
+    expect(result.requests[0]!.body).toBeUndefined()
+  })
+
+  it('detects response handler script by file path', () => {
+    const content = `GET https://api.example.com
+
+> ./scripts/handler.js`
+
+    const result = parseHttpFile(content)
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: DIAG_UNSUPPORTED_CONSTRUCT,
+        message: expect.stringContaining('response handler script'),
+      }),
+    )
+    expect(result.requests[0]!.body).toBeUndefined()
+  })
+
+  it('detects response reference', () => {
+    const content = `GET https://api.example.com
+
+<> previous-response.200.json`
+
+    const result = parseHttpFile(content)
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: DIAG_UNSUPPORTED_CONSTRUCT,
+        message: expect.stringContaining('response reference'),
+      }),
+    )
+    expect(result.requests[0]!.body).toBeUndefined()
   })
 
   it('detects file inclusion', () => {
@@ -180,6 +211,38 @@ Content-Type: application/json
         message: expect.stringContaining('file inclusion'),
       }),
     )
+    expect(result.requests[0]!.body).toBeUndefined()
+  })
+
+  it('excludes OUT constructs from body when inline content precedes them', () => {
+    const content = `POST https://api.example.com
+Content-Type: application/json
+
+{"inline":true}
+
+> {% client.test("ok", true); %}`
+
+    const result = parseHttpFile(content)
+    expect(result.requests[0]!.body?.content).toBe('{"inline":true}')
+  })
+
+  it('parses schemeless authority URLs', () => {
+    const localhost = parseHttpFile('GET localhost:8080/api/users')
+    expect(localhost.diagnostics).toEqual([])
+    expect(localhost.requests[0]!.url).toBe('localhost:8080/api/users')
+
+    const hostPath = parseHttpFile('GET example.com/api/get')
+    expect(hostPath.diagnostics).toEqual([])
+    expect(hostPath.requests[0]!.url).toBe('example.com/api/get')
+  })
+
+  it('parses CONNECT with authority target', () => {
+    const result = parseHttpFile('CONNECT tunnel.example.com:443')
+    expect(result.diagnostics).toEqual([])
+    expect(result.requests[0]).toMatchObject({
+      method: 'CONNECT',
+      url: 'tunnel.example.com:443',
+    })
   })
 
   it('detects OAuth2 helper variable', () => {

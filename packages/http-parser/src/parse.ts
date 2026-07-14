@@ -19,6 +19,30 @@ interface RequestBlock {
 
 const OAUTH_PATTERN = /\{\{\s*\$oauth/i
 
+function isFileInclusionLine(trimmed: string): boolean {
+  return /^<\s+\S/.test(trimmed)
+}
+
+function isResponseRefLine(trimmed: string): boolean {
+  return /^<>\s+\S/.test(trimmed)
+}
+
+function isInlineScriptLine(trimmed: string): boolean {
+  return /^>\s*(\{%|\{)/.test(trimmed)
+}
+
+function isResponseHandlerLine(trimmed: string): boolean {
+  return /^>\s+\S/.test(trimmed)
+}
+
+function isPostRequestOutLine(trimmed: string): boolean {
+  return (
+    isFileInclusionLine(trimmed) ||
+    isResponseRefLine(trimmed) ||
+    isResponseHandlerLine(trimmed)
+  )
+}
+
 function isCommentLine(line: string): boolean {
   const trimmed = line.trimStart()
   return trimmed.startsWith('#') || trimmed.startsWith('//')
@@ -51,17 +75,31 @@ function scanOutConstructs(
       )
     }
 
-    if (/^>\s*\{%/.test(trimmed) || /^>\s*\{/.test(trimmed)) {
+    if (isInlineScriptLine(trimmed)) {
       const construct =
         requestLineIdx >= 0 && i < requestLineIdx
           ? 'pre-request script'
           : 'response handler script'
       diagnostics.push(unsupportedConstruct(lineNo, construct, options))
+    } else if (
+      isResponseHandlerLine(trimmed) &&
+      requestLineIdx >= 0 &&
+      i >= requestLineIdx
+    ) {
+      diagnostics.push(
+        unsupportedConstruct(lineNo, 'response handler script', options),
+      )
     }
 
-    if (/^<\s+\S/.test(trimmed)) {
+    if (isFileInclusionLine(trimmed)) {
       diagnostics.push(
         unsupportedConstruct(lineNo, 'file inclusion (< path)', options),
+      )
+    }
+
+    if (isResponseRefLine(trimmed)) {
+      diagnostics.push(
+        unsupportedConstruct(lineNo, 'response reference (<> path)', options),
       )
     }
 
@@ -76,11 +114,15 @@ function scanOutConstructs(
 }
 
 function isValidRequestTarget(url: string): boolean {
+  if (!url) return false
   if (url === '*') return true
   if (url.startsWith('/')) return true
   if (/^https?:\/\//i.test(url)) return true
   if (url.includes('://')) return true
   if (url.startsWith('{{')) return true
+  if (url.startsWith('[')) return true
+  // schemeless absolute-form (authority/path per JetBrains spec)
+  if (/[/:?#]/.test(url) || url.includes('.')) return true
   return false
 }
 
@@ -279,6 +321,9 @@ function parseRequestBlock(
     if (isCommentLine(line)) {
       idx++
       continue
+    }
+    if (isPostRequestOutLine(line.trimStart())) {
+      break
     }
     bodyLines.push(line)
     idx++
