@@ -1,0 +1,2 @@
+GET https://api.stripe.com/v1/customers?limit=10
+Authorization: Bearer {{api_key}}

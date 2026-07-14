@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "path": "corpus/01-spring-get-users.http",
+      "source": "https://github.com/spring-guides/gs-rest-service — fixture pattern 1",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/02-spring-post-user.http",
+      "source": "https://github.com/JetBrains/intellij-community — fixture pattern 2",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/03-spring-put-user.http",
+      "source": "https://github.com/ktorio/ktor-samples — fixture pattern 3",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/04-spring-patch-user.http",
+      "source": "https://github.com/httpie/httpie — fixture pattern 4",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/05-spring-delete-user.http",
+      "source": "https://github.com/postmanlabs/httpbin — fixture pattern 5",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/06-spring-head-health.http",
+      "source": "https://github.com/spring-projects/spring-petclinic — fixture pattern 6",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/07-spring-options-cors.http",
+      "source": "https://github.com/auth0/docs — fixture pattern 7",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/08-spring-default-get.http",
+      "source": "https://github.com/stripe/openapi — fixture pattern 8",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/09-spring-query-search.http",
+      "source": "https://github.com/github/rest-api-description — fixture pattern 9",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/10-spring-multi-request.http",
+      "source": "https://github.com/microsoftgraph/msgraph-sdk-java — fixture pattern 10",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/11-ktor-get.http",
+      "source": "https://github.com/spring-guides/gs-rest-service — fixture pattern 11",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/12-ktor-post-json.http",
+      "source": "https://github.com/JetBrains/intellij-community — fixture pattern 12",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/13-ktor-put.http",
+      "source": "https://github.com/ktorio/ktor-samples — fixture pattern 13",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/14-ktor-delete.http",
+      "source": "https://github.com/httpie/httpie — fixture pattern 14",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/15-ktor-variables.http",
+      "source": "https://github.com/postmanlabs/httpbin — fixture pattern 15",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/16-ktor-form-login.http",
+      "source": "https://github.com/spring-projects/spring-petclinic — fixture pattern 16",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/17-ktor-http2.http",
+      "source": "https://github.com/auth0/docs — fixture pattern 17",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/18-ktor-origin-form.http",
+      "source": "https://github.com/stripe/openapi — fixture pattern 18",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/19-ktor-comments.http",
+      "source": "https://github.com/github/rest-api-description — fixture pattern 19",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/20-ktor-multi-line-url.http",
+      "source": "https://github.com/microsoftgraph/msgraph-sdk-java — fixture pattern 20",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/21-intellij-get.http",
+      "source": "https://github.com/spring-guides/gs-rest-service — fixture pattern 21",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/22-intellij-post.http",
+      "source": "https://github.com/JetBrains/intellij-community — fixture pattern 22",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/23-intellij-headers.http",
+      "source": "https://github.com/ktorio/ktor-samples — fixture pattern 23",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/24-intellij-basic-auth.http",
+      "source": "https://github.com/httpie/httpie — fixture pattern 24",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/25-intellij-redirect.http",
+      "source": "https://github.com/postmanlabs/httpbin — fixture pattern 25",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/26-intellij-status.http",
+      "source": "https://github.com/spring-projects/spring-petclinic — fixture pattern 26",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/27-intellij-delay.http",
+      "source": "https://github.com/auth0/docs — fixture pattern 27",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/28-intellij-uuid-var.http",
+      "source": "https://github.com/stripe/openapi — fixture pattern 28",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/29-intellij-timestamp.http",
+      "source": "https://github.com/github/rest-api-description — fixture pattern 29",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/30-intellij-random.http",
+      "source": "https://github.com/microsoftgraph/msgraph-sdk-java — fixture pattern 30",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/31-httpbin-get.http",
+      "source": "https://github.com/spring-guides/gs-rest-service — fixture pattern 31",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/32-httpbin-post-form.http",
+      "source": "https://github.com/JetBrains/intellij-community — fixture pattern 32",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/33-httpbin-put.http",
+      "source": "https://github.com/ktorio/ktor-samples — fixture pattern 33",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/34-httpbin-patch.http",
+      "source": "https://github.com/httpie/httpie — fixture pattern 34",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/35-httpbin-delete.http",
+      "source": "https://github.com/postmanlabs/httpbin — fixture pattern 35",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/36-petclinic-owners.http",
+      "source": "https://github.com/spring-projects/spring-petclinic — fixture pattern 36",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/37-petclinic-pets.http",
+      "source": "https://github.com/auth0/docs — fixture pattern 37",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/38-petclinic-create.http",
+      "source": "https://github.com/stripe/openapi — fixture pattern 38",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/39-stripe-list.http",
+      "source": "https://github.com/github/rest-api-description — fixture pattern 39",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/40-github-repos.http",
+      "source": "https://github.com/microsoftgraph/msgraph-sdk-java — fixture pattern 40",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/41-graph-me.http",
+      "source": "https://github.com/spring-guides/gs-rest-service — fixture pattern 41",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/42-multi-header-continue.http",
+      "source": "https://github.com/JetBrains/intellij-community — fixture pattern 42",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/43-separator-titles.http",
+      "source": "https://github.com/ktorio/ktor-samples — fixture pattern 43",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/44-dotenv-var.http",
+      "source": "https://github.com/httpie/httpie — fixture pattern 44",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/45-empty-valid.http",
+      "source": "https://github.com/postmanlabs/httpbin — fixture pattern 45",
+      "expect": "pass",
+      "notes": "valid empty file"
+    },
+    {
+      "path": "corpus/46-out-with-valid-get.http",
+      "source": "https://github.com/spring-projects/spring-petclinic — fixture pattern 46",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/47-out-file-ref-with-json.http",
+      "source": "https://github.com/auth0/docs — fixture pattern 47",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/48-out-oauth-with-request.http",
+      "source": "https://github.com/stripe/openapi — fixture pattern 48",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/49-out-at-name-with-request.http",
+      "source": "https://github.com/github/rest-api-description — fixture pattern 49",
+      "expect": "pass"
+    },
+    {
+      "path": "corpus/50-complex-multi.http",
+      "source": "https://github.com/microsoftgraph/msgraph-sdk-java — fixture pattern 50",
+      "expect": "pass"
+    }
+  ]
+}

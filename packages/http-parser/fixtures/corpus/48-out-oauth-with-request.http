@@ -1,0 +1,3 @@
+GET https://api.example.com/me
+Authorization: Bearer {{$oauth.token}}
+Accept: application/json

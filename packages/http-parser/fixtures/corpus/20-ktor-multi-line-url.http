@@ -1,0 +1,3 @@
+GET https://api.example.com
+    /v2/reports
+    ?year=2024

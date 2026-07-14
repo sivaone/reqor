@@ -1,0 +1,7 @@
+POST https://api.example.com/upload
+Content-Type: application/json
+
+{"inline":true}
+
+### second
+GET https://api.example.com/status

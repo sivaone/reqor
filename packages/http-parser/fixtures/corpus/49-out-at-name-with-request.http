@@ -1,0 +1,3 @@
+@token = bearer abc
+GET https://api.example.com/protected
+Authorization: {{token}}

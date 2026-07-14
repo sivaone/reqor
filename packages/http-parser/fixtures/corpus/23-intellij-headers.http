@@ -1,0 +1,3 @@
+GET https://httpbin.org/headers
+Accept: application/json
+User-Agent: reqor-fixture/1.0

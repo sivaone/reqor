@@ -1,0 +1,2 @@
+GET https://api.example.com/secure
+Authorization: Bearer {{$dotenv API_TOKEN}}

@@ -1,0 +1,2 @@
+GET http://{{host}}:{{port}}/v1/profile
+Authorization: Bearer {{token}}

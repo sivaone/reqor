@@ -1,0 +1,4 @@
+PUT https://httpbin.org/put
+Content-Type: text/plain
+
+plain body text

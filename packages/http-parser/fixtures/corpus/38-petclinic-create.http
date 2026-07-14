@@ -1,0 +1,4 @@
+POST http://localhost:9966/petclinic/api/owners
+Content-Type: application/json
+
+{"firstName":"George","lastName":"Franklin"}

@@ -1,0 +1,3 @@
+# has OUT script but valid request
+> {% client.log("skip"); %}
+GET https://api.example.com/ok
