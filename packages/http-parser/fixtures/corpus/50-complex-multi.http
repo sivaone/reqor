@@ -1,0 +1,12 @@
+### Health
+GET http://localhost:8080/health
+
+### Login
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{"user":"admin","pass":"{{password}}"}
+
+### Profile
+GET http://localhost:8080/me
+Authorization: Bearer {{accessToken}}

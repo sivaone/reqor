@@ -1,0 +1,1 @@
+GET http://localhost:9966/petclinic/api/owners/1/pets

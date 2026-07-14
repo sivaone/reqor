@@ -1,0 +1,3 @@
+GET https://api.github.com/user/repos?per_page=5
+Accept: application/vnd.github+json
+Authorization: Bearer {{github_token}}

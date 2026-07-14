@@ -1,0 +1,2 @@
+GET /api/local
+Host: localhost:8080

@@ -1,19 +1,28 @@
-export interface ParsedRequest {
-  method: string
-  url: string
-}
+export type {
+  BodyKind,
+  Diagnostic,
+  ParseOptions,
+  ParseResult,
+  ParsedBody,
+  ParsedHeader,
+  ParsedRequest,
+  SourceSpan,
+} from './ast.js'
 
-export interface Diagnostic {
-  file?: string
-  line: number
-  message: string
-}
+export {
+  astEquivalent,
+  classifyBodyKind,
+  isHttpMethod,
+  normalizeMethod,
+} from './ast.js'
 
-export interface ParseResult {
-  requests: ParsedRequest[]
-  diagnostics: Diagnostic[]
-}
+export {
+  DIAG_PARSE_ERROR,
+  DIAG_UNSUPPORTED_CONSTRUCT,
+  createDiagnostic,
+  parseError,
+  unsupportedConstruct,
+} from './diagnostics.js'
 
-export function parseHttpFile(_content: string): ParseResult {
-  return { requests: [], diagnostics: [] }
-}
+export { parseHttpFile } from './parse.js'
+export { serializeHttpFile } from './serialize.js'

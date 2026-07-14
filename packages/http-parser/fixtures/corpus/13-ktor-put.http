@@ -1,0 +1,4 @@
+PUT http://localhost:8080/v1/items/42
+Content-Type: application/json
+
+{"title":"updated"}

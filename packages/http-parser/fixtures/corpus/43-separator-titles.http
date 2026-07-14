@@ -1,0 +1,5 @@
+### Auth check
+GET https://api.example.com/auth
+
+### Fetch data
+GET https://api.example.com/data
