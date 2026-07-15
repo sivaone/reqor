@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fastify/static": "catalog:",
     "@fastify/type-provider-typebox": "catalog:",
     "@reqor/http-parser": "workspace:*",
     "@reqor/shared-types": "workspace:*",

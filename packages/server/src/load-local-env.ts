@@ -28,17 +28,7 @@ function parseEnvLine(line: string): [string, string] | undefined {
   return [key, value]
 }
 
-export function loadReqorLocalEnv(startDir = process.cwd()): string | undefined {
-  const gitRoot = findGitRoot(startDir)
-  if (!gitRoot) {
-    return undefined
-  }
-
-  const envPath = path.join(gitRoot, LOCAL_ENV_RELATIVE_PATH)
-  if (!fs.existsSync(envPath)) {
-    return undefined
-  }
-
+function applyEnvFile(envPath: string): string {
   const contents = fs.readFileSync(envPath, 'utf8')
   for (const line of contents.split(/\r?\n/)) {
     const parsed = parseEnvLine(line)
@@ -53,4 +43,29 @@ export function loadReqorLocalEnv(startDir = process.cwd()): string | undefined 
   }
 
   return envPath
+}
+
+/**
+ * Load `.reqor/local.env` for a repository root.
+ * Prefers `<startDir>/.reqor/local.env` (CLI / explicit Repository Root),
+ * then falls back to the nearest git root (dev convenience from nested cwd).
+ */
+export function loadReqorLocalEnv(startDir = process.cwd()): string | undefined {
+  const resolvedStart = path.resolve(startDir)
+  const directPath = path.join(resolvedStart, LOCAL_ENV_RELATIVE_PATH)
+  if (fs.existsSync(directPath)) {
+    return applyEnvFile(directPath)
+  }
+
+  const gitRoot = findGitRoot(resolvedStart)
+  if (!gitRoot || gitRoot === resolvedStart) {
+    return undefined
+  }
+
+  const envPath = path.join(gitRoot, LOCAL_ENV_RELATIVE_PATH)
+  if (!fs.existsSync(envPath)) {
+    return undefined
+  }
+
+  return applyEnvFile(envPath)
 }
