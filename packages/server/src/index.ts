@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from './app.js'
+import { DEFAULT_HOST, DEFAULT_PORT } from './constants.js'
 import { loadReqorLocalEnv } from './load-local-env.js'
 import { resolveRepositoryRoot } from './resolve-repository-root.js'
 
@@ -41,7 +42,7 @@ async function start() {
   loadReqorLocalEnv()
   const repositoryRoot = resolveRepositoryRoot()
   app = await buildApp({ repositoryRoot })
-  await app.listen({ host: '127.0.0.1', port: 3000 })
+  await app.listen({ host: DEFAULT_HOST, port: DEFAULT_PORT })
 }
 
 start().catch((err) => {

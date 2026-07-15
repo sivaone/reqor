@@ -6,6 +6,10 @@
   "bin": {
     "reqor": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "web-dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -13,7 +17,7 @@
     }
   },
   "scripts": {
-    "build": "tsc && node scripts/add-shebang.mjs",
+    "build": "tsc && node scripts/copy-web-dist.mjs && node scripts/add-shebang.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -21,6 +25,7 @@
     "@reqor/server": "workspace:*"
   },
   "devDependencies": {
+    "@reqor/web": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

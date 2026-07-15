@@ -18,5 +18,6 @@ CLAUDE.local.md
 # Node / build artifacts
 node_modules/
 dist/
+web-dist/
 .turbo/
 .reqor/

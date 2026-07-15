@@ -55,4 +55,44 @@ describe('loadReqorLocalEnv', () => {
 
     expect(process.env.REQOR_REPOSITORY_ROOT).toBe('C:\\already-set')
   })
+
+  it('loads .reqor/local.env from startDir even without a git root', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'reqor-local-env-'))
+    tempDirs.push(root)
+    await fs.mkdir(path.join(root, '.reqor'))
+    await fs.writeFile(
+      path.join(root, '.reqor', 'local.env'),
+      'REQOR_REPOSITORY_ROOT=served-root\n',
+    )
+
+    delete process.env.REQOR_REPOSITORY_ROOT
+    const loadedFrom = loadReqorLocalEnv(root)
+
+    expect(loadedFrom).toBe(path.join(root, '.reqor', 'local.env'))
+    expect(process.env.REQOR_REPOSITORY_ROOT).toBe('served-root')
+  })
+
+  it('prefers startDir .reqor/local.env over git-root fallback', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'reqor-local-env-'))
+    tempDirs.push(root)
+    await fs.mkdir(path.join(root, '.git'))
+    await fs.mkdir(path.join(root, '.reqor'))
+    await fs.writeFile(
+      path.join(root, '.reqor', 'local.env'),
+      'REQOR_REPOSITORY_ROOT=git-root\n',
+    )
+
+    const served = path.join(root, 'api-tests')
+    await fs.mkdir(path.join(served, '.reqor'), { recursive: true })
+    await fs.writeFile(
+      path.join(served, '.reqor', 'local.env'),
+      'REQOR_REPOSITORY_ROOT=served-root\n',
+    )
+
+    delete process.env.REQOR_REPOSITORY_ROOT
+    const loadedFrom = loadReqorLocalEnv(served)
+
+    expect(loadedFrom).toBe(path.join(served, '.reqor', 'local.env'))
+    expect(process.env.REQOR_REPOSITORY_ROOT).toBe('served-root')
+  })
 })
