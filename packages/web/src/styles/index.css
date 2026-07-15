@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+:root {
+  --color-overlay: rgba(0, 0, 0, 0.4);
+}
+
+@theme {
+  --color-header-background: #1b1b1b;
+  --color-header-foreground: #ffffff;
+  --color-background: #ffffff;
+  --color-surface: #fafafa;
+  --color-surface-muted: #f0f0f0;
+  --color-foreground: #3b4151;
+  --color-foreground-muted: #777777;
+  --color-border: #d8dde7;
+  --color-border-subtle: #e8e8e8;
+  --color-primary: #4990e2;
+  --color-primary-foreground: #ffffff;
+  --color-method-get: #61affe;
+  --color-method-post: #49cc90;
+  --color-method-put: #fca130;
+  --color-method-patch: #50e3c2;
+  --color-method-delete: #f93e3e;
+  --color-method-head: #9012fe;
+  --color-method-options: #0d5aa7;
+  --color-success: #49cc90;
+  --color-warning: #fca130;
+  --color-error: #f93e3e;
+  --color-secret-masked: #c4c4c4;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --spacing-header-height: 48px;
+  --spacing-sidebar-width: 280px;
+  --spacing-panel-gap: 0px;
+  --spacing-inset: 12px;
+  --spacing-inset-sm: 8px;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+}
+
+@layer components {
+  .text-body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  .text-label {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .text-mono {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  .text-app-title {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+}
