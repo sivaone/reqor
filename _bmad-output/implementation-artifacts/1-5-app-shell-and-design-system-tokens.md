@@ -4,7 +4,7 @@ baseline_commit: 8323c30
 
 # Story 1.5: App Shell and Design System Tokens
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -12,18 +12,18 @@ Status: ready-for-dev
 
 Verify all of the following before marking done:
 
-- [ ] `pnpm --filter @reqor/web build` succeeds with Tailwind v4 + design tokens
-- [ ] Built CSS lands in `packages/web/dist/assets/` and is copied into `packages/cli/web-dist/` via `copy-web-dist.mjs` (Story 1.4 packaging)
-- [ ] `pnpm --filter @reqor/web test` and `pnpm turbo typecheck` pass (no regressions from Stories 1.1–1.4)
-- [ ] `pnpm turbo build test typecheck` pass workspace-wide
-- [ ] Opening `http://localhost:3000` (via `reqor serve` or `pnpm turbo dev` + built preview) shows Swagger-inspired app shell within 2s on localhost (NFR1)
-- [ ] Header is 48px `#1B1B1B` with "Reqor" left-aligned only — no menu, search, env selector, sign-in, or notifications
-- [ ] Three-pane layout at 1280px min: 280px sidebar + main workspace with resizable request/response split (default 50/50)
-- [ ] Flat elevation only — 1px borders, no box shadows
-- [ ] Cold load: 4–6 sidebar skeleton rows while `GET /api/collections` pending; workspace shows "Select a request" placeholder
-- [ ] After collections load, skeleton clears; sidebar shows empty shell (no collection tree yet — Story 1.6)
-- [ ] No collection tree, search, refresh, request line, Send/Save, proxy, or environment selector (Stories 1.6–1.7, Epic 2)
-- [ ] UX-DR25 absences held: no create-new `.http` UI, drag-and-drop reorder, right-click context menus, or history infinite scroll
+- [x] `pnpm --filter @reqor/web build` succeeds with Tailwind v4 + design tokens
+- [x] Built CSS lands in `packages/web/dist/assets/` and is copied into `packages/cli/web-dist/` via `copy-web-dist.mjs` (Story 1.4 packaging)
+- [x] `pnpm --filter @reqor/web test` and `pnpm turbo typecheck` pass (no regressions from Stories 1.1–1.4)
+- [x] `pnpm turbo build test typecheck` pass workspace-wide
+- [x] Opening `http://localhost:3000` (via `reqor serve` or `pnpm turbo dev` + built preview) shows Swagger-inspired app shell within 2s on localhost (NFR1)
+- [x] Header is 48px `#1B1B1B` with "Reqor" left-aligned only — no menu, search, env selector, sign-in, or notifications
+- [x] Three-pane layout at 1280px min: 280px sidebar + main workspace with resizable request/response split (default 50/50)
+- [x] Flat elevation only — 1px borders, no box shadows
+- [x] Cold load: 4–6 sidebar skeleton rows while `GET /api/collections` pending; workspace shows "Select a request" placeholder
+- [x] After collections load, skeleton clears; sidebar shows empty shell (no collection tree yet — Story 1.6)
+- [x] No collection tree, search, refresh, request line, Send/Save, proxy, or environment selector (Stories 1.6–1.7, Epic 2)
+- [x] UX-DR25 absences held: no create-new `.http` UI, drag-and-drop reorder, right-click context menus, or history infinite scroll
 
 ## Story
 
@@ -53,53 +53,53 @@ So that the UI feels like a professional developer tool with minimal chrome.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add Tailwind CSS v4 + design token foundation (AC: #2, #6, #7) — UX-DR1, UX-DR23
-  - [ ] 1.1 Add to pnpm `catalog:` with pinned ranges: `tailwindcss: ^4.0.0`, `@tailwindcss/vite: ^4.0.0`, `react-resizable-panels: ^4.0.0`
-  - [ ] 1.2 Install deps in `@reqor/web`: runtime `react-resizable-panels` (catalog); dev `tailwindcss`, `@tailwindcss/vite` (catalog)
-  - [ ] 1.3 Create `packages/web/src/styles/index.css` with `@import "tailwindcss"` and `@theme { ... }` mapping **every** DESIGN.md frontmatter color, typography, spacing, and rounded token (see token table below — no omissions)
-  - [ ] 1.4 Map tokens to Tailwind v4 `@theme` using `--color-*`, `--font-*`, `--spacing-*`, `--radius-*` (e.g. `--color-header-background: #1B1B1B`, `--spacing-header-height: 48px`, `--spacing-sidebar-width: 280px`)
-  - [ ] 1.5 Add `@layer components` typography roles matching DESIGN.md exactly:
+- [x] Task 1: Add Tailwind CSS v4 + design token foundation (AC: #2, #6, #7) — UX-DR1, UX-DR23
+  - [x] 1.1 Add to pnpm `catalog:` with pinned ranges: `tailwindcss: ^4.0.0`, `@tailwindcss/vite: ^4.0.0`, `react-resizable-panels: ^4.0.0`
+  - [x] 1.2 Install deps in `@reqor/web`: runtime `react-resizable-panels` (catalog); dev `tailwindcss`, `@tailwindcss/vite` (catalog)
+  - [x] 1.3 Create `packages/web/src/styles/index.css` with `@import "tailwindcss"` and `@theme { ... }` mapping **every** DESIGN.md frontmatter color, typography, spacing, and rounded token (see token table below — no omissions)
+  - [x] 1.4 Map tokens to Tailwind v4 `@theme` using `--color-*`, `--font-*`, `--spacing-*`, `--radius-*` (e.g. `--color-header-background: #1B1B1B`, `--spacing-header-height: 48px`, `--spacing-sidebar-width: 280px`)
+  - [x] 1.5 Add `@layer components` typography roles matching DESIGN.md exactly:
     - `.text-body` — 14px / 400 / line-height 1.5 / system sans stack
     - `.text-label` — 12px / 600 / uppercase / letter-spacing 0.02em / line-height 1.4
     - `.text-mono` — 13px / 400 / mono stack / line-height 1.5
     - `.text-app-title` — 16px / 600 / line-height 1.2 / system sans stack
-  - [ ] 1.6 Define overlay on `:root` (not `@theme` — must not generate `bg-overlay` utilities): `--color-overlay: rgba(0, 0, 0, 0.4)`. No shadow utilities anywhere in MVP shell
-  - [ ] 1.7 Update `vite.config.ts`: add `@tailwindcss/vite` **alongside** `@vitejs/plugin-react` (order: react first, then tailwind)
-  - [ ] 1.8 Update `vitest.config.ts`: add `@tailwindcss/vite` the same way so CSS imports resolve under Vitest/jsdom
-  - [ ] 1.9 Import `./styles/index.css` from `main.tsx`
-  - [ ] 1.10 Set `index.html` `<body>` classes to `min-h-screen overflow-hidden` (`lang="en"` already present — do not change)
+  - [x] 1.6 Define overlay on `:root` (not `@theme` — must not generate `bg-overlay` utilities): `--color-overlay: rgba(0, 0, 0, 0.4)`. No shadow utilities anywhere in MVP shell
+  - [x] 1.7 Update `vite.config.ts`: add `@tailwindcss/vite` **alongside** `@vitejs/plugin-react` (order: react first, then tailwind)
+  - [x] 1.8 Update `vitest.config.ts`: add `@tailwindcss/vite` the same way so CSS imports resolve under Vitest/jsdom
+  - [x] 1.9 Import `./styles/index.css` from `main.tsx`
+  - [x] 1.10 Set `index.html` `<body>` classes to `min-h-screen overflow-hidden` (`lang="en"` already present — do not change)
 
-- [ ] Task 2: Build app shell layout components (AC: #3, #4, #5, #7) — UX-DR2, UX-DR3, UX-DR4, UX-DR25
-  - [ ] 2.1 Create `packages/web/src/components/AppShell.tsx` — root flex column `h-screen overflow-hidden`
-  - [ ] 2.2 Create `packages/web/src/components/AppHeader.tsx` — fixed 48px bar, `bg-header-background text-header-foreground`, "Reqor" with `text-app-title` left-aligned; expose accessible name (e.g. `role="banner"` + text, or `h1`); **no right-side controls**
-  - [ ] 2.3 Create `packages/web/src/components/AppLayout.tsx` — horizontal flex: sidebar (280px fixed) + main (flex-1 min-w-0)
-  - [ ] 2.4 Create `packages/web/src/components/SidebarShell.tsx` — bordered right edge, `bg-surface`, full height; hosts skeleton or future tab content (Story 1.6). For 1.5: skeleton rows OR empty muted area after load — **no Collections|History tabs yet**. Mark sidebar with an accessible region (e.g. `role="complementary"` or `aria-label="Sidebar"`)
-  - [ ] 2.5 Create `packages/web/src/components/WorkspaceShell.tsx` — vertical `Group` from `react-resizable-panels` v4:
+- [x] Task 2: Build app shell layout components (AC: #3, #4, #5, #7) — UX-DR2, UX-DR3, UX-DR4, UX-DR25
+  - [x] 2.1 Create `packages/web/src/components/AppShell.tsx` — root flex column `h-screen overflow-hidden`
+  - [x] 2.2 Create `packages/web/src/components/AppHeader.tsx` — fixed 48px bar, `bg-header-background text-header-foreground`, "Reqor" with `text-app-title` left-aligned; expose accessible name (e.g. `role="banner"` + text, or `h1`); **no right-side controls**
+  - [x] 2.3 Create `packages/web/src/components/AppLayout.tsx` — horizontal flex: sidebar (280px fixed) + main (flex-1 min-w-0)
+  - [x] 2.4 Create `packages/web/src/components/SidebarShell.tsx` — bordered right edge, `bg-surface`, full height; hosts skeleton or future tab content (Story 1.6). For 1.5: skeleton rows OR empty muted area after load — **no Collections|History tabs yet**. Mark sidebar with an accessible region (e.g. `role="complementary"` or `aria-label="Sidebar"`)
+  - [x] 2.5 Create `packages/web/src/components/WorkspaceShell.tsx` — vertical `Group` from `react-resizable-panels` v4:
     - Top panel: Request workspace placeholder ("Select a request")
     - Bottom panel: Response workspace placeholder (empty/muted)
     - `Separator` between panels — 1px border, no shadow; default 50/50
-  - [ ] 2.6 Enforce `min-w-[1280px]` on shell root OR `min-width: 1280px` on outer container per UX-DR3
-  - [ ] 2.7 Replace health-check demo UI in `App.tsx` with `<AppShell />` composition
+  - [x] 2.6 Enforce `min-w-[1280px]` on shell root OR `min-width: 1280px` on outer container per UX-DR3
+  - [x] 2.7 Replace health-check demo UI in `App.tsx` with `<AppShell />` composition
 
-- [ ] Task 3: Cold-load skeleton + collections fetch (AC: #8) — UX-DR16, AD-10
-  - [ ] 3.1 Create `packages/web/src/hooks/useCollections.ts` — TanStack Query `useQuery` for `GET /api/collections`, typed with `CollectionsListResponseType` from `@reqor/shared-types` (already exported — do not duplicate or change shared-types)
-  - [ ] 3.2 Create `packages/web/src/components/SidebarSkeleton.tsx` — 4–6 animated/muted skeleton rows using `surface-muted` + `rounded-sm`; no third-party skeleton lib
-  - [ ] 3.3 Create `packages/web/src/components/RequestPlaceholder.tsx` — centered `foreground-muted` text: "Select a request"
-  - [ ] 3.4 Wire loading state: `isPending` → sidebar skeleton + request placeholder; `isSuccess` → clear skeleton, keep request placeholder (tree UI is Story 1.6)
-  - [ ] 3.5 On fetch error: show muted inline error in sidebar ("Could not load collections") — do not crash shell; health endpoint failure is separate concern
-  - [ ] 3.6 Remove direct `fetch('/api/health')` from App — health check no longer user-visible (server still serves endpoint)
+- [x] Task 3: Cold-load skeleton + collections fetch (AC: #8) — UX-DR16, AD-10
+  - [x] 3.1 Create `packages/web/src/hooks/useCollections.ts` — TanStack Query `useQuery` for `GET /api/collections`, typed with `CollectionsListResponseType` from `@reqor/shared-types` (already exported — do not duplicate or change shared-types)
+  - [x] 3.2 Create `packages/web/src/components/SidebarSkeleton.tsx` — 4–6 animated/muted skeleton rows using `surface-muted` + `rounded-sm`; no third-party skeleton lib
+  - [x] 3.3 Create `packages/web/src/components/RequestPlaceholder.tsx` — centered `foreground-muted` text: "Select a request"
+  - [x] 3.4 Wire loading state: `isPending` → sidebar skeleton + request placeholder; `isSuccess` → clear skeleton, keep request placeholder (tree UI is Story 1.6)
+  - [x] 3.5 On fetch error: show muted inline error in sidebar ("Could not load collections") — do not crash shell; health endpoint failure is separate concern
+  - [x] 3.6 Remove direct `fetch('/api/health')` from App — health check no longer user-visible (server still serves endpoint)
 
-- [ ] Task 4: Test suite (AC: all)
-  - [ ] 4.1 Update `App.test.tsx` — render AppShell; assert "Reqor" via accessible query (prefer `getByRole('banner')` / heading — not the old health-demo `h1`-only assumption), "Select a request" placeholder, sidebar region present
-  - [ ] 4.2 `SidebarSkeleton.test.tsx` — renders 4–6 skeleton elements
-  - [ ] 4.3 `useCollections.test.ts` or integration test with `vi.stubGlobal('fetch', ...)` / mock — loading → success transitions skeleton away
-  - [ ] 4.4 Optional: test resizable panels render both request/response regions (smoke only — no drag simulation required)
-  - [ ] 4.5 Manual smoke: `pnpm turbo dev` → shell at :5173; `pnpm turbo build && node packages/cli/dist/index.js serve .` → shell at :3000 with CSS loaded (no unstyled header)
+- [x] Task 4: Test suite (AC: all)
+  - [x] 4.1 Update `App.test.tsx` — render AppShell; assert "Reqor" via accessible query (prefer `getByRole('banner')` / heading — not the old health-demo `h1`-only assumption), "Select a request" placeholder, sidebar region present
+  - [x] 4.2 `SidebarSkeleton.test.tsx` — renders 4–6 skeleton elements
+  - [x] 4.3 `useCollections.test.ts` or integration test with `vi.stubGlobal('fetch', ...)` / mock — loading → success transitions skeleton away
+  - [x] 4.4 Optional: test resizable panels render both request/response regions (smoke only — no drag simulation required)
+  - [x] 4.5 Manual smoke: `pnpm turbo dev` → shell at :5173; `pnpm turbo build && node packages/cli/dist/index.js serve .` → shell at :3000 with CSS loaded (no unstyled header)
 
-- [ ] Task 5: Workspace verification (AC: all)
-  - [ ] 5.1 Run `pnpm turbo build test typecheck`
-  - [ ] 5.2 Confirm Story 1.4 static serve + API still works from same origin
-  - [ ] 5.3 Confirm `packages/cli/web-dist/assets/` contains the Tailwind-built CSS after build + copy-web-dist
+- [x] Task 5: Workspace verification (AC: all)
+  - [x] 5.1 Run `pnpm turbo build test typecheck`
+  - [x] 5.2 Confirm Story 1.4 static serve + API still works from same origin
+  - [x] 5.3 Confirm `packages/cli/web-dist/assets/` contains the Tailwind-built CSS after build + copy-web-dist
 
 ## Dev Notes
 
@@ -365,15 +365,52 @@ Patterns: incremental story delivery in `packages/web`, minimal cross-package ch
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Cursor Grok 4.5
 
 ### Debug Log References
 
+- jsdom lacks `ResizeObserver`; added `packages/web/src/test-setup.ts` stub so `react-resizable-panels` Group mounts under Vitest
+- `useCollections` hook tests needed `.tsx` extension for JSX in QueryClientProvider wrapper
+
 ### Completion Notes List
 
+- Tailwind v4 + `@tailwindcss/vite` wired in Vite and Vitest; all DESIGN.md color/spacing/radius tokens in `@theme`; overlay on `:root` only
+- App shell: 48px header ("Reqor" only), 280px sidebar, vertical 50/50 resizable request/response split (`Group`/`Panel`/`Separator`), `min-w-[1280px]`, flat borders only
+- Cold load via `useCollections` → 5 skeleton rows while pending; empty sidebar on success; muted error on failure; "Select a request" placeholder always in request pane
+- Removed health-check demo from `App.tsx`
+- Tests: App shell a11y, SidebarSkeleton count, SidebarShell load/error transitions, useCollections hook, WorkspaceShell regions
+- `pnpm turbo build test typecheck` passed; Tailwind CSS present in `packages/cli/web-dist/assets/`
+
 ### File List
+
+- pnpm-workspace.yaml
+- pnpm-lock.yaml
+- packages/web/package.json
+- packages/web/index.html
+- packages/web/vite.config.ts
+- packages/web/vitest.config.ts
+- packages/web/src/main.tsx
+- packages/web/src/App.tsx
+- packages/web/src/App.test.tsx
+- packages/web/src/styles/index.css
+- packages/web/src/test-setup.ts
+- packages/web/src/hooks/useCollections.ts
+- packages/web/src/hooks/useCollections.test.tsx
+- packages/web/src/components/AppShell.tsx
+- packages/web/src/components/AppHeader.tsx
+- packages/web/src/components/AppLayout.tsx
+- packages/web/src/components/SidebarShell.tsx
+- packages/web/src/components/SidebarShell.test.tsx
+- packages/web/src/components/SidebarSkeleton.tsx
+- packages/web/src/components/SidebarSkeleton.test.tsx
+- packages/web/src/components/WorkspaceShell.tsx
+- packages/web/src/components/WorkspaceShell.test.tsx
+- packages/web/src/components/RequestPlaceholder.tsx
+- _bmad-output/implementation-artifacts/1-5-app-shell-and-design-system-tokens.md
+- _bmad-output/implementation-artifacts/sprint-status.yaml
 
 ## Change Log
 
 - 2026-07-15: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-15: Validation pass — v4 panels API, full DESIGN.md tokens, Vitest/Tailwind parity, web-dist smoke, UX-DR25 completeness
+- 2026-07-15: Implemented Story 1.5 — Tailwind v4 design tokens, Swagger-inspired app shell, cold-load skeleton, tests; status → review
