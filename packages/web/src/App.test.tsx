@@ -35,6 +35,13 @@ describe('App', () => {
   })
 
   it('renders app shell with accessible header, sidebar, and request placeholder', async () => {
+    let resolveFetch: (value: unknown) => void = () => undefined
+    const fetchPromise = new Promise((resolve) => {
+      resolveFetch = resolve
+    })
+
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(fetchPromise))
+
     render(<App />, { wrapper: createWrapper() })
 
     expect(screen.getByRole('banner')).toBeDefined()
@@ -43,6 +50,12 @@ describe('App', () => {
     expect(screen.getByText('Select a request')).toBeDefined()
     expect(screen.getByRole('region', { name: 'Request' })).toBeDefined()
     expect(screen.getByRole('region', { name: 'Response' })).toBeDefined()
+    expect(screen.getByTestId('sidebar-skeleton')).toBeDefined()
+
+    resolveFetch({
+      ok: true,
+      json: async () => ({ collections: [] }),
+    })
 
     await waitFor(() => {
       expect(screen.queryByTestId('sidebar-skeleton')).toBeNull()

@@ -13,7 +13,10 @@ export function WorkspaceShell() {
             <RequestPlaceholder />
           </section>
         </Panel>
-        <Separator className="h-px bg-border" />
+        <Separator
+          aria-label="Resize request and response panels"
+          className="h-px shrink-0 cursor-row-resize bg-border hover:bg-foreground-muted"
+        />
         <Panel defaultSize={50} minSize={20} className="min-h-0">
           <section aria-label="Response" className="h-full bg-surface" />
         </Panel>

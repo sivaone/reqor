@@ -4,7 +4,7 @@ baseline_commit: 8323c30
 
 # Story 1.5: App Shell and Design System Tokens
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -100,6 +100,22 @@ So that the UI feels like a professional developer tool with minimal chrome.
   - [x] 5.1 Run `pnpm turbo build test typecheck`
   - [x] 5.2 Confirm Story 1.4 static serve + API still works from same origin
   - [x] 5.3 Confirm `packages/cli/web-dist/assets/` contains the Tailwind-built CSS after build + copy-web-dist
+
+### Review Findings
+
+- [x] [Review][Patch] Resize separator lacks drag affordance and accessibility labels [packages/web/src/components/WorkspaceShell.tsx:16]
+- [x] [Review][Patch] Collections load error not announced to screen readers [packages/web/src/components/SidebarShell.tsx:14]
+- [x] [Review][Patch] Skeleton animation ignores prefers-reduced-motion [packages/web/src/components/SidebarSkeleton.tsx:13]
+- [x] [Review][Patch] Loaded sidebar content hidden from accessibility tree via aria-hidden [packages/web/src/components/SidebarShell.tsx:19]
+- [x] [Review][Patch] useCollections fetch omits AbortSignal for query cancellation [packages/web/src/hooks/useCollections.ts:8]
+- [x] [Review][Patch] Background refetch failure not surfaced in sidebar [packages/web/src/components/SidebarShell.tsx:5]
+- [x] [Review][Patch] App integration test does not assert skeleton during pending fetch [packages/web/src/App.test.tsx:37]
+- [x] [Review][Defer] NFR1 load-time performance has no automated benchmark — deferred, manual smoke acceptable for shell MVP
+- [x] [Review][Defer] useCollections generic error messages without structured detail — deferred, tolerable for 1.5
+- [x] [Review][Defer] App.test.tsx lacks integrated fetch-error coverage — deferred, covered in SidebarShell.test.tsx
+- [x] [Review][Defer] WorkspaceShell.test.tsx minimal panel/separator coverage — deferred, optional per task 4.4
+- [x] [Review][Defer] Duplicated createWrapper across test files — deferred, test maintainability follow-up
+- [x] [Review][Defer] Story task 4.3 references useCollections.test.ts but file is .test.tsx — deferred, doc nit
 
 ## Dev Notes
 
