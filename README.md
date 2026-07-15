@@ -30,20 +30,16 @@ pnpm turbo dev    # Vite :5173, Fastify :3000
 
 Open [http://localhost:5173](http://localhost:5173) — the UI proxies `/api` to the server and displays the health response.
 
-### Stopping dev (when Ctrl+C hangs)
+### Stopping dev
 
-On Windows, `pnpm turbo dev` can occasionally get stuck on `2 tasks shutting down...` if child processes (`tsx watch`, Vite) do not exit cleanly.
+Press **Ctrl+C** once in the dev terminal. Turbo runs with `--ui=stream` so shutdown signals reach `tsx watch` and Vite on Windows, and the Fastify server closes its listener before exit.
 
-1. Press **Ctrl+C** once and wait ~5 seconds.
-2. If the terminal is still hung, open a **new** PowerShell window and run:
+If the terminal still hangs after ~5 seconds, press **Ctrl+C** again to force quit, or **Ctrl+Break** in PowerShell. As a last resort, free ports 3000 and 5173:
 
 ```powershell
-Get-NetTCPConnection -LocalPort 3000,5173,5174 -ErrorAction SilentlyContinue |
+Get-NetTCPConnection -LocalPort 3000,5173 -ErrorAction SilentlyContinue |
   ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
-Get-Process turbo -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
-
-3. Close the stuck terminal tab (or press **Ctrl+Break**), then start dev again with `pnpm turbo dev`.
 
 ## License
 MIT

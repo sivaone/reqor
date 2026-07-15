@@ -1,0 +1,28 @@
+GET https://httpbin.dev/get?source=reqor-demo
+
+###
+
+POST https://httpbin.dev/post
+Content-Type: application/json
+X-Request-Id: demo-001
+Authorization: Bearer sample-token
+
+{
+  "name": "reqor",
+  "action": "demo",
+  "tags": ["http", "sample"]
+}
+
+###
+
+PUT https://httpbin.dev/put
+Content-Type: application/json
+
+{
+  "id": "demo-001",
+  "status": "updated"
+}
+
+###
+
+DELETE https://httpbin.dev/delete?id=demo-001
