@@ -10,7 +10,7 @@ export function SidebarSkeleton() {
         <div
           key={index}
           data-testid="skeleton-row"
-          className="h-4 animate-pulse rounded-sm bg-surface-muted"
+          className="h-4 motion-reduce:animate-none animate-pulse rounded-sm bg-surface-muted"
         />
       ))}
     </div>

@@ -41,7 +41,10 @@ describe('useCollections', () => {
     })
 
     expect(result.current.data).toEqual(payload)
-    expect(fetch).toHaveBeenCalledWith('/api/collections')
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/collections',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
   })
 
   it('surfaces error when response is not ok', async () => {
