@@ -9,7 +9,7 @@
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
-    "dev": "turbo run dev --filter=@reqor/server --filter=@reqor/web",
+    "dev": "turbo run dev --ui=stream --filter=@reqor/server --filter=@reqor/web",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
