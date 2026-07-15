@@ -16,3 +16,81 @@ export const ApiErrorEnvelope = Type.Object({
 })
 
 export type ApiErrorEnvelopeType = Static<typeof ApiErrorEnvelope>
+
+export const ParseStatus = Type.Union([
+  Type.Literal('ok'),
+  Type.Literal('error'),
+])
+
+export type ParseStatusType = Static<typeof ParseStatus>
+
+export const DiagnosticDto = Type.Object({
+  line: Type.Integer({ minimum: 1 }),
+  message: Type.String(),
+  code: Type.Optional(Type.String()),
+})
+
+export type DiagnosticDtoType = Static<typeof DiagnosticDto>
+
+export const RequestBodyDto = Type.Object({
+  kind: Type.Union([
+    Type.Literal('raw'),
+    Type.Literal('json'),
+    Type.Literal('form'),
+  ]),
+  content: Type.String(),
+})
+
+export type RequestBodyDtoType = Static<typeof RequestBodyDto>
+
+export const RequestHeaderDto = Type.Object({
+  name: Type.String(),
+  value: Type.String(),
+})
+
+export type RequestHeaderDtoType = Static<typeof RequestHeaderDto>
+
+export const RequestDto = Type.Object({
+  requestIndex: Type.Integer({ minimum: 0 }),
+  fingerprint: Type.String({ pattern: '^[a-f0-9]{64}$' }),
+  method: Type.String(),
+  url: Type.String(),
+  httpVersion: Type.Optional(Type.String()),
+  headers: Type.Array(RequestHeaderDto),
+  body: Type.Optional(RequestBodyDto),
+})
+
+export type RequestDtoType = Static<typeof RequestDto>
+
+export const CollectionSummaryDto = Type.Object({
+  id: Type.String(),
+  parseStatus: ParseStatus,
+  requestCount: Type.Integer({ minimum: 0 }),
+  diagnostics: Type.Array(DiagnosticDto),
+})
+
+export type CollectionSummaryDtoType = Static<typeof CollectionSummaryDto>
+
+export const CollectionDetailDto = Type.Object({
+  id: Type.String(),
+  content: Type.String(),
+  parseStatus: ParseStatus,
+  requests: Type.Array(RequestDto),
+  diagnostics: Type.Array(DiagnosticDto),
+})
+
+export type CollectionDetailDtoType = Static<typeof CollectionDetailDto>
+
+export const CollectionsListResponse = Type.Object({
+  collections: Type.Array(CollectionSummaryDto),
+})
+
+export type CollectionsListResponseType = Static<typeof CollectionsListResponse>
+
+export const CollectionsRefreshResponse = Type.Object({
+  collections: Type.Array(CollectionSummaryDto),
+})
+
+export type CollectionsRefreshResponseType = Static<
+  typeof CollectionsRefreshResponse
+>

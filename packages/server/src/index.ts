@@ -1,7 +1,7 @@
 import { buildApp } from './app.js'
 
 async function start() {
-  const app = buildApp()
+  const app = await buildApp({ repositoryRoot: process.cwd() })
   await app.listen({ host: '127.0.0.1', port: 3000 })
 }
 
