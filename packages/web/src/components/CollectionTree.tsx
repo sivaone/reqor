@@ -3,7 +3,7 @@ import type {
   CollectionDetailDtoType,
   CollectionSummaryDtoType,
 } from '@reqor/shared-types'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { useCollectionDetail } from '../hooks/useCollectionDetail.js'
 import type { SelectedRequest } from '../types/selection.js'
 import type { FilteredCollection } from '../utils/filterCollections.js'
@@ -13,6 +13,7 @@ type CollectionTreeProps = {
   items: FilteredCollection[]
   selectedRequest: SelectedRequest
   onSelectRequest: (selection: NonNullable<SelectedRequest>) => void
+  scrollContainerRef?: MutableRefObject<HTMLDivElement | null>
 }
 
 function ChevronIcon({ expanded }: { expanded: boolean }) {
@@ -30,7 +31,7 @@ type CollectionFileNodeProps = {
   summary: CollectionSummaryDtoType
   autoExpand: boolean
   isExpanded: boolean
-  onToggleExpand: (collectionId: string) => void
+  onToggleExpand: (collectionId: string, currentlyExpanded: boolean) => void
   selectedRequest: SelectedRequest
   onSelectRequest: (selection: NonNullable<SelectedRequest>) => void
   registerRow: (key: string, element: HTMLButtonElement | null) => void
@@ -51,13 +52,9 @@ function CollectionFileNode({
 }: CollectionFileNodeProps) {
   const needsDetail =
     isExpanded || selectedRequest?.collectionId === summary.id || autoExpand
-  const { data: detail } = useCollectionDetail(needsDetail ? summary.id : undefined)
-
-  useEffect(() => {
-    if (autoExpand && !isExpanded) {
-      onToggleExpand(summary.id)
-    }
-  }, [autoExpand, isExpanded, onToggleExpand, summary.id])
+  const { data: detail, isError: isDetailError } = useCollectionDetail(
+    needsDetail ? summary.id : undefined,
+  )
 
   const fileKey = `file:${summary.id}`
   const hasParseError = summary.parseStatus === 'error'
@@ -70,7 +67,7 @@ function CollectionFileNode({
         tabIndex={focusedKey === fileKey ? 0 : -1}
         aria-label={summary.id}
         onFocus={() => onRowFocus(fileKey)}
-        onClick={() => onToggleExpand(summary.id)}
+        onClick={() => onToggleExpand(summary.id, isExpanded)}
         className="flex w-full items-center gap-inset-sm px-inset py-inset-sm text-left text-body hover:bg-surface-muted"
       >
         <ChevronIcon expanded={isExpanded} />
@@ -87,6 +84,7 @@ function CollectionFileNode({
         <CollectionFileChildren
           summary={summary}
           detail={detail}
+          isDetailError={isDetailError}
           selectedRequest={selectedRequest}
           onSelectRequest={onSelectRequest}
           registerRow={registerRow}
@@ -101,6 +99,7 @@ function CollectionFileNode({
 type CollectionFileChildrenProps = {
   summary: CollectionSummaryDtoType
   detail: CollectionDetailDtoType | undefined
+  isDetailError: boolean
   selectedRequest: SelectedRequest
   onSelectRequest: (selection: NonNullable<SelectedRequest>) => void
   registerRow: (key: string, element: HTMLButtonElement | null) => void
@@ -111,6 +110,7 @@ type CollectionFileChildrenProps = {
 function CollectionFileChildren({
   summary,
   detail,
+  isDetailError,
   selectedRequest,
   onSelectRequest,
   registerRow,
@@ -119,17 +119,32 @@ function CollectionFileChildren({
 }: CollectionFileChildrenProps) {
   if (summary.parseStatus === 'error') {
     const diagnostics = detail?.diagnostics ?? summary.diagnostics
+    if (diagnostics.length === 0) {
+      return (
+        <p className="px-inset py-inset-sm pl-inset text-foreground-muted text-body">
+          Parse error
+        </p>
+      )
+    }
     return (
       <div className="pl-inset">
-        {diagnostics.map((diagnostic) => (
+        {diagnostics.map((diagnostic, index) => (
           <p
-            key={`diagnostic:${summary.id}:${diagnostic.line}`}
+            key={`diagnostic:${summary.id}:${diagnostic.line}:${index}`}
             className="px-inset py-inset-sm text-foreground-muted text-body"
           >
             Line {diagnostic.line}: {diagnostic.message}
           </p>
         ))}
       </div>
+    )
+  }
+
+  if (isDetailError) {
+    return (
+      <p className="px-inset py-inset-sm text-foreground-muted text-body">
+        Could not load collection
+      </p>
     )
   }
 
@@ -145,7 +160,7 @@ function CollectionFileChildren({
         const requestKey = `request:${summary.id}:${request.requestIndex}`
         const isSelected =
           selectedRequest?.collectionId === summary.id &&
-          selectedRequest.requestIndex === request.requestIndex
+          selectedRequest.fingerprint === request.fingerprint
 
         return (
           <button
@@ -191,20 +206,29 @@ export function CollectionTree({
   items,
   selectedRequest,
   onSelectRequest,
+  scrollContainerRef,
 }: CollectionTreeProps) {
   const queryClient = useQueryClient()
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({})
   const [focusedKey, setFocusedKey] = useState<string | null>(null)
   const focusedKeyRef = useRef<string | null>(null)
   const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
-  const containerRef = useRef<HTMLDivElement>(null)
 
-  const toggleExpand = (collectionId: string) => {
+  const setContainerRef = (element: HTMLDivElement | null) => {
+    if (scrollContainerRef) {
+      scrollContainerRef.current = element
+    }
+  }
+
+  const toggleExpand = (collectionId: string, currentlyExpanded: boolean) => {
     setExpandedIds((current) => ({
       ...current,
-      [collectionId]: !current[collectionId],
+      [collectionId]: !currentlyExpanded,
     }))
   }
+
+  const isFileExpanded = (collectionId: string, autoExpand: boolean) =>
+    expandedIds[collectionId] ?? autoExpand
 
   const registerRow = (key: string, element: HTMLButtonElement | null) => {
     if (element) {
@@ -238,10 +262,6 @@ export function CollectionTree({
         if (detail) {
           for (const request of detail.requests) {
             keys.push(`request:${summary.id}:${request.requestIndex}`)
-          }
-        } else {
-          for (let index = 0; index < summary.requestCount; index += 1) {
-            keys.push(`request:${summary.id}:${index}`)
           }
         }
       }
@@ -293,7 +313,9 @@ export function CollectionTree({
           })
         }
       } else if (currentFocused.startsWith('file:')) {
-        toggleExpand(currentFocused.slice('file:'.length))
+        const collectionId = currentFocused.slice('file:'.length)
+        const item = items.find((entry) => entry.summary.id === collectionId)
+        toggleExpand(collectionId, isFileExpanded(collectionId, item?.autoExpand ?? false))
       }
       return
     }
@@ -320,8 +342,8 @@ export function CollectionTree({
 
   return (
     <div
-      ref={containerRef}
-      tabIndex={0}
+      ref={setContainerRef}
+      tabIndex={focusedKey ? -1 : 0}
       role="tree"
       aria-label="Collections"
       onKeyDown={handleKeyDown}

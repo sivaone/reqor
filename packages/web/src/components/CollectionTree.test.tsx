@@ -172,6 +172,54 @@ describe('CollectionTree', () => {
     })
   })
 
+  it('shows error when expanded detail fails to load', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: { code: 'INTERNAL', message: 'fail' } }),
+      }),
+    )
+
+    render(
+      <CollectionTree
+        items={[{ summary: summaryOk, autoExpand: false }]}
+        selectedRequest={null}
+        onSelectRequest={() => undefined}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'demo.http' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Could not load collection')).toBeDefined()
+    })
+  })
+
+  it('shows parse error fallback when diagnostics are empty', () => {
+    render(
+      <CollectionTree
+        items={[
+          {
+            summary: {
+              ...summaryError,
+              diagnostics: [],
+            },
+            autoExpand: false,
+          },
+        ]}
+        selectedRequest={null}
+        onSelectRequest={() => undefined}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'bad.http' }))
+    expect(screen.getByText('Parse error')).toBeDefined()
+  })
+
   it('ArrowDown to request and Enter selects', async () => {
     vi.stubGlobal(
       'fetch',
