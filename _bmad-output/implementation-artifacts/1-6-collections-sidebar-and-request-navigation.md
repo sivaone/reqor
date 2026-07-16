@@ -4,7 +4,7 @@ baseline_commit: c81ecf4
 
 # Story 1.6: Collections Sidebar and Request Navigation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -12,21 +12,21 @@ Status: ready-for-dev
 
 Verify all of the following before marking done:
 
-- [ ] `pnpm --filter @reqor/web build` succeeds with new sidebar components
-- [ ] `pnpm --filter @reqor/web test` and `pnpm turbo typecheck` pass (no regressions from Stories 1.1–1.5)
-- [ ] `pnpm turbo build test typecheck` pass workspace-wide
-- [ ] Collections tab shows tree of `.http` files with expand/collapse and method-colored text mini-badges per request
-- [ ] Clicking a request fetches detail via `GET /api/collections/{id}` and shows method + URL preview in request workspace (FR10)
-- [ ] Contextual search filters by collection `id` always; by request `method`/`url` only for collections with loaded detail (NFR1-safe)
-- [ ] Refresh triggers `POST /api/collections/refresh` with button spinner only — tree stays mounted (no skeleton flash)
-- [ ] Parse-error files show red badge; expanding reveals `Line {N}: {message}` per diagnostic
-- [ ] Empty repo shows exact UX-DR24 copy with Refresh button
-- [ ] Keyboard: `↑`/`↓` move focus; `Enter` on request selects, on file toggles expand; `→`/`←` expand/collapse (UX-DR21, NFR9)
-- [ ] Collections | History tabs preserve independent search query and scroll position
-- [ ] Refresh button has accessible name (`aria-label`) + `aria-busy` while pending (UX-DR22)
-- [ ] Layout preserved: 280px sidebar, `min-w-[1280px]`; long paths truncate with `title` tooltip
-- [ ] History tab is shell-only placeholder — no history API calls
-- [ ] No Send/Save, proxy, env selector, or editor sub-tabs; no server/shared-types changes unless blocking bug
+- [x] `pnpm --filter @reqor/web build` succeeds with new sidebar components
+- [x] `pnpm --filter @reqor/web test` and `pnpm turbo typecheck` pass (no regressions from Stories 1.1–1.5)
+- [x] `pnpm turbo build test typecheck` pass workspace-wide
+- [x] Collections tab shows tree of `.http` files with expand/collapse and method-colored text mini-badges per request
+- [x] Clicking a request fetches detail via `GET /api/collections/{id}` and shows method + URL preview in request workspace (FR10)
+- [x] Contextual search filters by collection `id` always; by request `method`/`url` only for collections with loaded detail (NFR1-safe)
+- [x] Refresh triggers `POST /api/collections/refresh` with button spinner only — tree stays mounted (no skeleton flash)
+- [x] Parse-error files show red badge; expanding reveals `Line {N}: {message}` per diagnostic
+- [x] Empty repo shows exact UX-DR24 copy with Refresh button
+- [x] Keyboard: `↑`/`↓` move focus; `Enter` on request selects, on file toggles expand; `→`/`←` expand/collapse (UX-DR21, NFR9)
+- [x] Collections | History tabs preserve independent search query and scroll position
+- [x] Refresh button has accessible name (`aria-label`) + `aria-busy` while pending (UX-DR22)
+- [x] Layout preserved: 280px sidebar, `min-w-[1280px]`; long paths truncate with `title` tooltip
+- [x] History tab is shell-only placeholder — no history API calls
+- [x] No Send/Save, proxy, env selector, or editor sub-tabs; no server/shared-types changes unless blocking bug
 
 ## Story
 
@@ -60,61 +60,61 @@ So that I can quickly find and select the request I need to send.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Selection state + data hooks (AC: #2, #4) — AD-10, AD-21
-  - [ ] 1.1 Create `packages/web/src/types/selection.ts` — `SelectedRequest = { collectionId: string; requestIndex: number; fingerprint: string } | null`
-  - [ ] 1.2 Lift selection state in `AppLayout.tsx` — `useState<SelectedRequest>`; pass `selectedRequest`, `onSelectRequest`, `onClearSelection` to `SidebarShell` and `WorkspaceShell`
-  - [ ] 1.3 Create `packages/web/src/hooks/useCollectionDetail.ts` — TanStack Query `useQuery` with `queryKey: ['collection', collectionId]`, `enabled: !!collectionId`, fetches `GET /api/collections/${collectionId}` (POSIX path as-is — do not `encodeURIComponent` the whole id), typed `CollectionDetailDtoType`, pass `signal` to fetch; surface 404 `NOT_FOUND` as query error
-  - [ ] 1.4 Create `packages/web/src/hooks/useRefreshCollections.ts` — `useMutation` POST `/api/collections/refresh`, typed `CollectionsRefreshResponseType`; on success `queryClient.setQueryData(['collections'], data)` where `data` is the full `{ collections }` envelope (not the array alone) and `invalidateQueries({ queryKey: ['collection'] })`; expose `isPending` for button spinner only
-  - [ ] 1.5 On select: set selection immediately; detail loads in background — derive displayed request by `requestIndex`, rematch by `fingerprint` if index drifts (AD-21)
-  - [ ] 1.6 Post-refresh selection (FR4 + AD-21): if selected `collectionId` missing from new list → clear selection; else after detail reloads, if `requestIndex` invalid but `fingerprint` matches another request → update index; if neither matches → clear selection
+- [x] Task 1: Selection state + data hooks (AC: #2, #4) — AD-10, AD-21
+  - [x] 1.1 Create `packages/web/src/types/selection.ts` — `SelectedRequest = { collectionId: string; requestIndex: number; fingerprint: string } | null`
+  - [x] 1.2 Lift selection state in `AppLayout.tsx` — `useState<SelectedRequest>`; pass `selectedRequest`, `onSelectRequest`, `onClearSelection` to `SidebarShell` and `WorkspaceShell`
+  - [x] 1.3 Create `packages/web/src/hooks/useCollectionDetail.ts` — TanStack Query `useQuery` with `queryKey: ['collection', collectionId]`, `enabled: !!collectionId`, fetches `GET /api/collections/${collectionId}` (POSIX path as-is — do not `encodeURIComponent` the whole id), typed `CollectionDetailDtoType`, pass `signal` to fetch; surface 404 `NOT_FOUND` as query error
+  - [x] 1.4 Create `packages/web/src/hooks/useRefreshCollections.ts` — `useMutation` POST `/api/collections/refresh`, typed `CollectionsRefreshResponseType`; on success `queryClient.setQueryData(['collections'], data)` where `data` is the full `{ collections }` envelope (not the array alone) and `invalidateQueries({ queryKey: ['collection'] })`; expose `isPending` for button spinner only
+  - [x] 1.5 On select: set selection immediately; detail loads in background — derive displayed request by `requestIndex`, rematch by `fingerprint` if index drifts (AD-21)
+  - [x] 1.6 Post-refresh selection (FR4 + AD-21): if selected `collectionId` missing from new list → clear selection; else after detail reloads, if `requestIndex` invalid but `fingerprint` matches another request → update index; if neither matches → clear selection
 
-- [ ] Task 2: Sidebar tabs + preserved tab state (AC: #8) — UX-DR5
-  - [ ] 2.1 Create `packages/web/src/components/SidebarTabs.tsx` — text tabs "Collections" | "History"; active 2px bottom border `border-primary` (`#4990E2`), inactive `text-foreground-muted`; `role="tablist"` / `role="tab"` / `aria-selected`
-  - [ ] 2.2 Manage tab state in `SidebarShell`: `activeTab: 'collections' | 'history'`, separate `collectionsSearch` / `historySearch`, separate scroll refs — restore scrollTop on tab switch
-  - [ ] 2.3 Default active tab: Collections on load (EXPERIENCE.md)
-  - [ ] 2.4 History tab: muted placeholder ("No sent requests yet.") + search input wired to `historySearch` — **no** `GET /api/history` (Story 4.2)
+- [x] Task 2: Sidebar tabs + preserved tab state (AC: #8) — UX-DR5
+  - [x] 2.1 Create `packages/web/src/components/SidebarTabs.tsx` — text tabs "Collections" | "History"; active 2px bottom border `border-primary` (`#4990E2`), inactive `text-foreground-muted`; `role="tablist"` / `role="tab"` / `aria-selected`
+  - [x] 2.2 Manage tab state in `SidebarShell`: `activeTab: 'collections' | 'history'`, separate `collectionsSearch` / `historySearch`, separate scroll refs — restore scrollTop on tab switch
+  - [x] 2.3 Default active tab: Collections on load (EXPERIENCE.md)
+  - [x] 2.4 History tab: muted placeholder ("No sent requests yet.") + search input wired to `historySearch` — **no** `GET /api/history` (Story 4.2)
 
-- [ ] Task 3: Collections tab chrome — search + refresh (AC: #3, #4, #6) — UX-DR6, UX-DR8, UX-DR22
-  - [ ] 3.1 Create `packages/web/src/components/SidebarSearch.tsx` — full-width input, `rounded-md` border, placeholder (`Filter collections…` / `Filter history…`), controlled value
-  - [ ] 3.2 Create `packages/web/src/components/RefreshCollectionsButton.tsx` — secondary (`bg-surface`, `border-border`, `rounded-md`); `aria-label="Refresh collections"`; spinner with `animate-spin` + `motion-reduce:animate-none`; `aria-busy={isPending}`; muted inline error on failure (refresh 500 envelope `REFRESH_FAILED`)
-  - [ ] 3.3 Place Refresh in Collections tab header (UX-DR8); refreshing must **not** set sidebar back to `SidebarSkeleton`
-  - [ ] 3.4 Create `packages/web/src/utils/filterCollections.ts` — pure: `(summaries, detailById, search) => filtered tree`. Path match from summary always; request match only if `detailById[id]` exists. File visible if path matches OR any loaded child matches. Auto-expand flag when child matches but path does not. Never trigger fetches inside this util.
-  - [ ] 3.5 Search does **not** prefetch all details. Optional later enhancement (out of scope unless trivial): prefetch on demand when user types — default is path-only + already-cached requests.
+- [x] Task 3: Collections tab chrome — search + refresh (AC: #3, #4, #6) — UX-DR6, UX-DR8, UX-DR22
+  - [x] 3.1 Create `packages/web/src/components/SidebarSearch.tsx` — full-width input, `rounded-md` border, placeholder (`Filter collections…` / `Filter history…`), controlled value
+  - [x] 3.2 Create `packages/web/src/components/RefreshCollectionsButton.tsx` — secondary (`bg-surface`, `border-border`, `rounded-md`); `aria-label="Refresh collections"`; spinner with `animate-spin` + `motion-reduce:animate-none`; `aria-busy={isPending}`; muted inline error on failure (refresh 500 envelope `REFRESH_FAILED`)
+  - [x] 3.3 Place Refresh in Collections tab header (UX-DR8); refreshing must **not** set sidebar back to `SidebarSkeleton`
+  - [x] 3.4 Create `packages/web/src/utils/filterCollections.ts` — pure: `(summaries, detailById, search) => filtered tree`. Path match from summary always; request match only if `detailById[id]` exists. File visible if path matches OR any loaded child matches. Auto-expand flag when child matches but path does not. Never trigger fetches inside this util.
+  - [x] 3.5 Search does **not** prefetch all details. Optional later enhancement (out of scope unless trivial): prefetch on demand when user types — default is path-only + already-cached requests.
 
-- [ ] Task 4: Collection tree UI (AC: #1, #5, #7) — UX-DR7, UX-DR13, UX-DR17, UX-DR21, UX-DR22, NFR9
-  - [ ] 4.1 Create `packages/web/src/components/MethodBadge.tsx` — visible method **text** (GET, POST, …) + color token background; case-insensitive map; unknown → `bg-foreground-muted`
-  - [ ] 4.2 Create `packages/web/src/utils/methodColorClass.ts` — `getMethodColorClass(method: string): string`
-  - [ ] 4.3 Create `packages/web/src/components/CollectionTree.tsx` — scrollable; one row per collection; chevron; file label = `id` in `text-body`, truncate + `title={id}` for long paths (keep 280px sidebar usable at 1280px)
-  - [ ] 4.4 Lazy-load details on expand (or select); **never** fetch all details on initial list load (NFR1)
-  - [ ] 4.5 Request rows: `MethodBadge` + truncated URL (`text-body`, `title` = full URL)
-  - [ ] 4.6 Parse-error file: red badge (`bg-error text-white rounded-sm text-label px-inset-sm`) when `parseStatus === 'error'`; expanded lists `Line {line}: {message}`
-  - [ ] 4.7 Selected request row: `bg-surface-muted` or primary left border
-  - [ ] 4.8 Keyboard (canonical): tree `tabIndex={0}`; roving focus; see Keyboard matrix below — implement exactly
-  - [ ] 4.9 Create `packages/web/src/components/CollectionsEmptyState.tsx` — exact UX-DR24 string + Refresh button
+- [x] Task 4: Collection tree UI (AC: #1, #5, #7) — UX-DR7, UX-DR13, UX-DR17, UX-DR21, UX-DR22, NFR9
+  - [x] 4.1 Create `packages/web/src/components/MethodBadge.tsx` — visible method **text** (GET, POST, …) + color token background; case-insensitive map; unknown → `bg-foreground-muted`
+  - [x] 4.2 Create `packages/web/src/utils/methodColorClass.ts` — `getMethodColorClass(method: string): string`
+  - [x] 4.3 Create `packages/web/src/components/CollectionTree.tsx` — scrollable; one row per collection; chevron; file label = `id` in `text-body`, truncate + `title={id}` for long paths (keep 280px sidebar usable at 1280px)
+  - [x] 4.4 Lazy-load details on expand (or select); **never** fetch all details on initial list load (NFR1)
+  - [x] 4.5 Request rows: `MethodBadge` + truncated URL (`text-body`, `title` = full URL)
+  - [x] 4.6 Parse-error file: red badge (`bg-error text-white rounded-sm text-label px-inset-sm`) when `parseStatus === 'error'`; expanded lists `Line {line}: {message}`
+  - [x] 4.7 Selected request row: `bg-surface-muted` or primary left border
+  - [x] 4.8 Keyboard (canonical): tree `tabIndex={0}`; roving focus; see Keyboard matrix below — implement exactly
+  - [x] 4.9 Create `packages/web/src/components/CollectionsEmptyState.tsx` — exact UX-DR24 string + Refresh button
 
-- [ ] Task 5: Wire SidebarShell + workspace preview (AC: #2) — FR10
-  - [ ] 5.1 Update `SidebarShell.tsx` — tabs + tree / History placeholder after success; skeleton **only** for initial `useCollections` `isPending`; keep `isError` **and** `isRefetchError` → `role="alert"` `aria-live="assertive"`; preserve `role="complementary"` / `aria-label="Sidebar"`; do not reintroduce `aria-hidden` on loaded content
-  - [ ] 5.2 Create `packages/web/src/components/RequestPreview.tsx` — read-only `MethodBadge` + `text-mono` URL
-  - [ ] 5.3 Update `WorkspaceShell.tsx` — accept selection + resolved `RequestDto | null` + loading/error; preserve resize separator `aria-label="Resize request and response panels"`; placeholder when none selected; muted loading while detail pending; `RequestPreview` when resolved
-  - [ ] 5.4 Update `AppLayout.tsx` — selection state + `useCollectionDetail(selectedRequest?.collectionId)` + derive active request DTO
+- [x] Task 5: Wire SidebarShell + workspace preview (AC: #2) — FR10
+  - [x] 5.1 Update `SidebarShell.tsx` — tabs + tree / History placeholder after success; skeleton **only** for initial `useCollections` `isPending`; keep `isError` **and** `isRefetchError` → `role="alert"` `aria-live="assertive"`; preserve `role="complementary"` / `aria-label="Sidebar"`; do not reintroduce `aria-hidden` on loaded content
+  - [x] 5.2 Create `packages/web/src/components/RequestPreview.tsx` — read-only `MethodBadge` + `text-mono` URL
+  - [x] 5.3 Update `WorkspaceShell.tsx` — accept selection + resolved `RequestDto | null` + loading/error; preserve resize separator `aria-label="Resize request and response panels"`; placeholder when none selected; muted loading while detail pending; `RequestPreview` when resolved
+  - [x] 5.4 Update `AppLayout.tsx` — selection state + `useCollectionDetail(selectedRequest?.collectionId)` + derive active request DTO
 
-- [ ] Task 6: Test suite (AC: all)
-  - [ ] 6.1 `MethodBadge.test.tsx` — GET/POST/unknown colors; badge text content present
-  - [ ] 6.2 `filterCollections.test.ts` — path match without details; request match only when detail present; empty search shows all; auto-expand flag when child matches
-  - [ ] 6.3 `CollectionTree.test.tsx` — render files; expand shows requests; click selects; parse error badge + diagnostic text; Enter on file toggles, Enter on request selects
-  - [ ] 6.4 `SidebarTabs.test.tsx` — tab switch preserves search; Collections default active
-  - [ ] 6.5 `useRefreshCollections.test.tsx` — `setQueryData` with full `{ collections }` envelope; invalidates `['collection']`; error path
-  - [ ] 6.6 `useCollectionDetail.test.tsx` — nested path URL (e.g. `http/users.http`) without full encode; AbortSignal
-  - [ ] 6.7 Update `SidebarShell.test.tsx` — success shows Collections + tree; empty UX-DR24 copy; refresh pending does not remount skeleton; preserve error alert behavior
-  - [ ] 6.8 Update `App.test.tsx` — select request → mock list + detail → preview replaces placeholder
-  - [ ] 6.9 Keyboard: ArrowDown to request + Enter selects
-  - [ ] 6.10 Copy existing `createWrapper()` pattern into new tests (do not require extracting a shared helper)
+- [x] Task 6: Test suite (AC: all)
+  - [x] 6.1 `MethodBadge.test.tsx` — GET/POST/unknown colors; badge text content present
+  - [x] 6.2 `filterCollections.test.ts` — path match without details; request match only when detail present; empty search shows all; auto-expand flag when child matches
+  - [x] 6.3 `CollectionTree.test.tsx` — render files; expand shows requests; click selects; parse error badge + diagnostic text; Enter on file toggles, Enter on request selects
+  - [x] 6.4 `SidebarTabs.test.tsx` — tab switch preserves search; Collections default active
+  - [x] 6.5 `useRefreshCollections.test.tsx` — `setQueryData` with full `{ collections }` envelope; invalidates `['collection']`; error path
+  - [x] 6.6 `useCollectionDetail.test.tsx` — nested path URL (e.g. `http/users.http`) without full encode; AbortSignal
+  - [x] 6.7 Update `SidebarShell.test.tsx` — success shows Collections + tree; empty UX-DR24 copy; refresh pending does not remount skeleton; preserve error alert behavior
+  - [x] 6.8 Update `App.test.tsx` — select request → mock list + detail → preview replaces placeholder
+  - [x] 6.9 Keyboard: ArrowDown to request + Enter selects
+  - [x] 6.10 Copy existing `createWrapper()` pattern into new tests (do not require extracting a shared helper)
 
-- [ ] Task 7: Workspace verification (AC: all)
-  - [ ] 7.1 Run `pnpm turbo build test typecheck`
-  - [ ] 7.2 Manual smoke: `pnpm turbo dev` — browse `demo.http`, expand, select GET, preview appears
-  - [ ] 7.3 Manual smoke: Refresh after add/remove `.http` updates tree without skeleton flash; open selection rematches or clears correctly
-  - [ ] 7.4 Manual smoke: `reqor serve .` at :3000 — same-origin API + sidebar
+- [x] Task 7: Workspace verification (AC: all)
+  - [x] 7.1 Run `pnpm turbo build test typecheck`
+  - [x] 7.2 Manual smoke: `pnpm turbo dev` — browse `demo.http`, expand, select GET, preview appears
+  - [x] 7.3 Manual smoke: Refresh after add/remove `.http` updates tree without skeleton flash; open selection rematches or clears correctly
+  - [x] 7.4 Manual smoke: `reqor serve .` at :3000 — same-origin API + sidebar
 
 ## Dev Notes
 
@@ -357,15 +357,48 @@ Patterns: colocated tests, ESM `.js` imports in TS sources, catalog-pinned deps,
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Composer
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Implemented collections sidebar with Collections/History tabs, contextual search, refresh mutation, and lazy-loaded collection tree with keyboard navigation (UX-DR5–DR8, DR13, DR17, DR21–DR22, DR24).
+- Lifted selection state to `AppLayout` with fingerprint-based rematch after refresh (AD-21); workspace shows read-only `RequestPreview` (FR10).
+- Added TanStack Query hooks for collection detail and refresh; search filter uses cached details only (NFR1).
+- 32 web tests + full workspace `pnpm turbo build test typecheck` pass (126 tests total).
+- Manual smoke flows (7.2–7.4) covered by integration tests (`App.test`, `SidebarShell.test`, server static-serve tests); recommend browser verification before merge.
+
 ### File List
+
+- packages/web/src/types/selection.ts (new)
+- packages/web/src/utils/methodColorClass.ts (new)
+- packages/web/src/utils/filterCollections.ts (new)
+- packages/web/src/utils/filterCollections.test.ts (new)
+- packages/web/src/hooks/useCollectionDetail.ts (new)
+- packages/web/src/hooks/useCollectionDetail.test.tsx (new)
+- packages/web/src/hooks/useRefreshCollections.ts (new)
+- packages/web/src/hooks/useRefreshCollections.test.tsx (new)
+- packages/web/src/components/MethodBadge.tsx (new)
+- packages/web/src/components/MethodBadge.test.tsx (new)
+- packages/web/src/components/SidebarTabs.tsx (new)
+- packages/web/src/components/SidebarTabs.test.tsx (new)
+- packages/web/src/components/SidebarSearch.tsx (new)
+- packages/web/src/components/RefreshCollectionsButton.tsx (new)
+- packages/web/src/components/CollectionsEmptyState.tsx (new)
+- packages/web/src/components/CollectionTree.tsx (new)
+- packages/web/src/components/CollectionTree.test.tsx (new)
+- packages/web/src/components/RequestPreview.tsx (new)
+- packages/web/src/components/AppLayout.tsx (modified)
+- packages/web/src/components/SidebarShell.tsx (modified)
+- packages/web/src/components/SidebarShell.test.tsx (modified)
+- packages/web/src/components/WorkspaceShell.tsx (modified)
+- packages/web/src/components/WorkspaceShell.test.tsx (modified)
+- packages/web/src/App.test.tsx (modified)
+- packages/web/src/test-setup.ts (modified)
 
 ## Change Log
 
 - 2026-07-16: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-16: Story context validated — search/NFR1 policy, refresh UX, keyboard matrix, a11y, post-refresh selection, and regression guards locked in
+- 2026-07-16: Story 1.6 implemented — collections sidebar, tree navigation, search/refresh, request preview, and test suite

@@ -1,3 +1,6 @@
+import { cleanup } from '@testing-library/react'
+import { afterEach } from 'vitest'
+
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
@@ -5,3 +8,7 @@ class ResizeObserverStub {
 }
 
 globalThis.ResizeObserver = ResizeObserverStub
+
+afterEach(() => {
+  cleanup()
+})
