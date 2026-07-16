@@ -4,6 +4,7 @@ import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { HealthResponse } from '@reqor/shared-types'
 import { CollectionStore } from './collection-store.js'
 import { collectionsRoutes } from './routes/collections.js'
+import { executeRoutes } from './routes/execute.js'
 
 export { DEFAULT_HOST, DEFAULT_PORT } from './constants.js'
 export { loadReqorLocalEnv } from './load-local-env.js'
@@ -39,6 +40,10 @@ export async function buildApp(options: BuildAppOptions) {
   await app.register(collectionsRoutes, {
     collectionStore,
     repositoryRoot: options.repositoryRoot,
+  })
+
+  await app.register(executeRoutes, {
+    collectionStore,
   })
 
   if (options.staticRoot) {

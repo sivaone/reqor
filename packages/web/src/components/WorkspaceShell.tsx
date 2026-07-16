@@ -1,18 +1,41 @@
-import type { RequestDtoType } from '@reqor/shared-types'
+import type { ExecuteResponseType, RequestDtoType } from '@reqor/shared-types'
 import { Group, Panel, Separator } from 'react-resizable-panels'
+import { RequestLine } from './RequestLine.js'
 import { RequestPlaceholder } from './RequestPlaceholder.js'
-import { RequestPreview } from './RequestPreview.js'
+import { ResponsePanel } from './ResponsePanel.js'
 
 type WorkspaceShellProps = {
   activeRequest: RequestDtoType | null
   isDetailPending: boolean
   isDetailError: boolean
+  collectionId: string | null
+  requestIndex: number | null
+  lineMethod: string
+  lineUrl: string
+  onMethodChange: (method: string) => void
+  onUrlChange: (url: string) => void
+  followRedirects: boolean
+  onFollowRedirectsChange: (value: boolean) => void
+  onSend: (overrides: { method: string; url: string }) => void
+  isSending: boolean
+  executeResult: ExecuteResponseType | null
+  executeError: { code?: string; message: string } | null
 }
 
 export function WorkspaceShell({
   activeRequest,
   isDetailPending,
   isDetailError,
+  lineMethod,
+  lineUrl,
+  onMethodChange,
+  onUrlChange,
+  followRedirects,
+  onFollowRedirectsChange,
+  onSend,
+  isSending,
+  executeResult,
+  executeError,
 }: WorkspaceShellProps) {
   return (
     <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Workspace">
@@ -27,7 +50,16 @@ export function WorkspaceShell({
                 Could not load request
               </p>
             ) : activeRequest ? (
-              <RequestPreview request={activeRequest} />
+              <RequestLine
+                method={lineMethod}
+                url={lineUrl}
+                onMethodChange={onMethodChange}
+                onUrlChange={onUrlChange}
+                followRedirects={followRedirects}
+                onFollowRedirectsChange={onFollowRedirectsChange}
+                onSend={onSend}
+                isSending={isSending}
+              />
             ) : isDetailPending ? (
               <p className="px-inset py-inset text-foreground-muted text-body">
                 Loading request…
@@ -44,7 +76,13 @@ export function WorkspaceShell({
           className="h-px shrink-0 cursor-row-resize bg-border hover:bg-foreground-muted"
         />
         <Panel defaultSize={50} minSize={20} className="min-h-0">
-          <section aria-label="Response" className="h-full bg-surface" />
+          <section aria-label="Response" className="h-full bg-surface">
+            <ResponsePanel
+              result={executeResult}
+              isPending={isSending}
+              error={executeError}
+            />
+          </section>
         </Panel>
       </Group>
     </main>

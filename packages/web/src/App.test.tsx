@@ -10,6 +10,9 @@ function createWrapper() {
       queries: {
         retry: false,
       },
+      mutations: {
+        retry: false,
+      },
     },
   })
 
@@ -23,7 +26,7 @@ const listPayload = {
     {
       id: 'demo.http',
       parseStatus: 'ok' as const,
-      requestCount: 1,
+      requestCount: 2,
       diagnostics: [],
     },
   ],
@@ -41,15 +44,31 @@ const detailPayload = {
       url: 'https://httpbin.dev/get',
       headers: [],
     },
+    {
+      requestIndex: 1,
+      fingerprint: 'e'.repeat(64),
+      method: 'POST',
+      url: 'https://httpbin.dev/post',
+      headers: [],
+    },
   ],
   diagnostics: [],
+}
+
+const executePayload = {
+  status: 200,
+  statusText: 'OK',
+  headers: [{ name: 'content-type', value: 'application/json' }],
+  body: '{"ok":true}',
+  timingMs: 98,
+  sizeBytes: 11,
 }
 
 describe('App', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockImplementation((url: string) => {
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
         if (url === '/api/collections') {
           return Promise.resolve({
             ok: true,
@@ -60,6 +79,12 @@ describe('App', () => {
           return Promise.resolve({
             ok: true,
             json: async () => detailPayload,
+          })
+        }
+        if (url === '/api/execute' && init?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => executePayload,
           })
         }
         return Promise.resolve({ ok: false, status: 404 })
@@ -100,7 +125,7 @@ describe('App', () => {
     })
   })
 
-  it('select request shows preview in workspace', async () => {
+  it('select request shows request line in workspace', async () => {
     render(<App />, { wrapper: createWrapper() })
 
     await waitFor(() => {
@@ -120,8 +145,83 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.queryByText('Select a request')).toBeNull()
       expect(
-        within(screen.getByRole('region', { name: 'Request' })).getByText('GET'),
+        within(screen.getByRole('region', { name: 'Request' })).getByLabelText('Request URL'),
       ).toBeDefined()
     })
+  })
+
+  it('select request, send, and show response status bar', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getByRole('tree')).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/200 OK · 98 ms · 11 B/)).toBeDefined()
+    })
+  })
+
+  it('clears prior response when selection changes', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getByRole('tree')).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/200 OK · 98 ms · 11 B/)).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /https:\/\/httpbin\.dev\/post/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByText(/200 OK · 98 ms · 11 B/)).toBeNull()
+      expect(screen.getByText('Response will appear here')).toBeDefined()
+    })
+  })
+
+  it('Ctrl+Enter triggers send and Ctrl+S prevents default', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getByRole('tree')).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://httpbin.dev/uuid' },
+    })
+    fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true })
+
+    await waitFor(() => {
+      expect(screen.getByText(/200 OK · 98 ms · 11 B/)).toBeDefined()
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/execute',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"url":"https://httpbin.dev/uuid"'),
+      }),
+    )
+
+    const saveEvent = new KeyboardEvent('keydown', {
+      key: 's',
+      ctrlKey: true,
+      cancelable: true,
+    })
+    const prevented = !document.dispatchEvent(saveEvent)
+    expect(prevented).toBe(true)
   })
 })

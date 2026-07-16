@@ -94,3 +94,31 @@ export const CollectionsRefreshResponse = Type.Object({
 export type CollectionsRefreshResponseType = Static<
   typeof CollectionsRefreshResponse
 >
+
+export const ExecuteRequest = Type.Object({
+  collectionId: Type.String(),
+  requestIndex: Type.Integer({ minimum: 0 }),
+  followRedirects: Type.Optional(Type.Boolean()),
+  method: Type.Optional(Type.String()),
+  url: Type.Optional(Type.String()),
+})
+
+export type ExecuteRequestType = Static<typeof ExecuteRequest>
+
+export const ExecuteResponseHeaderDto = Type.Object({
+  name: Type.String(),
+  value: Type.String(),
+})
+
+export type ExecuteResponseHeaderDtoType = Static<typeof ExecuteResponseHeaderDto>
+
+export const ExecuteResponse = Type.Object({
+  status: Type.Integer(),
+  statusText: Type.String(),
+  headers: Type.Array(ExecuteResponseHeaderDto),
+  body: Type.String(),
+  timingMs: Type.Number(),
+  sizeBytes: Type.Integer({ minimum: 0 }),
+})
+
+export type ExecuteResponseType = Static<typeof ExecuteResponse>
