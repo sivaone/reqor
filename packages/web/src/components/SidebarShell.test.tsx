@@ -114,6 +114,38 @@ describe('SidebarShell collections load', () => {
     })
   })
 
+  it('shows empty filter message when search matches nothing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          collections: [
+            {
+              id: 'demo.http',
+              parseStatus: 'ok',
+              requestCount: 0,
+              diagnostics: [],
+            },
+          ],
+        }),
+      }),
+    )
+
+    render(<SidebarShell {...defaultProps} />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'demo.http' })).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter collections…' }), {
+      target: { value: 'zzz-no-match' },
+    })
+
+    expect(screen.getByText('No matching collections')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'demo.http' })).toBeNull()
+  })
+
   it('does not show skeleton during refresh', async () => {
     vi.stubGlobal(
       'fetch',

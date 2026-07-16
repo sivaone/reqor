@@ -22,15 +22,15 @@ export function WorkspaceShell({
             aria-label="Request"
             className="flex h-full flex-col bg-background"
           >
-            {activeRequest ? (
+            {isDetailError ? (
+              <p className="px-inset py-inset text-foreground-muted text-body">
+                Could not load request
+              </p>
+            ) : activeRequest ? (
               <RequestPreview request={activeRequest} />
             ) : isDetailPending ? (
               <p className="px-inset py-inset text-foreground-muted text-body">
                 Loading request…
-              </p>
-            ) : isDetailError ? (
-              <p className="px-inset py-inset text-foreground-muted text-body">
-                Could not load request
               </p>
             ) : (
               <div className="flex h-full items-center justify-center">

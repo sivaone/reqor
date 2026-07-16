@@ -4,7 +4,7 @@ baseline_commit: c81ecf4
 
 # Story 1.6: Collections Sidebar and Request Navigation
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -115,6 +115,21 @@ So that I can quickly find and select the request I need to send.
   - [x] 7.2 Manual smoke: `pnpm turbo dev` — browse `demo.http`, expand, select GET, preview appears
   - [x] 7.3 Manual smoke: Refresh after add/remove `.http` updates tree without skeleton flash; open selection rematches or clears correctly
   - [x] 7.4 Manual smoke: `reqor serve .` at :3000 — same-origin API + sidebar
+
+### Review Findings
+
+- [x] [Review][Patch] Cached request search never activates — `detailById` useMemo keyed only on list data, so lazy detail cache updates leave filter path-only [packages/web/src/components/SidebarShell.tsx:41]
+- [x] [Review][Patch] Collections tab scroll not preserved — scroll ref on `overflow-hidden` wrapper; real scroller is CollectionTree [packages/web/src/components/SidebarShell.tsx:128]
+- [x] [Review][Patch] Arrow keys can focus phantom request rows while detail is loading [packages/web/src/components/CollectionTree.tsx:242]
+- [x] [Review][Patch] Auto-expand re-opens files the user just collapsed during an active request-match search [packages/web/src/components/CollectionTree.tsx:56]
+- [x] [Review][Patch] Selection highlight uses index only — ignores fingerprint during rematch window [packages/web/src/components/CollectionTree.tsx:145]
+- [x] [Review][Patch] Expanded collection detail error stuck on "Loading…" with no recovery UI [packages/web/src/components/CollectionTree.tsx:136]
+- [x] [Review][Patch] Non-empty list with zero filter matches renders a blank tree (no empty-filter copy) [packages/web/src/components/SidebarShell.tsx:137]
+- [x] [Review][Patch] Workspace prefers stale `activeRequest` over `isDetailError`, masking refetch failures [packages/web/src/components/WorkspaceShell.tsx:25]
+- [x] [Review][Patch] Tree container and focused row both use `tabIndex={0}`, creating a duplicate Tab stop [packages/web/src/components/CollectionTree.tsx:322]
+- [x] [Review][Patch] Diagnostic list keys collide when two diagnostics share a line number [packages/web/src/components/CollectionTree.tsx:126]
+- [x] [Review][Patch] Parse-error file with empty diagnostics expands to blank content [packages/web/src/components/CollectionTree.tsx:120]
+- [x] [Review][Patch] SidebarSearch has no accessible name beyond placeholder [packages/web/src/components/SidebarSearch.tsx:9]
 
 ## Dev Notes
 

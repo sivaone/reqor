@@ -37,4 +37,17 @@ describe('WorkspaceShell', () => {
     expect(screen.getByText('GET')).toBeDefined()
     expect(screen.getByText('https://httpbin.dev/get')).toBeDefined()
   })
+
+  it('shows detail error even when a stale active request is present', () => {
+    render(
+      <WorkspaceShell
+        activeRequest={sampleRequest}
+        isDetailPending={false}
+        isDetailError={true}
+      />,
+    )
+
+    expect(screen.getByText('Could not load request')).toBeDefined()
+    expect(screen.queryByText('https://httpbin.dev/get')).toBeNull()
+  })
 })

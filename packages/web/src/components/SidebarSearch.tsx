@@ -11,6 +11,7 @@ export function SidebarSearch({ value, onChange, placeholder }: SidebarSearchPro
       value={value}
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
+      aria-label={placeholder}
       className="w-full rounded-md border border-border bg-background px-inset-sm py-inset-sm text-body"
     />
   )

@@ -31,12 +31,32 @@ export function SidebarShell({
   const [activeTab, setActiveTab] = useState<SidebarTab>('collections')
   const [collectionsSearch, setCollectionsSearch] = useState('')
   const [historySearch, setHistorySearch] = useState('')
+  const [detailCacheVersion, setDetailCacheVersion] = useState(0)
   const collectionsScrollRef = useRef<HTMLDivElement>(null)
   const historyScrollRef = useRef<HTMLDivElement>(null)
   const collectionsScrollTop = useRef(0)
   const historyScrollTop = useRef(0)
 
   const collections = data?.collections ?? []
+
+  useEffect(() => {
+    return queryClient.getQueryCache().subscribe((event) => {
+      if (!event || event.query.queryKey[0] !== 'collection') return
+      if (event.type === 'removed') {
+        queueMicrotask(() => {
+          setDetailCacheVersion((version) => version + 1)
+        })
+        return
+      }
+      if (event.type !== 'updated') return
+      // `success` covers fetch resolves and `setQueryData`; ignore observer-only noise.
+      if (event.action.type !== 'success') return
+      // Defer — cache updates can fire while child queries are rendering.
+      queueMicrotask(() => {
+        setDetailCacheVersion((version) => version + 1)
+      })
+    })
+  }, [queryClient])
 
   const detailById = useMemo(() => {
     const map: Record<string, CollectionDetailDtoType> = {}
@@ -50,7 +70,7 @@ export function SidebarShell({
       }
     }
     return map
-  }, [collections, queryClient, data])
+  }, [collections, queryClient, data, detailCacheVersion])
 
   const filteredItems = useMemo(
     () => filterCollections(collections, detailById, collectionsSearch),
@@ -125,20 +145,22 @@ export function SidebarShell({
                   error={refreshMutation.error}
                 />
               </div>
-              <div
-                ref={collectionsScrollRef}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              >
+              <div className="flex min-h-0 flex-1 flex-col">
                 {collections.length === 0 ? (
                   <CollectionsEmptyState
                     onRefresh={handleRefresh}
                     isRefreshing={refreshMutation.isPending}
                   />
+                ) : filteredItems.length === 0 ? (
+                  <p className="px-inset py-inset-sm text-foreground-muted text-body">
+                    No matching collections
+                  </p>
                 ) : (
                   <CollectionTree
                     items={filteredItems}
                     selectedRequest={selectedRequest}
                     onSelectRequest={onSelectRequest}
+                    scrollContainerRef={collectionsScrollRef}
                   />
                 )}
               </div>
