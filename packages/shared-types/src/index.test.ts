@@ -7,6 +7,9 @@ import {
   CollectionsListResponse,
   CollectionsRefreshResponse,
   DiagnosticDto,
+  ExecuteRequest,
+  ExecuteResponse,
+  ExecuteResponseHeaderDto,
   HealthResponse,
   ParseStatus,
   RequestBodyDto,
@@ -15,6 +18,9 @@ import {
   type CollectionDetailDtoType,
   type CollectionSummaryDtoType,
   type DiagnosticDtoType,
+  type ExecuteRequestType,
+  type ExecuteResponseHeaderDtoType,
+  type ExecuteResponseType,
   type RequestBodyDtoType,
   type RequestHeaderDtoType,
   type RequestDtoType,
@@ -87,6 +93,58 @@ describe('@reqor/shared-types', () => {
     ).toBe(true)
     expect(Value.Check(ParseStatus, 'ok')).toBe(true)
     expect(Value.Check(ParseStatus, 'error')).toBe(true)
+  })
+
+  it('validates execute request and response DTO sample values', () => {
+    const executeRequest: ExecuteRequestType = {
+      collectionId: 'demo.http',
+      requestIndex: 0,
+      followRedirects: true,
+      method: 'GET',
+      url: 'https://httpbin.dev/get',
+    }
+    expect(Value.Check(ExecuteRequest, executeRequest)).toBe(true)
+    expect(
+      Value.Check(ExecuteRequest, {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+      }),
+    ).toBe(true)
+
+    const header: ExecuteResponseHeaderDtoType = {
+      name: 'Content-Type',
+      value: 'application/json',
+    }
+    expect(Value.Check(ExecuteResponseHeaderDto, header)).toBe(true)
+
+    const executeResponse: ExecuteResponseType = {
+      status: 200,
+      statusText: 'OK',
+      headers: [header],
+      body: '{"ok":true}',
+      timingMs: 98.4,
+      sizeBytes: 897,
+    }
+    expect(Value.Check(ExecuteResponse, executeResponse)).toBe(true)
+  })
+
+  it('rejects invalid execute DTO values', () => {
+    expect(
+      Value.Check(ExecuteRequest, {
+        collectionId: 'demo.http',
+        requestIndex: -1,
+      }),
+    ).toBe(false)
+    expect(
+      Value.Check(ExecuteResponse, {
+        status: 200,
+        statusText: 'OK',
+        headers: [],
+        body: '',
+        timingMs: 10,
+        sizeBytes: -1,
+      }),
+    ).toBe(false)
   })
 
   it('rejects invalid DTO indexes, counts, lines, and fingerprints', () => {
