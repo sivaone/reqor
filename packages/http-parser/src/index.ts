@@ -26,3 +26,11 @@ export {
 
 export { parseHttpFile } from './parse.js'
 export { serializeHttpFile } from './serialize.js'
+
+export type {
+  VariableKind,
+  VariableLocation,
+  VariableReference,
+} from './variables.js'
+
+export { collectRequestVariables, scanVariables } from './variables.js'
