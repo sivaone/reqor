@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App.js'
@@ -18,13 +18,51 @@ function createWrapper() {
   }
 }
 
+const listPayload = {
+  collections: [
+    {
+      id: 'demo.http',
+      parseStatus: 'ok' as const,
+      requestCount: 1,
+      diagnostics: [],
+    },
+  ],
+}
+
+const detailPayload = {
+  id: 'demo.http',
+  content: '',
+  parseStatus: 'ok' as const,
+  requests: [
+    {
+      requestIndex: 0,
+      fingerprint: 'd'.repeat(64),
+      method: 'GET',
+      url: 'https://httpbin.dev/get',
+      headers: [],
+    },
+  ],
+  diagnostics: [],
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ collections: [] }),
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/collections') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => listPayload,
+          })
+        }
+        if (url === '/api/collections/demo.http') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => detailPayload,
+          })
+        }
+        return Promise.resolve({ ok: false, status: 404 })
       }),
     )
   })
@@ -59,6 +97,31 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId('sidebar-skeleton')).toBeNull()
+    })
+  })
+
+  it('select request shows preview in workspace', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getByRole('tree')).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }),
+      ).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Select a request')).toBeNull()
+      expect(
+        within(screen.getByRole('region', { name: 'Request' })).getByText('GET'),
+      ).toBeDefined()
     })
   })
 })
