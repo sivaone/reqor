@@ -4,20 +4,20 @@ baseline_commit: 61fa8eb
 
 # Story 2.1: Variable and Dynamic Placeholder Parsing
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
 ## Definition of Done
 
-- [ ] `pnpm --filter @reqor/http-parser test build` passes with new variable scanner tests
-- [ ] `pnpm turbo build test typecheck` pass workspace-wide (no regressions from Epic 1)
-- [ ] SM-2 fixture gate still ≥45/50 pass (no regression from structured variable work)
-- [ ] All round-trip tests still pass — placeholders remain literal in url/headers/body fields
-- [ ] `scanVariables` / `collectRequestVariables` exported from `@reqor/http-parser` public API
-- [ ] Each dynamic type (`$uuid`, `$timestamp`, `$randomInt`, `$dotenv`) has dedicated unit test coverage including mixed-case builtins
-- [ ] `parseHttpFile` output shape unchanged — no `variables` on `ParseResult` / `ParsedRequest`
-- [ ] No variable **resolution** at send time, no env file parsing, no web/server API changes
+- [x] `pnpm --filter @reqor/http-parser test build` passes with new variable scanner tests
+- [x] `pnpm turbo build test typecheck` pass workspace-wide (no regressions from Epic 1)
+- [x] SM-2 fixture gate still ≥45/50 pass (no regression from structured variable work)
+- [x] All round-trip tests still pass — placeholders remain literal in url/headers/body fields
+- [x] `scanVariables` / `collectRequestVariables` exported from `@reqor/http-parser` public API
+- [x] Each dynamic type (`$uuid`, `$timestamp`, `$randomInt`, `$dotenv`) has dedicated unit test coverage including mixed-case builtins
+- [x] `parseHttpFile` output shape unchanged — no `variables` on `ParseResult` / `ParsedRequest`
+- [x] No variable **resolution** at send time, no env file parsing, no web/server API changes
 
 ### Anti-patterns (do not ship)
 
@@ -51,8 +51,8 @@ So that my existing templated requests parse correctly and downstream stories ca
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Define variable reference model (AC: #1–#3) — AD-3, FR6
-  - [ ] 1.1 Add types in `packages/http-parser/src/variables.ts` (re-export from `ast.ts` or `index.ts` as needed):
+- [x] Task 1: Define variable reference model (AC: #1–#3) — AD-3, FR6
+  - [x] 1.1 Add types in `packages/http-parser/src/variables.ts` (re-export from `ast.ts` or `index.ts` as needed):
     ```typescript
     export type VariableKind =
       | 'env'        // {{host}}, {{token}} — resolved from active environment (Story 2.5)
@@ -81,14 +81,14 @@ So that my existing templated requests parse correctly and downstream stories ca
       location: VariableLocation
     }
     ```
-  - [ ] 1.2 Export types + scanner functions from `packages/http-parser/src/index.ts`
-  - [ ] 1.3 Do **not** add variable fields to `@reqor/shared-types` `RequestDto` — API exposure waits for Story 2.5 (AD-22)
+  - [x] 1.2 Export types + scanner functions from `packages/http-parser/src/index.ts`
+  - [x] 1.3 Do **not** add variable fields to `@reqor/shared-types` `RequestDto` — API exposure waits for Story 2.5 (AD-22)
 
-- [ ] Task 2: Implement variable scanner (AC: #1–#3) — FR6, dialect-matrix
-  - [ ] 2.1 Create `packages/http-parser/src/variables.ts` with pure functions:
+- [x] Task 2: Implement variable scanner (AC: #1–#3) — FR6, dialect-matrix
+  - [x] 2.1 Create `packages/http-parser/src/variables.ts` with pure functions:
     - `scanVariables(text: string, location: VariableLocation): VariableReference[]` — find all `{{…}}` placeholders in one field string; every ref carries the same `location`
     - `collectRequestVariables(request: ParsedRequest): VariableReference[]` — scan url, every header **value** (in order), then body content; concatenate in that order. **No cross-field dedupe** — left-to-right scan already unique within a field
-  - [ ] 2.2 Matching rules (**authoritative — implement exactly; sample code below must match these rules**):
+  - [x] 2.2 Matching rules (**authoritative — implement exactly; sample code below must match these rules**):
     - Pattern: `/\{\{([^}]*)\}\}/g` — reject empty `{{}}`
     - Trim inner whitespace before classification: `{{ host }}` → env name `host`
     - Classification order (first match wins):
@@ -99,20 +99,20 @@ So that my existing templated requests parse correctly and downstream stories ca
       5. Inner matches `/^\$oauth/i` → **do not emit** (must stay equivalent to `parse.ts` `OAUTH_PATTERN = /\{\{\s*\$oauth/i` — prefer shared constant or comment both must match)
       6. Inner matches `/^[\w.-]+$/` → kind `env`, name = inner trimmed (preserve original casing)
       7. Otherwise → **do not emit**, **no new diagnostic** (malformed `{{…}}`, unknown `$isoTimestamp`, `$random.uuid`, `$random.integer(...)`, empty `{{$dotenv}}`, etc.)
-  - [ ] 2.3 Overlapping matches: scan left-to-right; after a match, continue past `end` (prefer `String.prototype.matchAll` with a fresh regex, or reset `lastIndex` each call)
-  - [ ] 2.4 Case sensitivity: `$uuid` / `$timestamp` / `$randomInt` / `$dotenv` token match is case-insensitive; env var **names** preserve source casing
-  - [ ] 2.5 Zero runtime dependencies — hand-rolled scanner only (AD-3)
-  - [ ] 2.6 Do **not** scan header names, comments, or separator titles — FR6 scope is url, header values, body
+  - [x] 2.3 Overlapping matches: scan left-to-right; after a match, continue past `end` (prefer `String.prototype.matchAll` with a fresh regex, or reset `lastIndex` each call)
+  - [x] 2.4 Case sensitivity: `$uuid` / `$timestamp` / `$randomInt` / `$dotenv` token match is case-insensitive; env var **names** preserve source casing
+  - [x] 2.5 Zero runtime dependencies — hand-rolled scanner only (AD-3)
+  - [x] 2.6 Do **not** scan header names, comments, or separator titles — FR6 scope is url, header values, body
 
-- [ ] Task 3: Keep parse pipeline unchanged (AC: #1, #5)
-  - [ ] 3.1 **Do not mutate** `ParsedRequest.url` / header values / body content — recognition is side-channel via scanner only
-  - [ ] 3.2 **Do not** add `variables` to `ParseResult` or change `parseHttpFile` return shape
-  - [ ] 3.3 Defer `collectParseResultVariables` — Story 2.5 can map `result.requests` itself
-  - [ ] 3.4 Verify existing `parse.test.ts` "preserves variable placeholders literally" still passes unchanged
-  - [ ] 3.5 `serialize.ts` and `diagnostics.ts` behavior unchanged; `astEquivalent` must not start comparing variable arrays
+- [x] Task 3: Keep parse pipeline unchanged (AC: #1, #5)
+  - [x] 3.1 **Do not mutate** `ParsedRequest.url` / header values / body content — recognition is side-channel via scanner only
+  - [x] 3.2 **Do not** add `variables` to `ParseResult` or change `parseHttpFile` return shape
+  - [x] 3.3 Defer `collectParseResultVariables` — Story 2.5 can map `result.requests` itself
+  - [x] 3.4 Verify existing `parse.test.ts` "preserves variable placeholders literally" still passes unchanged
+  - [x] 3.5 `serialize.ts` and `diagnostics.ts` behavior unchanged; `astEquivalent` must not start comparing variable arrays
 
-- [ ] Task 4: Unit tests (AC: #4) — NFR10 support
-  - [ ] 4.1 Create `packages/http-parser/src/variables.test.ts`:
+- [x] Task 4: Unit tests (AC: #4) — NFR10 support
+  - [x] 4.1 Create `packages/http-parser/src/variables.test.ts`:
     - `{{host}}` in URL → one `env` ref, name `host`, `location.part === 'url'`
     - `{{token}}` in header value → `env`, `location: { part: 'header', index: N }`
     - `{{body}}` in body content → `env`, `location.part === 'body'`
@@ -125,7 +125,7 @@ So that my existing templated requests parse correctly and downstream stories ca
     - `{{ host }}` whitespace trim → name `host`
     - `{{$oauth.token}}` → **not** in scan results (OAuth OUT; parse still emits `UNSUPPORTED_CONSTRUCT`)
     - Unknown / OUT inners → no ref: `{{not valid!}}`, `{{$isoTimestamp}}`, `{{$random.integer(1,10)}}`, `{{$randomInt(0,5)}}`, `{{$dotenv}}`
-  - [ ] 4.2 Integration-style test (`parse.test.ts` or `variables.test.ts`):
+  - [x] 4.2 Integration-style test (`parse.test.ts` or `variables.test.ts`):
     ```typescript
     const result = parseHttpFile(`GET https://{{host}}/api?id={{$uuid}}
     Authorization: Bearer {{token}}
@@ -135,14 +135,22 @@ So that my existing templated requests parse correctly and downstream stories ca
     const results = collectRequestVariables(result.requests[0]!)
     // assert kinds/names/locations across url, headers, body
     ```
-  - [ ] 4.3 Optional: export smoke test that `scanVariables` / `collectRequestVariables` are public from `index.js`
-  - [ ] 4.4 Extend `roundtrip.test.ts` only if needed — existing "variables preserved" case must still pass
-  - [ ] 4.5 Run full fixture gate — must remain ≥45/50 (corpus: `15-ktor-variables`, `28-intellij-uuid-var`, `29-intellij-timestamp`, `30-intellij-random`, `44-dotenv-var`, `48-out-oauth-with-request`)
+  - [x] 4.3 Optional: export smoke test that `scanVariables` / `collectRequestVariables` are public from `index.js`
+  - [x] 4.4 Extend `roundtrip.test.ts` only if needed — existing "variables preserved" case must still pass
+  - [x] 4.5 Run full fixture gate — must remain ≥45/50 (corpus: `15-ktor-variables`, `28-intellij-uuid-var`, `29-intellij-timestamp`, `30-intellij-random`, `44-dotenv-var`, `48-out-oauth-with-request`)
 
-- [ ] Task 5: Package hygiene (AC: all)
-  - [ ] 5.1 Confirm `@reqor/http-parser` still has **zero** runtime `dependencies`
-  - [ ] 5.2 Run `pnpm turbo build test typecheck`
-  - [ ] 5.3 Do **not** modify `packages/server`, `packages/web`, `packages/shared-types`, `packages/cli`
+- [x] Task 5: Package hygiene (AC: all)
+  - [x] 5.1 Confirm `@reqor/http-parser` still has **zero** runtime `dependencies`
+  - [x] 5.2 Run `pnpm turbo build test typecheck`
+  - [x] 5.3 Do **not** modify `packages/server`, `packages/web`, `packages/shared-types`, `packages/cli`
+
+### Review Findings
+
+- [x] [Review][Patch] Clone `location` per VariableReference so sibling refs do not share one mutable object [`packages/http-parser/src/variables.ts:67`]
+- [x] [Review][Patch] Add mixed-case builtin tests beyond `$RandomInt` (`$UUID`, `$Timestamp`, `$Dotenv`) [`packages/http-parser/src/variables.test.ts`]
+- [x] [Review][Patch] Add negative test that header names / comments / separators are not scanned [`packages/http-parser/src/variables.test.ts`]
+- [x] [Review][Patch] Add unit test for dotenv KEY containing spaces (Task 2.2 allows space in KEY) [`packages/http-parser/src/variables.test.ts`]
+- [x] [Review][Patch] Assert parse produced a request before non-null access in export smoke test [`packages/http-parser/src/index.test.ts:17`]
 
 ## Dev Notes
 
@@ -349,10 +357,23 @@ Composer
 
 ### Completion Notes List
 
+- Added `VariableReference` model with `VariableKind`, `VariableLocation`, and field-level `start`/`end` offsets for Story 2.5 send-time replacement
+- Implemented `scanVariables` and `collectRequestVariables` in `@reqor/http-parser` with dialect-matrix IN classification (env, uuid, timestamp, randomInt, dotenv); OAuth and OUT dynamics emit nothing
+- Exported scanner API from `index.ts`; parse/serialize/diagnostics unchanged — placeholders remain literal in AST
+- 13 new unit/integration tests in `variables.test.ts`; export smoke test in `index.test.ts`
+- Full workspace validation: 59 http-parser tests (50/50 fixture gate), 173 total tests, build + typecheck pass; zero runtime deps confirmed
+
 ### File List
+
+- packages/http-parser/src/variables.ts (new)
+- packages/http-parser/src/variables.test.ts (new)
+- packages/http-parser/src/index.ts (modified)
+- packages/http-parser/src/index.test.ts (modified)
 
 ## Change Log
 
 - 2026-07-16: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-16: Story context validated — variable scanner API, classification rules, OAuth OUT boundary, Epic 1 regression guards, and downstream 2.5 contract locked in
 - 2026-07-16: Applied full validation pass — field `location` on VariableReference, fixed `$randomInt` case-folding sample, AC1 scanner-only recognition, MVP IN/OUT dynamics locked, OAuth/`matchAll`/fixture guidance tightened
+- 2026-07-16: Story 2.1 implemented — variable scanner API with typed recognition, 13 new tests, no parse pipeline changes
+- 2026-07-16: Code review patches applied — location clone, mixed-case/dotenv-space/scan-scope tests, export smoke guard
