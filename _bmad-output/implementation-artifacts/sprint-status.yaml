@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-16T21:35:00
+last_updated: 2026-07-17T13:45:00
 project: reqor
 project_key: NOKEY
 tracking_system: file-system
@@ -61,7 +61,7 @@ development_status:
 
   epic-2: in-progress
   2-1-variable-and-dynamic-placeholder-parsing: done
-  2-2-environment-file-parsing-and-listing: ready-for-dev
+  2-2-environment-file-parsing-and-listing: done
   2-3-environment-selection-with-persistence: backlog
   2-4-secret-resolution-from-env-variants: backlog
   2-5-send-time-variable-resolution-and-pre-send-preview: backlog

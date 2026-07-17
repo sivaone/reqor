@@ -19,6 +19,7 @@ export {
 export {
   DIAG_PARSE_ERROR,
   DIAG_UNSUPPORTED_CONSTRUCT,
+  DIAG_UNSUPPORTED_VALUE,
   createDiagnostic,
   parseError,
   unsupportedConstruct,
@@ -34,3 +35,11 @@ export type {
 } from './variables.js'
 
 export { collectRequestVariables, scanVariables } from './variables.js'
+
+export type {
+  EnvVariable,
+  ParsedEnvironment,
+  ParseEnvironmentsResult,
+} from './environments.js'
+
+export { parseHttpClientEnvironments } from './environments.js'
