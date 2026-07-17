@@ -122,3 +122,29 @@ export const ExecuteResponse = Type.Object({
 })
 
 export type ExecuteResponseType = Static<typeof ExecuteResponse>
+
+/** Six bullet characters — matches UX-DR14 / web --color-secret-masked */
+export const SECRET_MASK = '••••••'
+
+export const EnvironmentVariableDto = Type.Object({
+  key: Type.String(),
+  /** Plaintext for non-secrets; redacted mask for secrets (never plaintext secrets) */
+  value: Type.String(),
+  isSecret: Type.Boolean(),
+})
+
+export type EnvironmentVariableDtoType = Static<typeof EnvironmentVariableDto>
+
+export const EnvironmentDto = Type.Object({
+  name: Type.String(),
+  sourceFile: Type.String(),
+  variables: Type.Array(EnvironmentVariableDto),
+})
+
+export type EnvironmentDtoType = Static<typeof EnvironmentDto>
+
+export const EnvironmentsListResponse = Type.Object({
+  environments: Type.Array(EnvironmentDto),
+})
+
+export type EnvironmentsListResponseType = Static<typeof EnvironmentsListResponse>

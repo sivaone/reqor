@@ -1,5 +1,10 @@
 # Deferred Work Log
 
+## Deferred from: code review of 2-2-environment-file-parsing-and-listing (2026-07-17)
+
+- **Demo uses unresolved `{{host}}` while execute still sends literals** — deferred: I changed it for future testing; restore or resolve in Story 2.5 send-time resolution
+- **No `http-client.private.env.json` gitignore guidance or fixture guard** — Story 2.2 adds private-companion parsing but does not document or enforce ignoring private env files; add repo hygiene guidance when private-secret workflows are productized
+
 ## Deferred from: code review of 1-5-app-shell-and-design-system-tokens (2026-07-15)
 
 - **NFR1 load-time performance has no automated benchmark** — manual smoke acceptable for shell MVP; add perf test infrastructure in a follow-up if NFR1 regression guarding is needed

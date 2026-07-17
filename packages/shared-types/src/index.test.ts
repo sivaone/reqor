@@ -10,14 +10,20 @@ import {
   ExecuteRequest,
   ExecuteResponse,
   ExecuteResponseHeaderDto,
+  EnvironmentDto,
+  EnvironmentsListResponse,
+  EnvironmentVariableDto,
   HealthResponse,
   ParseStatus,
   RequestBodyDto,
   RequestDto,
   RequestHeaderDto,
+  SECRET_MASK,
   type CollectionDetailDtoType,
   type CollectionSummaryDtoType,
   type DiagnosticDtoType,
+  type EnvironmentDtoType,
+  type EnvironmentVariableDtoType,
   type ExecuteRequestType,
   type ExecuteResponseHeaderDtoType,
   type ExecuteResponseType,
@@ -168,5 +174,31 @@ describe('@reqor/shared-types', () => {
         diagnostics: [],
       }),
     ).toBe(false)
+  })
+
+  it('exports SECRET_MASK and validates environment DTO sample values', () => {
+    expect(SECRET_MASK).toBe('••••••')
+
+    const variable: EnvironmentVariableDtoType = {
+      key: 'host',
+      value: 'localhost',
+      isSecret: false,
+    }
+    expect(Value.Check(EnvironmentVariableDto, variable)).toBe(true)
+
+    const secretVariable: EnvironmentVariableDtoType = {
+      key: 'password',
+      value: SECRET_MASK,
+      isSecret: true,
+    }
+    expect(Value.Check(EnvironmentVariableDto, secretVariable)).toBe(true)
+
+    const environment: EnvironmentDtoType = {
+      name: 'development',
+      sourceFile: 'http-client.env.json',
+      variables: [variable, secretVariable],
+    }
+    expect(Value.Check(EnvironmentDto, environment)).toBe(true)
+    expect(Value.Check(EnvironmentsListResponse, { environments: [environment] })).toBe(true)
   })
 })

@@ -64,6 +64,25 @@ const executePayload = {
   sizeBytes: 11,
 }
 
+const environmentsPayload = {
+  environments: [
+    {
+      name: 'development',
+      sourceFile: 'http-client.env.json',
+      variables: [
+        { key: 'host', value: 'localhost', isSecret: false },
+      ],
+    },
+    {
+      name: 'production',
+      sourceFile: 'http-client.env.json',
+      variables: [
+        { key: 'host', value: 'example.com', isSecret: false },
+      ],
+    },
+  ],
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.stubGlobal(
@@ -73,6 +92,12 @@ describe('App', () => {
           return Promise.resolve({
             ok: true,
             json: async () => listPayload,
+          })
+        }
+        if (url === '/api/environments') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => environmentsPayload,
           })
         }
         if (url === '/api/collections/demo.http') {
@@ -98,12 +123,27 @@ describe('App', () => {
   })
 
   it('renders app shell with accessible header, sidebar, and request placeholder', async () => {
-    let resolveFetch: (value: unknown) => void = () => undefined
-    const fetchPromise = new Promise((resolve) => {
-      resolveFetch = resolve
+    let resolveCollections: (value: unknown) => void = () => undefined
+    let resolveEnvironments: (value: unknown) => void = () => undefined
+    const collectionsPromise = new Promise((resolve) => {
+      resolveCollections = resolve
+    })
+    const environmentsPromise = new Promise((resolve) => {
+      resolveEnvironments = resolve
     })
 
-    vi.stubGlobal('fetch', vi.fn().mockReturnValue(fetchPromise))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/collections') {
+          return collectionsPromise
+        }
+        if (url === '/api/environments') {
+          return environmentsPromise
+        }
+        return Promise.resolve({ ok: false, status: 404 })
+      }),
+    )
 
     render(<App />, { wrapper: createWrapper() })
 
@@ -115,9 +155,13 @@ describe('App', () => {
     expect(screen.getByRole('region', { name: 'Response' })).toBeDefined()
     expect(screen.getByTestId('sidebar-skeleton')).toBeDefined()
 
-    resolveFetch({
+    resolveCollections({
       ok: true,
       json: async () => ({ collections: [] }),
+    })
+    resolveEnvironments({
+      ok: true,
+      json: async () => ({ environments: [] }),
     })
 
     await waitFor(() => {
@@ -186,6 +230,75 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.queryByText(/200 OK · 98 ms · 11 B/)).toBeNull()
       expect(screen.getByText('Response will appear here')).toBeDefined()
+    })
+  })
+
+  it('renders environment selector with names from API', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect(selector.options).toHaveLength(2)
+    })
+
+    const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+    expect(selector.options[0]?.text).toBe('development')
+    expect(selector.options[1]?.text).toBe('production')
+    expect(selector.value).toBe('development')
+  })
+
+  it('shows empty environments placeholder when API returns none', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/collections') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ collections: [] }),
+          })
+        }
+        if (url === '/api/environments') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ environments: [] }),
+          })
+        }
+        return Promise.resolve({ ok: false, status: 404 })
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect(selector.disabled).toBe(true)
+      expect(selector.options[0]?.text).toBe('No environments')
+    })
+  })
+
+  it('shows error placeholder when environments API fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/collections') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ collections: [] }),
+          })
+        }
+        if (url === '/api/environments') {
+          return Promise.resolve({ ok: false, status: 500 })
+        }
+        return Promise.resolve({ ok: false, status: 404 })
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect(selector.disabled).toBe(true)
+      expect(selector.options[0]?.text).toBe('Failed to load environments')
     })
   })
 

@@ -1,8 +1,8 @@
-GET https://httpbin.dev/get?source=reqor-demo
+GET https://{{host}}/get?source=reqor-demo
 
 ###
 
-POST https://httpbin.dev/post
+POST https://{{host}}/post
 Content-Type: application/json
 X-Request-Id: demo-001
 Authorization: Bearer sample-token
@@ -15,7 +15,7 @@ Authorization: Bearer sample-token
 
 ###
 
-PUT https://httpbin.dev/put
+PUT https://{{host}}/put
 Content-Type: application/json
 
 {
@@ -25,4 +25,4 @@ Content-Type: application/json
 
 ###
 
-DELETE https://httpbin.dev/delete?id=demo-001
+DELETE https://{{host}}/delete?id=demo-001
