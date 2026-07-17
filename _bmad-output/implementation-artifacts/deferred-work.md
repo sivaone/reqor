@@ -1,5 +1,12 @@
 # Deferred Work Log
 
+## Deferred from: code review of 2-4-secret-resolution-from-env-variants (2026-07-17)
+
+- **`parseEnvLine` parsing gaps** [packages/server/src/parse-env-line.ts] — no inline-comment stripping, unterminated-quote handling, multi-line quoted values, lone-CR line endings, or whitespace-in-key detection; logic moved unchanged from `load-local-env.ts`, pre-existing
+- **No Fastify `declare module 'fastify'` type augmentation** [packages/server/src/app.ts] — `dotenvStore`/`envResolver` decorators require `as unknown as` casts; matches pre-existing pattern for `collectionStore`/`environmentStore`/`configStore`
+- **No file-size/line-count guard on repo `.env` reads at startup** [packages/server/src/dotenv-store.ts] — matches pre-existing unbounded-read pattern in `EnvironmentStore.readEnvFile`
+- **`DotenvStore.load()` single-flight queue concurrency untested** [packages/server/src/dotenv-store.ts] — mirrors the same untested pattern in `EnvironmentStore.loadAll()`
+
 ## Deferred from: code review of 2-3-environment-selection-with-persistence (2026-07-17)
 
 - **Concurrent PUTs / multi-process stale in-memory config** — local single-writer MVP assumed; revisit if multi-instance becomes supported
