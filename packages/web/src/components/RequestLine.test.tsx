@@ -3,23 +3,36 @@ import { SECRET_MASK } from '@reqor/shared-types'
 import { describe, expect, it, vi } from 'vitest'
 import { RequestLine } from './RequestLine.js'
 
+const baseProps = {
+  method: 'GET',
+  url: 'https://httpbin.dev/get',
+  headers: [] as { name: string; value: string }[],
+  body: null as null,
+  onMethodChange: vi.fn(),
+  onUrlChange: vi.fn(),
+  followRedirects: true,
+  onFollowRedirectsChange: vi.fn(),
+  onSend: vi.fn(),
+  isSending: false,
+  canSend: true,
+}
+
 describe('RequestLine', () => {
-  it('calls onSend with current method and url', () => {
+  it('calls onSend with current method, url, headers, and body', () => {
     const onSend = vi.fn()
     const onMethodChange = vi.fn()
     const onUrlChange = vi.fn()
 
     render(
       <RequestLine
+        {...baseProps}
         method="GET"
         url="https://httpbin.dev/get"
+        headers={[{ name: 'Accept', value: 'application/json' }]}
+        body={null}
         onMethodChange={onMethodChange}
         onUrlChange={onUrlChange}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
         onSend={onSend}
-        isSending={false}
-        canSend={true}
       />,
     )
 
@@ -38,6 +51,8 @@ describe('RequestLine', () => {
     expect(onSend).toHaveBeenCalledWith({
       method: 'GET',
       url: 'https://httpbin.dev/get',
+      headers: [{ name: 'Accept', value: 'application/json' }],
+      body: null,
     })
   })
 
@@ -46,13 +61,8 @@ describe('RequestLine', () => {
 
     render(
       <RequestLine
-        method="GET"
-        url="https://httpbin.dev/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
+        {...baseProps}
         onFollowRedirectsChange={onFollowRedirectsChange}
-        onSend={vi.fn()}
         isSending={true}
         canSend={false}
       />,
@@ -64,20 +74,37 @@ describe('RequestLine', () => {
     expect(onFollowRedirectsChange).toHaveBeenCalledWith(false)
   })
 
-  it('includes focus ring classes on Send and Save', () => {
+  it('hides Save when draft is clean', () => {
+    render(<RequestLine {...baseProps} isDraftDirty={false} />)
+    expect(screen.queryByRole('button', { name: /^save$/i })).toBeNull()
+  })
+
+  it('shows enabled Save when dirty and canSave', () => {
+    const onSave = vi.fn()
+    render(
+      <RequestLine {...baseProps} isDraftDirty={true} canSave={true} onSave={onSave} />,
+    )
+    const save = screen.getByRole('button', { name: /^save$/i })
+    expect(save).toHaveProperty('disabled', false)
+    fireEvent.click(save)
+    expect(onSave).toHaveBeenCalled()
+  })
+
+  it('shows disabled Save when dirty but invalid', () => {
     render(
       <RequestLine
-        method="GET"
-        url="https://httpbin.dev/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
-        onSend={vi.fn()}
-        isSending={false}
-        canSend={true}
+        {...baseProps}
+        isDraftDirty={true}
+        canSave={false}
+        validationError="GET requests should not include a body"
       />,
     )
+    expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', true)
+    expect(screen.getByRole('alert').textContent).toBe('GET requests should not include a body')
+  })
+
+  it('includes focus ring classes on Send and Save when Save is visible', () => {
+    render(<RequestLine {...baseProps} isDraftDirty={true} canSave={true} />)
 
     expect(screen.getByRole('button', { name: /^send$/i }).className).toContain(
       'focus-visible:outline-primary',
@@ -88,60 +115,24 @@ describe('RequestLine', () => {
   })
 
   it('shows environment label when activeEnvironment prop is set', () => {
-    render(
-      <RequestLine
-        activeEnvironment="production"
-        method="GET"
-        url="https://httpbin.dev/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
-        onSend={vi.fn()}
-        isSending={false}
-        canSend={true}
-      />,
-    )
-
+    render(<RequestLine {...baseProps} activeEnvironment="production" />)
     expect(screen.getByText('Environment: production')).toBeDefined()
   })
 
   it('hides environment label when activeEnvironment is null', () => {
-    render(
-      <RequestLine
-        activeEnvironment={null}
-        method="GET"
-        url="https://httpbin.dev/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
-        onSend={vi.fn()}
-        isSending={false}
-        canSend={true}
-      />,
-    )
-
+    render(<RequestLine {...baseProps} activeEnvironment={null} />)
     expect(screen.queryByText(/^Environment:/)).toBeNull()
   })
 
   it('shows environment variables strip with masked secrets', () => {
     render(
       <RequestLine
+        {...baseProps}
         activeEnvironment="development"
         environmentVariables={[
           { key: 'host', value: 'localhost', isSecret: false },
           { key: 'token', value: '••••••', isSecret: true },
         ]}
-        method="GET"
-        url="https://httpbin.dev/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
-        onSend={vi.fn()}
-        isSending={false}
-        canSend={true}
       />,
     )
 
@@ -152,14 +143,9 @@ describe('RequestLine', () => {
   it('shows unresolved error microcopy and disables Send', () => {
     render(
       <RequestLine
+        {...baseProps}
         method="GET"
         url="https://{{host}}/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
-        onSend={vi.fn()}
-        isSending={false}
         canSend={false}
         unresolvedError="Unresolved variable: {{host}}"
         preview={{
@@ -179,15 +165,7 @@ describe('RequestLine', () => {
   it('hides preview when hasVariables is false', () => {
     render(
       <RequestLine
-        method="GET"
-        url="https://httpbin.dev/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
-        onSend={vi.fn()}
-        isSending={false}
-        canSend={true}
+        {...baseProps}
         preview={{
           url: 'https://httpbin.dev/get',
           headers: [],
@@ -203,15 +181,7 @@ describe('RequestLine', () => {
   it('shows redacted secret headers in preview', () => {
     render(
       <RequestLine
-        method="GET"
-        url="https://httpbin.dev/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
-        onSend={vi.fn()}
-        isSending={false}
-        canSend={true}
+        {...baseProps}
         preview={{
           url: 'https://httpbin.dev/get',
           headers: [{ name: 'Authorization', value: SECRET_MASK }],
@@ -225,20 +195,7 @@ describe('RequestLine', () => {
   })
 
   it('shows preview error status without blocking layout', () => {
-    render(
-      <RequestLine
-        method="GET"
-        url="https://httpbin.dev/get"
-        onMethodChange={vi.fn()}
-        onUrlChange={vi.fn()}
-        followRedirects={true}
-        onFollowRedirectsChange={vi.fn()}
-        onSend={vi.fn()}
-        isSending={false}
-        canSend={true}
-        previewError="Failed to preview request"
-      />,
-    )
+    render(<RequestLine {...baseProps} previewError="Failed to preview request" />)
 
     expect(screen.getByRole('status').textContent).toBe('Failed to preview request')
   })

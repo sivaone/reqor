@@ -4,6 +4,8 @@ import type {
   ApiErrorEnvelopeType,
   PreviewRequestType,
   PreviewResponseType,
+  RequestBodyDtoType,
+  RequestHeaderDtoType,
 } from '@reqor/shared-types'
 
 const PREVIEW_DEBOUNCE_MS = 300
@@ -14,6 +16,9 @@ export type UsePreviewRequestParams = {
   environment: string | null
   method: string
   url: string
+  headers: RequestHeaderDtoType[]
+  /** `null` clears disk body for preview */
+  body: RequestBodyDtoType | null
   enabled: boolean
   /** Race-guard identity — included in query key so stale selection results are ignored */
   selectionIdentity: string | null
@@ -33,6 +38,8 @@ export function usePreviewRequest(params: UsePreviewRequestParams) {
     params.environment,
     params.method,
     params.url,
+    params.headers,
+    params.body,
     params.enabled,
     params.selectionIdentity,
   ])
@@ -52,6 +59,8 @@ export function usePreviewRequest(params: UsePreviewRequestParams) {
       debounced.environment,
       debounced.method,
       debounced.url,
+      debounced.headers,
+      debounced.body,
     ],
     enabled: canQuery,
     queryFn: async ({ signal }): Promise<PreviewResponseType> => {
@@ -61,6 +70,8 @@ export function usePreviewRequest(params: UsePreviewRequestParams) {
         environment: debounced.environment,
         method: debounced.method,
         url: debounced.url,
+        headers: debounced.headers,
+        body: debounced.body,
       }
 
       const res = await fetch('/api/preview', {

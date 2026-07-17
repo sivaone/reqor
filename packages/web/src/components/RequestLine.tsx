@@ -2,6 +2,7 @@ import type {
   EnvironmentVariableDtoType,
   PreviewResponseType,
 } from '@reqor/shared-types'
+import type { DraftSendOverrides } from '../types/draftSend.js'
 import { getMethodColorClass } from '../utils/methodColorClass.js'
 import { EnvironmentVariablesStrip } from './EnvironmentVariablesStrip.js'
 import { PreSendPreview } from './PreSendPreview.js'
@@ -13,13 +14,19 @@ type RequestLineProps = {
   environmentVariables?: EnvironmentVariableDtoType[]
   method: string
   url: string
+  headers: DraftSendOverrides['headers']
+  body: DraftSendOverrides['body']
   onMethodChange: (method: string) => void
   onUrlChange: (url: string) => void
   followRedirects: boolean
   onFollowRedirectsChange: (value: boolean) => void
-  onSend: (overrides: { method: string; url: string }) => void
+  onSend: (overrides: DraftSendOverrides) => void
   isSending: boolean
   canSend: boolean
+  isDraftDirty?: boolean
+  canSave?: boolean
+  validationError?: string | null
+  onSave?: () => void
   preview?: PreviewResponseType | null
   unresolvedError?: string | null
   previewError?: string | null
@@ -30,6 +37,8 @@ export function RequestLine({
   environmentVariables = [],
   method,
   url,
+  headers,
+  body,
   onMethodChange,
   onUrlChange,
   followRedirects,
@@ -37,11 +46,16 @@ export function RequestLine({
   onSend,
   isSending,
   canSend,
+  isDraftDirty = false,
+  canSave = false,
+  validationError = null,
+  onSave,
   preview = null,
   unresolvedError = null,
   previewError = null,
 }: RequestLineProps) {
   const showPreview = preview?.hasVariables === true
+  const showSave = isDraftDirty
 
   return (
     <div className="flex flex-col gap-inset px-inset py-inset">
@@ -78,7 +92,7 @@ export function RequestLine({
         />
         <button
           type="button"
-          onClick={() => onSend({ method, url })}
+          onClick={() => onSend({ method, url, headers, body })}
           disabled={!canSend}
           aria-busy={isSending}
           className="inline-flex shrink-0 items-center gap-inset-sm rounded-md bg-primary px-inset py-inset-sm text-body text-primary-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:opacity-60"
@@ -91,15 +105,23 @@ export function RequestLine({
           ) : null}
           Send
         </button>
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="inline-flex shrink-0 items-center rounded-md border border-border bg-surface px-inset py-inset-sm text-body text-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:opacity-60"
-        >
-          Save
-        </button>
+        {showSave ? (
+          <button
+            type="button"
+            onClick={() => onSave?.()}
+            disabled={!canSave}
+            aria-disabled={!canSave}
+            className="inline-flex shrink-0 items-center rounded-md border border-border bg-surface px-inset py-inset-sm text-body text-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:opacity-60"
+          >
+            Save
+          </button>
+        ) : null}
       </div>
+      {validationError ? (
+        <p className="text-body text-error" role="alert">
+          {validationError}
+        </p>
+      ) : null}
       {unresolvedError ? (
         <p className="text-body text-error" role="alert">
           {unresolvedError}

@@ -101,6 +101,10 @@ export const ExecuteRequest = Type.Object({
   followRedirects: Type.Optional(Type.Boolean()),
   method: Type.Optional(Type.String()),
   url: Type.Optional(Type.String()),
+  /** Draft header override; omit to use disk request headers */
+  headers: Type.Optional(Type.Array(RequestHeaderDto)),
+  /** Draft body override; `null` clears disk body; omit to keep disk body */
+  body: Type.Optional(Type.Union([RequestBodyDto, Type.Null()])),
   /** Active environment override; omit to use configStore.activeEnvironment */
   environment: Type.Optional(Type.Union([Type.String(), Type.Null()])),
 })
@@ -123,6 +127,10 @@ export const PreviewRequest = Type.Object({
   environment: Type.Optional(Type.Union([Type.String(), Type.Null()])),
   method: Type.Optional(Type.String()),
   url: Type.Optional(Type.String()),
+  /** Draft header override; omit to use disk request headers */
+  headers: Type.Optional(Type.Array(RequestHeaderDto)),
+  /** Draft body override; `null` clears disk body; omit to keep disk body */
+  body: Type.Optional(Type.Union([RequestBodyDto, Type.Null()])),
 })
 
 export type PreviewRequestType = Static<typeof PreviewRequest>

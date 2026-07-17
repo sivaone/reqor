@@ -1,20 +1,27 @@
-import type { ExecuteResponseType, PreviewResponseType, RequestDtoType } from '@reqor/shared-types'
+import type {
+  ExecuteResponseType,
+  PreviewResponseType,
+  RequestDtoType,
+  RequestHeaderDtoType,
+} from '@reqor/shared-types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCollectionDetail } from '../hooks/useCollectionDetail.js'
 import { useConfig } from '../hooks/useConfig.js'
 import { useEnvironments } from '../hooks/useEnvironments.js'
 import { useExecuteRequest, ExecuteRequestError } from '../hooks/useExecuteRequest.js'
 import { usePreviewRequest } from '../hooks/usePreviewRequest.js'
+import { useRequestDraft } from '../hooks/useRequestDraft.js'
+import type { DraftSendOverrides } from '../types/draftSend.js'
 import type { SelectedRequest } from '../types/selection.js'
 import { deriveCanSend } from '../utils/deriveCanSend.js'
 import { SidebarShell } from './SidebarShell.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
 
+const EMPTY_HEADERS: RequestHeaderDtoType[] = []
+
 export function AppLayout() {
   const [selectedRequest, setSelectedRequest] = useState<SelectedRequest>(null)
   const [followRedirects, setFollowRedirects] = useState(true)
-  const [lineMethod, setLineMethod] = useState('GET')
-  const [lineUrl, setLineUrl] = useState('')
   const [executeResult, setExecuteResult] = useState<ExecuteResponseType | null>(null)
   const [executeError, setExecuteError] = useState<{ code?: string; message: string } | null>(
     null,
@@ -67,13 +74,33 @@ export function AppLayout() {
   selectionIdentityRef.current = selectionIdentity
   const lastPreviewRef = useRef<PreviewResponseType | null>(null)
 
+  const {
+    draft,
+    isDirty,
+    validation,
+    canSave,
+    setMethod,
+    setUrl,
+    setHeaders,
+    setBody,
+    addBody,
+    clearBody,
+  } = useRequestDraft(activeRequest, selectionIdentity)
+
+  const draftMethod = draft?.method ?? 'GET'
+  const draftUrl = draft?.url ?? ''
+  const draftHeaders = draft?.headers ?? EMPTY_HEADERS
+  const draftBody = draft?.body ?? null
+
   const previewQuery = usePreviewRequest({
     collectionId: selectedRequest?.collectionId ?? null,
     requestIndex: selectedRequest?.requestIndex ?? null,
     environment: activeEnvironment,
-    method: lineMethod,
-    url: lineUrl,
-    enabled: Boolean(activeRequest),
+    method: draftMethod,
+    url: draftUrl,
+    headers: draftHeaders,
+    body: draftBody,
+    enabled: Boolean(activeRequest && draft),
     selectionIdentity,
   })
 
@@ -117,12 +144,6 @@ export function AppLayout() {
   }, [selectionIdentity])
 
   useEffect(() => {
-    if (!activeRequest) return
-    setLineMethod(activeRequest.method.toUpperCase())
-    setLineUrl(activeRequest.url)
-  }, [activeRequest])
-
-  useEffect(() => {
     if (!selectedRequest || !detail || detail.id !== selectedRequest.collectionId) return
 
     const byIndex = detail.requests.find(
@@ -154,7 +175,7 @@ export function AppLayout() {
   }, [])
 
   const handleSend = useCallback(
-    (overrides: { method: string; url: string }) => {
+    (overrides: DraftSendOverrides) => {
       if (!selectedRequest || !selectionIdentity) return
 
       const sentIdentity = selectionIdentity
@@ -168,6 +189,8 @@ export function AppLayout() {
           followRedirects,
           method: overrides.method,
           url: overrides.url,
+          headers: overrides.headers,
+          body: overrides.body,
           environment: activeEnvironment,
         },
         {
@@ -190,6 +213,10 @@ export function AppLayout() {
     [activeEnvironment, executeMutation, followRedirects, selectedRequest, selectionIdentity],
   )
 
+  const handleSave = useCallback(() => {
+    // Story 3.3 wires disk persistence; stub keeps Save UX gated in 3.1.
+  }, [])
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const isMeta = event.metaKey || event.ctrlKey
@@ -200,18 +227,20 @@ export function AppLayout() {
         return
       }
 
-      if (event.key === 'Enter' && activeRequest && canSend) {
+      if (event.key === 'Enter' && activeRequest && draft && canSend) {
         event.preventDefault()
         handleSend({
-          method: lineMethod,
-          url: lineUrl,
+          method: draft.method,
+          url: draft.url,
+          headers: draft.headers,
+          body: draft.body ?? null,
         })
       }
     }
 
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [activeRequest, canSend, handleSend, lineMethod, lineUrl])
+  }, [activeRequest, canSend, draft, handleSend])
 
   const isSending = executeMutation.isPending
 
@@ -224,21 +253,28 @@ export function AppLayout() {
       />
       <WorkspaceShell
         activeRequest={activeRequest}
+        draft={draft}
         activeEnvironment={activeEnvironment}
         environmentVariables={activeEnvironmentVariables}
         isDetailPending={Boolean(selectedRequest) && isDetailPending}
         isDetailError={isDetailError}
         collectionId={selectedRequest?.collectionId ?? null}
         requestIndex={selectedRequest?.requestIndex ?? null}
-        lineMethod={lineMethod}
-        lineUrl={lineUrl}
-        onMethodChange={setLineMethod}
-        onUrlChange={setLineUrl}
+        onMethodChange={setMethod}
+        onUrlChange={setUrl}
+        onHeadersChange={setHeaders}
+        onBodyChange={setBody}
+        onAddBody={addBody}
+        onClearBody={clearBody}
         followRedirects={followRedirects}
         onFollowRedirectsChange={setFollowRedirects}
         onSend={handleSend}
         isSending={isSending}
         canSend={canSend}
+        isDraftDirty={isDirty}
+        canSave={canSave}
+        validationError={validation.message ?? null}
+        onSave={handleSave}
         preview={previewData}
         unresolvedError={unresolvedError}
         previewError={previewError}

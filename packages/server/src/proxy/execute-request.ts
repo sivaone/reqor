@@ -5,6 +5,7 @@ import type {
 } from '@reqor/shared-types'
 import type { CollectionStore } from '../collection-store.js'
 import type { EnvResolver } from '../env-resolver.js'
+import { mergeDraftOverrides } from '../merge-draft-overrides.js'
 import { redactSecrets } from '../redact-secrets.js'
 import { resolveRequest } from '../resolve-request.js'
 
@@ -126,8 +127,8 @@ export async function executeRequest(
   }
 
   const followRedirects = body.followRedirects ?? true
-  const method = (body.method ?? req.method).toUpperCase().trim()
-  const templateUrl = body.url ?? req.url
+  const merged = mergeDraftOverrides(req, body)
+  const method = merged.method
 
   if (!ALLOWED_METHODS.has(method)) {
     throw new ExecuteError('INVALID_REQUEST', 'Invalid HTTP method', 400, { method })
@@ -135,12 +136,7 @@ export async function executeRequest(
 
   const resolution = resolveRequest(
     {
-      method,
-      url: templateUrl,
-      headers: req.headers.map((header) => ({ name: header.name, value: header.value })),
-      ...(req.body
-        ? { body: { kind: req.body.kind, content: req.body.content } }
-        : {}),
+      ...merged,
       environmentName: deps.environmentName,
     },
     deps.envResolver,

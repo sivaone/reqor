@@ -4,22 +4,22 @@ baseline_commit: e0a7201
 
 # Story 3.1: Visual Request Editor
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
 ## Definition of Done
 
-- [ ] Unified in-memory **request draft** holds method, URL, headers, and body — initialized from loaded `RequestDto`, reset on selection change (AD-4)
-- [ ] Request workspace shows **Params**, **Headers** (count badge), and **Body** sub-tabs below the request line (UX-DR11); **Raw `.http` tab deferred to Story 3.2**
-- [ ] Visual panels edit draft fields; switching sub-tabs **does not discard** unsaved edits
-- [ ] **Save** secondary button visible and enabled only when draft is dirty **and** validation passes (UX-DR10); click handler is a no-op stub — disk save is Story 3.3
-- [ ] Invalid combinations (GET/HEAD/OPTIONS with body content or Content-Type conflict) show **inline validation feedback** before save
-- [ ] Send and preview use **draft** method/url/headers/body via extended API overrides — not stale disk-only headers/body (AD-8 continuity with Story 2.5)
-- [ ] Clearing draft body sends `body: null` so server does not fall back to disk body
-- [ ] Story 2.5 Send gating, pre-send preview, env toolbar, and response panel **non-regressed**
-- [ ] FR11 visual form editing complete; FR11 “update raw `.http` representation” consequence is **Story 3.2**, not this story
-- [ ] `pnpm turbo build test typecheck` passes workspace-wide
+- [x] Unified in-memory **request draft** holds method, URL, headers, and body — initialized from loaded `RequestDto`, reset on selection change (AD-4)
+- [x] Request workspace shows **Params**, **Headers** (count badge), and **Body** sub-tabs below the request line (UX-DR11); **Raw `.http` tab deferred to Story 3.2**
+- [x] Visual panels edit draft fields; switching sub-tabs **does not discard** unsaved edits
+- [x] **Save** secondary button visible and enabled only when draft is dirty **and** validation passes (UX-DR10); click handler is a no-op stub — disk save is Story 3.3
+- [x] Invalid combinations (GET/HEAD/OPTIONS with body content or Content-Type conflict) show **inline validation feedback** before save
+- [x] Send and preview use **draft** method/url/headers/body via extended API overrides — not stale disk-only headers/body (AD-8 continuity with Story 2.5)
+- [x] Clearing draft body sends `body: null` so server does not fall back to disk body
+- [x] Story 2.5 Send gating, pre-send preview, env toolbar, and response panel **non-regressed**
+- [x] FR11 visual form editing complete; FR11 “update raw `.http` representation” consequence is **Story 3.2**, not this story
+- [x] `pnpm turbo build test typecheck` passes workspace-wide
 
 ### Anti-patterns (do not ship)
 
@@ -75,41 +75,41 @@ So that I can adjust requests without writing raw `.http` syntax.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Draft state model + utilities (AC: #1–#4) — AD-4, AD-22
-  - [ ] 1.1 Add `packages/web/src/utils/requestDraft.ts`:
+- [x] Task 1: Draft state model + utilities (AC: #1–#4) — AD-4, AD-22
+  - [x] 1.1 Add `packages/web/src/utils/requestDraft.ts`:
     - `draftFromRequest(req: RequestDtoType): RequestDraft`
     - `draftEquals(a, b): boolean` for dirty detection
     - `parseUrlParams(url: string)` / `applyUrlParams(url, params[])` — see Params↔URL algorithm in Dev Notes (never throw on `{{var}}` / relative URLs)
     - `validateRequestDraft(draft): { valid: boolean; message?: string }` — GET/HEAD/OPTIONS + body/content-type rules (header name match case-insensitive)
-  - [ ] 1.2 Add `packages/web/src/hooks/useRequestDraft.ts` — owns draft, baseline, dirty, validation message; resets on `selectionIdentity` + `activeRequest` change; exposes `setDraft` / field updaters including `addBody()` / `clearBody()`
-  - [ ] 1.3 Unit tests: `requestDraft.test.ts`, `useRequestDraft.test.tsx` — params round-trip for absolute, relative, and `{{host}}/path?x=1` URLs; dirty detection; validation cases; reset on selection
+  - [x] 1.2 Add `packages/web/src/hooks/useRequestDraft.ts` — owns draft, baseline, dirty, validation message; resets on `selectionIdentity` + `activeRequest` change; exposes `setDraft` / field updaters including `addBody()` / `clearBody()`
+  - [x] 1.3 Unit tests: `requestDraft.test.ts`, `useRequestDraft.test.tsx` — params round-trip for absolute, relative, and `{{host}}/path?x=1` URLs; dirty detection; validation cases; reset on selection
 
-- [ ] Task 2: Visual editor UI (AC: #1, #4, #5) — UX-DR10, UX-DR11
-  - [ ] 2.1 Add `packages/web/src/components/RequestSubTabs.tsx` — copy a11y + underline pattern from **`ResponsePanel.tsx`** (preferred: `id` / `aria-controls` / `tabpanel` / `hidden`); visual classes match SidebarTabs; tabs: Params | Headers (badge `{count}`) | Body
-  - [ ] 2.2 Add `RequestParamsPanel.tsx` — key/value rows, add/remove, controlled from draft URL via utils
-  - [ ] 2.3 Add `RequestHeadersPanel.tsx` — name/value rows, add/remove; label grid matches `PreSendPreview` / `EnvironmentVariablesStrip`
-  - [ ] 2.4 Add `RequestBodyPanel.tsx` — when `body` undefined: show **Add body** button that sets `{ kind: 'raw', content: '' }`; when present: kind `<select>` + `<textarea>` + optional remove/clear; section label `text-label`
-  - [ ] 2.5 Add `RequestEditor.tsx` — composes `RequestLine` + sub-tabs + active panel; threads draft props
-  - [ ] 2.6 Update `RequestLine.tsx` — accept `isDraftDirty`, `canSave`, `validationError`, `onSave`; **hide** Save when clean; enable when `canSave`; keep existing focus-ring classes on Save when visible
-  - [ ] 2.7 Update `RequestLine.test.tsx` — Save focus-ring test must render with dirty draft (or assert Save absent when clean); add dirty/valid Save enablement cases
-  - [ ] 2.8 Component tests for each panel + sub-tab switching preserves draft
+- [x] Task 2: Visual editor UI (AC: #1, #4, #5) — UX-DR10, UX-DR11
+  - [x] 2.1 Add `packages/web/src/components/RequestSubTabs.tsx` — copy a11y + underline pattern from **`ResponsePanel.tsx`** (preferred: `id` / `aria-controls` / `tabpanel` / `hidden`); visual classes match SidebarTabs; tabs: Params | Headers (badge `{count}`) | Body
+  - [x] 2.2 Add `RequestParamsPanel.tsx` — key/value rows, add/remove, controlled from draft URL via utils
+  - [x] 2.3 Add `RequestHeadersPanel.tsx` — name/value rows, add/remove; label grid matches `PreSendPreview` / `EnvironmentVariablesStrip`
+  - [x] 2.4 Add `RequestBodyPanel.tsx` — when `body` undefined: show **Add body** button that sets `{ kind: 'raw', content: '' }`; when present: kind `<select>` + `<textarea>` + optional remove/clear; section label `text-label`
+  - [x] 2.5 Add `RequestEditor.tsx` — composes `RequestLine` + sub-tabs + active panel; threads draft props
+  - [x] 2.6 Update `RequestLine.tsx` — accept `isDraftDirty`, `canSave`, `validationError`, `onSave`; **hide** Save when clean; enable when `canSave`; keep existing focus-ring classes on Save when visible
+  - [x] 2.7 Update `RequestLine.test.tsx` — Save focus-ring test must render with dirty draft (or assert Save absent when clean); add dirty/valid Save enablement cases
+  - [x] 2.8 Component tests for each panel + sub-tab switching preserves draft
 
-- [ ] Task 3: App integration (AC: #2, #5, #6) — preserve Story 2.5
-  - [ ] 3.1 Refactor `AppLayout.tsx` — replace separate `lineMethod`/`lineUrl` with `useRequestDraft`; pass full draft to preview/execute; Ctrl/⌘+Enter and `handleSend` use current draft method/url/headers/body
-  - [ ] 3.2 Update `WorkspaceShell.tsx` — render `RequestEditor` instead of bare `RequestLine`; thread draft + validation props
-  - [ ] 3.3 Extend `usePreviewRequest` query key + body with draft `headers` and `body` (`null` when cleared)
-  - [ ] 3.4 Extend execute mutation payload in `AppLayout.handleSend` with draft `headers` and `body` (`null` when cleared)
-  - [ ] 3.5 Integration tests in `App.test.tsx` — sub-tab edit survives tab switch; dirty enables Save / clean hides Save; validation message for GET+body; cleared body sends `null`
+- [x] Task 3: App integration (AC: #2, #5, #6) — preserve Story 2.5
+  - [x] 3.1 Refactor `AppLayout.tsx` — replace separate `lineMethod`/`lineUrl` with `useRequestDraft`; pass full draft to preview/execute; Ctrl/⌘+Enter and `handleSend` use current draft method/url/headers/body
+  - [x] 3.2 Update `WorkspaceShell.tsx` — render `RequestEditor` instead of bare `RequestLine`; thread draft + validation props
+  - [x] 3.3 Extend `usePreviewRequest` query key + body with draft `headers` and `body` (`null` when cleared)
+  - [x] 3.4 Extend execute mutation payload in `AppLayout.handleSend` with draft `headers` and `body` (`null` when cleared)
+  - [x] 3.5 Integration tests in `App.test.tsx` — sub-tab edit survives tab switch; dirty enables Save / clean hides Save; validation message for GET+body; cleared body sends `null`
 
-- [ ] Task 4: Server draft overrides for preview + execute (AC: #6) — AD-8, AD-10
-  - [ ] 4.1 Extend `@reqor/shared-types`: `headers?: RequestHeaderDto[]` and `body?: RequestBodyDto | null` on `PreviewRequest` and `ExecuteRequest` (`null` = clear body)
-  - [ ] 4.2 Update `packages/server/src/routes/preview.ts` and `proxy/execute-request.ts` — merge rules in Dev Notes; method/url override behavior unchanged
-  - [ ] 4.3 Update `preview.test.ts` and `execute.test.ts` — header override; body override; `body: null` clears disk body
-  - [ ] 4.4 Update `shared-types` schema tests
+- [x] Task 4: Server draft overrides for preview + execute (AC: #6) — AD-8, AD-10
+  - [x] 4.1 Extend `@reqor/shared-types`: `headers?: RequestHeaderDto[]` and `body?: RequestBodyDto | null` on `PreviewRequest` and `ExecuteRequest` (`null` = clear body)
+  - [x] 4.2 Update `packages/server/src/routes/preview.ts` and `proxy/execute-request.ts` — merge rules in Dev Notes; method/url override behavior unchanged
+  - [x] 4.3 Update `preview.test.ts` and `execute.test.ts` — header override; body override; `body: null` clears disk body
+  - [x] 4.4 Update `shared-types` schema tests
 
-- [ ] Task 5: Regression gate (AC: all)
-  - [ ] 5.1 Run `pnpm turbo build test typecheck`
-  - [ ] 5.2 Smoke: edit header in visual tab → Send uses edited header; Story 2.5 preview/Send gating still passes existing tests
+- [x] Task 5: Regression gate (AC: all)
+  - [x] 5.1 Run `pnpm turbo build test typecheck`
+  - [x] 5.2 Smoke: edit header in visual tab → Send uses edited header; Story 2.5 preview/Send gating still passes existing tests
 
 ## Dev Notes
 
@@ -330,16 +330,55 @@ Headers count badge: append ` ({draft.headers.length})` to tab label or small mu
 
 ### Agent Model Used
 
-Cursor Composer
+Cursor Grok 4.5
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Implemented unified `RequestDraft` model (`requestDraft.ts` + `useRequestDraft`) with dirty detection, Params↔URL helpers that never throw on templates, and pre-save validation (GET/HEAD/OPTIONS body + Content-Type + empty header names).
+- Built visual editor: `RequestEditor` + Params/Headers/Body panels + a11y underline sub-tabs; Save hidden when clean, enabled when dirty+valid (stub handler).
+- Wired AppLayout to draft for preview/execute/Ctrl+Enter; always sends draft headers and `body: null` when cleared.
+- Extended Preview/Execute schemas and server merge (`mergeDraftOverrides`) so overrides/null clear feed `resolveRequest()`.
+- `pnpm turbo build test typecheck` passed (web 119, server 94, shared-types 9, full workspace green).
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/3-1-visual-request-editor.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `packages/shared-types/src/index.ts`
+- `packages/shared-types/src/index.test.ts`
+- `packages/server/src/merge-draft-overrides.ts`
+- `packages/server/src/routes/preview.ts`
+- `packages/server/src/proxy/execute-request.ts`
+- `packages/server/src/preview.test.ts`
+- `packages/server/src/execute.test.ts`
+- `packages/web/src/utils/requestDraft.ts`
+- `packages/web/src/utils/requestDraft.test.ts`
+- `packages/web/src/hooks/useRequestDraft.ts`
+- `packages/web/src/hooks/useRequestDraft.test.tsx`
+- `packages/web/src/hooks/usePreviewRequest.ts`
+- `packages/web/src/types/draftSend.ts`
+- `packages/web/src/components/RequestSubTabs.tsx`
+- `packages/web/src/components/RequestSubTabs.test.tsx`
+- `packages/web/src/components/RequestParamsPanel.tsx`
+- `packages/web/src/components/RequestParamsPanel.test.tsx`
+- `packages/web/src/components/RequestHeadersPanel.tsx`
+- `packages/web/src/components/RequestHeadersPanel.test.tsx`
+- `packages/web/src/components/RequestBodyPanel.tsx`
+- `packages/web/src/components/RequestBodyPanel.test.tsx`
+- `packages/web/src/components/RequestEditor.tsx`
+- `packages/web/src/components/RequestEditor.test.tsx`
+- `packages/web/src/components/RequestLine.tsx`
+- `packages/web/src/components/RequestLine.test.tsx`
+- `packages/web/src/components/WorkspaceShell.tsx`
+- `packages/web/src/components/WorkspaceShell.test.tsx`
+- `packages/web/src/components/AppLayout.tsx`
+- `packages/web/src/App.test.tsx`
 
 ## Change Log
 
 - 2026-07-17: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-17: Story context validated — draft model, header/body API overrides for preview/execute, Raw tab deferred to 3.2, Save stub until 3.3, validation matrix, tab UI patterns from ResponsePanel
 - 2026-07-17: Hardened override/`null` body clear, Params algorithm for template URLs, Add body UX, case-insensitive Content-Type, Ctrl+Enter full-draft continuity, Save hide-when-clean test notes
+- 2026-07-17: Implemented visual request editor — draft state, Params/Headers/Body panels, Save stub UX, preview/execute header+body overrides; status → review
