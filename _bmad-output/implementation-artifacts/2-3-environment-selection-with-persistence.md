@@ -4,20 +4,20 @@ baseline_commit: 0a4654e
 
 # Story 2.3: Environment Selection with Persistence
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
 ## Definition of Done
 
-- [ ] `GET /api/config` returns persisted `activeEnvironment` (nullable) from `.reqor/config.json`
-- [ ] `PUT /api/config` validates environment name against loaded `EnvironmentStore`, writes atomically to disk, and returns updated config
-- [ ] Header environment dropdown reads/writes via config API (not local-only React state); includes blank “Select environment…” that clears to `null`
-- [ ] Request toolbar shows active environment name when one is persisted **and** still present in the environment list
-- [ ] Server restart restores previously selected environment in dropdown and toolbar when that name still exists; if the persisted name is missing from the list, show empty select + “Environment unavailable”, no toolbar label, and do not auto-PUT
-- [ ] No default-to-first-environment behavior (Story 2.2 local default removed — config/`null` is source of truth)
-- [ ] `pnpm turbo build test typecheck` passes workspace-wide
-- [ ] SM-2 fixture gate still ≥45/50 (http-parser untouched / non-regressing)
+- [x] `GET /api/config` returns persisted `activeEnvironment` (nullable) from `.reqor/config.json`
+- [x] `PUT /api/config` validates environment name against loaded `EnvironmentStore`, writes atomically to disk, and returns updated config
+- [x] Header environment dropdown reads/writes via config API (not local-only React state); includes blank “Select environment…” that clears to `null`
+- [x] Request toolbar shows active environment name when one is persisted **and** still present in the environment list
+- [x] Server restart restores previously selected environment in dropdown and toolbar when that name still exists; if the persisted name is missing from the list, show sentinel “Environment unavailable” option, no toolbar label, and do not auto-PUT (blank option still clears to `null`)
+- [x] No default-to-first-environment behavior (Story 2.2 local default removed — config/`null` is source of truth)
+- [x] `pnpm turbo build test typecheck` passes workspace-wide
+- [x] SM-2 fixture gate still ≥45/50 (http-parser untouched / non-regressing)
 
 ### Anti-patterns (do not ship)
 
@@ -49,152 +49,27 @@ So that I don't re-select staging every time I open Reqor.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Shared-types config DTOs (AC: #1) — AD-10, AD-23
-  - [ ] 1.1 Add to `packages/shared-types/src/index.ts`:
-    ```typescript
-    export const ConfigDto = Type.Object({
-      /** Persisted active environment name; null when none selected */
-      activeEnvironment: Type.Union([Type.String(), Type.Null()]),
-    })
+- [x] Task 1: Shared-types config DTOs (AC: #1) — AD-10, AD-23
+  - [x] 1.1 Add to `packages/shared-types/src/index.ts`
+  - [x] 1.2 Export Static types: `ConfigDtoType`, `ConfigUpdateRequestType`
+  - [x] 1.3 Update `packages/shared-types/src/index.test.ts` export/schema smoke for Config DTOs
 
-    export const ConfigUpdateRequest = Type.Object({
-      activeEnvironment: Type.Union([Type.String(), Type.Null()]),
-    })
-    ```
-  - [ ] 1.2 Export Static types: `ConfigDtoType`, `ConfigUpdateRequestType`
-  - [ ] 1.3 Update `packages/shared-types/src/index.test.ts` export/schema smoke for Config DTOs
+- [x] Task 2: Server — config store + routes (AC: #1) — AD-12, AD-23
+  - [x] 2.1 Add `packages/server/src/config-store.ts`
+  - [x] 2.2 Add `packages/server/src/routes/config.ts`
+  - [x] 2.3 Wire in `app.ts`
+  - [x] 2.4 Server tests in `packages/server/src/config.test.ts`
 
-- [ ] Task 2: Server — config store + routes (AC: #1) — AD-12, AD-23
-  - [ ] 2.1 Add `packages/server/src/config-store.ts`:
-    ```typescript
-    export interface ReqorConfig {
-      activeEnvironment: string | null
-    }
+- [x] Task 3: Web — config hooks + header persistence (AC: #1) — UX-DR2, AD-23
+  - [x] 3.1 Add `packages/web/src/hooks/useConfig.ts`
+  - [x] 3.2 Add `useUpdateConfig` in same file
+  - [x] 3.3 Refactor `AppHeader.tsx`
+  - [x] 3.4 Request toolbar indicator in `RequestLine.tsx` via `AppLayout` → `WorkspaceShell`
 
-    export class ConfigStore {
-      private config: ReqorConfig = { activeEnvironment: null }
-
-      constructor(private readonly configPath: string) {}
-
-      /** Load from disk; missing/invalid/wrong-shape → { activeEnvironment: null } */
-      async load(): Promise<ReqorConfig>
-
-      /** Apply update, rewrite known shape only, ensure .reqor/ exists, write JSON atomically */
-      async save(update: Partial<ReqorConfig>): Promise<ReqorConfig>
-
-      /** Returns in-memory snapshot; safe before load (defaults to null) */
-      get(): ReqorConfig
-    }
-    ```
-    - Disk path: `<repositoryRoot>/.reqor/config.json` (POSIX key in JSON: `activeEnvironment`)
-    - In-memory default before `load()`: `{ activeEnvironment: null }` so `get()` never returns undefined
-    - On `load()`:
-      - missing file or invalid JSON → `{ activeEnvironment: null }` (do not crash server start)
-      - valid JSON but missing `activeEnvironment`, wrong type (not `string | null`), or `""` → coerce to `{ activeEnvironment: null }`
-      - ignore unknown keys on load for the in-memory model (only keep `activeEnvironment`)
-    - On `save()`:
-      - `fs.mkdir(path.dirname(configPath), { recursive: true })`
-      - rewrite **known shape only**: `{ activeEnvironment }` (do not preserve unknown disk keys)
-      - atomic write: write pretty-printed JSON to a temp file in the same directory (`JSON.stringify(config, null, 2) + '\n'`), then `fs.rename` over `config.json`
-      - update in-memory copy; `get()` returns current snapshot
-  - [ ] 2.2 Add `packages/server/src/routes/config.ts`:
-    ```typescript
-    app.get('/api/config', {
-      schema: { response: { 200: ConfigDto } },
-    }, async () => configStore.get())
-
-    app.put('/api/config', {
-      schema: {
-        body: ConfigUpdateRequest,
-        response: { 200: ConfigDto, 400: ApiErrorEnvelope },
-      },
-    }, async (request, reply) => { /* validate + save */ })
-    ```
-    - **Validation:** when `body.activeEnvironment` is a non-null string, it **must** exist in `environmentStore.get(name)` (or `environmentStore.list()` names). Else `400` `{ error: { code: 'INVALID_ENVIRONMENT', message: '...', details: { name } } }`
-    - `activeEnvironment: null` clears selection (valid always)
-    - Do **not** add empty-string normalize in the handler — TypeBox `String | Null` rejects `""` before the handler; the UI sends `null` via `value || null`
-  - [ ] 2.3 Wire in `app.ts`:
-    - Construct `ConfigStore` with `path.join(repositoryRoot, '.reqor', 'config.json')`
-    - `await configStore.load()` during startup (after `environmentStore.loadAll`, before routes serve traffic)
-    - Register `configRoutes` with `{ configStore, environmentStore }` plugin options
-  - [ ] 2.4 Server tests in `packages/server/src/config.test.ts`:
-    - GET returns `{ activeEnvironment: null }` when no config file
-    - PUT persists to temp `.reqor/config.json`; second app instance load restores value
-    - PUT with unknown environment name → 400 `INVALID_ENVIRONMENT`
-    - PUT `null` clears persisted value
-    - Invalid JSON / wrong-shape / empty-string on disk → load returns null, server still starts
-    - After PUT, disk file contains only the known `{ activeEnvironment }` shape
-
-- [ ] Task 3: Web — config hooks + header persistence (AC: #1) — UX-DR2, AD-23
-  - [ ] 3.1 Add `packages/web/src/hooks/useConfig.ts`:
-    ```typescript
-    export function useConfig() {
-      return useQuery({
-        queryKey: ['config'],
-        queryFn: async ({ signal }) => {
-          const res = await fetch('/api/config', { signal })
-          if (!res.ok) throw new Error('Failed to load config')
-          return res.json() as Promise<ConfigDtoType>
-        },
-      })
-    }
-    ```
-  - [ ] 3.2 Add `packages/web/src/hooks/useUpdateConfig.ts` (or inline mutation in same file):
-    ```typescript
-    export function useUpdateConfig() {
-      const queryClient = useQueryClient()
-      return useMutation({
-        mutationFn: async (body: ConfigUpdateRequestType) => {
-          const res = await fetch('/api/config', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          })
-          if (!res.ok) { /* parse ApiErrorEnvelope, throw */ }
-          return res.json() as Promise<ConfigDtoType>
-        },
-        onSuccess: (data) => {
-          queryClient.setQueryData(['config'], data)
-        },
-      })
-    }
-    ```
-  - [ ] 3.3 Refactor `AppHeader.tsx`:
-    - Replace local `useState` selection with `useConfig()` + `useUpdateConfig()` (header owns select read/write)
-    - Remove Story 2.2 default-to-first-env `useEffect`
-    - When environments are loaded and config is ready:
-      - If `config.activeEnvironment` is non-null **and** present in the list → `<select value={name}>`
-      - If `config.activeEnvironment` is non-null **but missing** from the list → `value=""` with a **disabled** placeholder option `"Environment unavailable"`; do **not** auto-PUT; no matching toolbar label
-      - If `config.activeEnvironment` is `null` → `value=""`
-    - Always include an enabled blank option `"Select environment…"` with `value=""` that onChange PUTs `{ activeEnvironment: null }`
-    - `onChange` → `updateConfig.mutate({ activeEnvironment: value || null })`
-    - Preserve 2.2 loading/error/empty states for environments fetch
-    - Disable select while config or environments query is loading **or** either query is in error, or while mutation pending
-    - On config query error: keep select disabled; surface a concise failure affordance (reuse environments-style disabled option text or equivalent)
-    - On PUT mutation error: do **not** optimistically leave a divergent local value — keep TanStack Query cache authoritative; surface the `ApiErrorEnvelope` message
-  - [ ] 3.4 Request toolbar indicator (AC: #1, UX-DR2 / EXPERIENCE.md):
-    - When `config.activeEnvironment` is non-null **and** name exists in environment list, show in request workspace toolbar
-    - Add to `RequestLine.tsx` (preferred — keeps toolbar cohesive) a muted label row above method/URL row:
-      ```tsx
-      {activeEnvironment ? (
-        <p className="text-label text-foreground-muted" aria-live="polite">
-          Environment: {activeEnvironment}
-        </p>
-      ) : null}
-      ```
-    - **Ownership:** `AppHeader` uses `useConfig`/`useUpdateConfig` for the select; `AppLayout` uses `useConfig` (shared `['config']` cache) to derive the toolbar name and pass `activeEnvironment` → `WorkspaceShell` → `RequestLine`
-    - Pass only a name that exists in the environment list (otherwise pass `null`/omit so the label stays hidden)
-    - **Do not** duplicate environment name in header beyond the `<select>` itself
-
-- [ ] Task 4: Tests & hygiene (AC: all)
-  - [ ] 4.1 Extend `App.test.tsx` fetch mock router:
-    - Add `/api/config` GET/PUT branches alongside `/api/environments`
-    - Assert header select reflects config on load (e.g. GET returns `development` → select shows `development`)
-    - Assert changing select to `production` triggers PUT with `{ activeEnvironment: 'production' }`
-    - Assert request toolbar shows `Environment: production` after that successful PUT (same scenario)
-    - Assert blank “Select environment…” triggers PUT with `{ activeEnvironment: null }` and hides toolbar label
-  - [ ] 4.2 Add `RequestLine.test.tsx` case for environment label visibility (shown when prop set, hidden when null)
-  - [ ] 4.3 Run `pnpm turbo build test typecheck`
+- [x] Task 4: Tests & hygiene (AC: all)
+  - [x] 4.1 Extend `App.test.tsx` fetch mock router
+  - [x] 4.2 Add `RequestLine.test.tsx` case for environment label visibility
+  - [x] 4.3 Run `pnpm turbo build test typecheck`
 
 ### Review Findings
 
@@ -216,6 +91,12 @@ So that I don't re-select staging every time I open Reqor.
 - [x] [Review][Defer] Whitespace-only and case-insensitive env name matching — deferred, pre-existing — exact name match only for MVP
 - [x] [Review][Defer] UTF-8 BOM handling on config.json load — deferred, pre-existing — optional hardening beyond invalid-JSON → null
 - [x] [Review][Defer] Disk write failure codes (EACCES/ENOSPC) → typed API error — deferred, pre-existing — follow existing server error patterns when needed
+- [x] [Review][Patch] Unavailable env clear: use distinct sentinel option value (not `""`) so “Select environment…” can PUT `null` [packages/web/src/components/AppHeader.tsx:68]
+- [x] [Review][Patch] Always load config even when `scanOnStart: false` [packages/server/src/app.ts:31]
+- [x] [Review][Patch] Add App test for stale/unavailable env UI (empty select, unavailable option, no toolbar label, no auto-PUT) [packages/web/src/App.test.tsx]
+- [x] [Review][Patch] Add App tests for config GET failure and PUT failure alert UX [packages/web/src/App.test.tsx]
+- [x] [Review][Patch] Prevent PUT error alert from overflowing fixed `h-header-height` header [packages/web/src/components/AppHeader.tsx:41]
+- [x] [Review][Defer] Empty env list leaves orphaned persisted name uncleared (select disabled) [packages/web/src/components/AppHeader.tsx:13] — deferred, pre-existing
 
 ## Dev Notes
 
@@ -231,7 +112,7 @@ So that I don't re-select staging every time I open Reqor.
 | Default selection | No auto-select first env; `null` means none selected until user chooses |
 | Clear selection | Blank “Select environment…” option PUTs `null` |
 | Validation | PUT rejects unknown environment names with `400 INVALID_ENVIRONMENT` |
-| Invalid persisted name | Empty select + disabled “Environment unavailable”; no toolbar label; no silent auto-write |
+| Invalid persisted name | Disabled “Environment unavailable” option with sentinel value; blank “Select environment…” can still PUT `null`; no toolbar label; no silent auto-write |
 | Disk writes | Server-only; web never touches `.reqor/` directly |
 | Startup order | `environmentStore.loadAll` then `configStore.load` — validation on PUT uses loaded environments |
 | Hook ownership | `AppHeader` owns select mutations; `AppLayout` reads config for toolbar prop (shared cache) |
@@ -396,15 +277,39 @@ packages/web/src/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Composer
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Added `ConfigDto` / `ConfigUpdateRequest` TypeBox schemas with `minLength: 1` on string branch so empty names are rejected at validation.
+- Implemented `ConfigStore` with resilient load coercion, atomic temp-file write, and known-shape-only disk rewrite.
+- Wired `GET/PUT /api/config` with `INVALID_ENVIRONMENT` validation against `EnvironmentStore`.
+- Refactored header dropdown to TanStack Query config hooks; removed Story 2.2 default-to-first-env behavior; added clear and unavailable states.
+- Added request toolbar environment label via `AppLayout` → `WorkspaceShell` → `RequestLine`.
+- All workspace tests pass (`pnpm turbo build test typecheck`); http-parser fixture gate unchanged (75 tests).
+
 ### File List
+
+- packages/shared-types/src/index.ts
+- packages/shared-types/src/index.test.ts
+- packages/server/src/config-store.ts
+- packages/server/src/config.test.ts
+- packages/server/src/routes/config.ts
+- packages/server/src/app.ts
+- packages/web/src/hooks/useConfig.ts
+- packages/web/src/components/AppHeader.tsx
+- packages/web/src/components/AppLayout.tsx
+- packages/web/src/components/WorkspaceShell.tsx
+- packages/web/src/components/WorkspaceShell.test.tsx
+- packages/web/src/components/RequestLine.tsx
+- packages/web/src/components/RequestLine.test.tsx
+- packages/web/src/App.test.tsx
+- _bmad-output/implementation-artifacts/sprint-status.yaml
 
 ## Change Log
 
 - 2026-07-17: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-17: Code review patches applied — atomic write, select/clear UX, load coercion, ownership, CAP-7 citation, coherent tests
+- 2026-07-17: Story 2.3 implemented — config API persistence, header dropdown wired to server, toolbar environment label

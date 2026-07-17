@@ -1,63 +1,94 @@
-import { useEffect, useId, useState } from 'react'
+import { useId } from 'react'
 import { useEnvironments } from '../hooks/useEnvironments.js'
+import { ConfigUpdateError, useConfig, useUpdateConfig } from '../hooks/useConfig.js'
+
+/** Sentinel select value for a persisted env missing from the list (not a real env name). */
+const UNAVAILABLE_SENTINEL = '__reqor_unavailable__'
 
 export function AppHeader() {
-  const { data, isLoading, isError } = useEnvironments()
-  const environments = data?.environments
+  const { data: envData, isLoading: envLoading, isError: envError } = useEnvironments()
+  const { data: config, isLoading: configLoading, isError: configError } = useConfig()
+  const updateConfig = useUpdateConfig()
+
+  const environments = envData?.environments
   const selectId = useId()
-  const [selectedName, setSelectedName] = useState('')
 
-  useEffect(() => {
-    if (!environments || environments.length === 0) {
-      setSelectedName('')
-      return
-    }
+  const isEmpty = !envLoading && !envError && (environments?.length ?? 0) === 0
+  const hasEnvironments = !envLoading && !envError && (environments?.length ?? 0) > 0
 
-    setSelectedName((current) => {
-      if (current && environments.some((env) => env.name === current)) {
-        return current
-      }
-      return environments[0]?.name ?? ''
-    })
-  }, [environments])
+  const persistedName = config?.activeEnvironment ?? null
+  const nameInList =
+    persistedName !== null &&
+    environments?.some((environment) => environment.name === persistedName)
 
-  const isEmpty = !isLoading && !isError && (environments?.length ?? 0) === 0
-  const hasEnvironments = !isLoading && !isError && (environments?.length ?? 0) > 0
-  const selectValue = hasEnvironments
-    ? selectedName || environments?.[0]?.name || ''
-    : ''
+  const selectValue = (() => {
+    if (!hasEnvironments || configLoading) return ''
+    if (persistedName === null) return ''
+    if (nameInList) return persistedName
+    return UNAVAILABLE_SENTINEL
+  })()
+
+  const isSelectDisabled =
+    envLoading ||
+    configLoading ||
+    isEmpty ||
+    envError ||
+    configError ||
+    updateConfig.isPending
+
+  const handleChange = (value: string) => {
+    if (value === UNAVAILABLE_SENTINEL) return
+    updateConfig.mutate({ activeEnvironment: value || null })
+  }
 
   return (
     <header
       role="banner"
-      className="flex h-header-height shrink-0 items-center justify-between bg-header-background px-inset text-header-foreground"
+      className="flex min-h-header-height shrink-0 items-center justify-between bg-header-background px-inset py-inset-sm text-header-foreground"
     >
       <h1 className="text-app-title">Reqor</h1>
-      <div className="ml-auto">
+      <div className="ml-auto flex flex-col items-end gap-1">
         <label htmlFor={selectId} className="sr-only">
           Environment
         </label>
         <select
           id={selectId}
           className="rounded border border-border bg-background px-2 py-1 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          disabled={isLoading || isEmpty || isError}
+          disabled={isSelectDisabled}
           value={selectValue}
-          onChange={(event) => setSelectedName(event.target.value)}
+          onChange={(event) => handleChange(event.target.value)}
         >
-          {isLoading ? (
+          {envLoading || configLoading ? (
             <option value="">Loading…</option>
-          ) : isError ? (
+          ) : envError ? (
             <option value="">Failed to load environments</option>
+          ) : configError ? (
+            <option value="">Failed to load config</option>
           ) : isEmpty ? (
             <option value="">No environments</option>
           ) : (
-            environments?.map((environment) => (
-              <option key={environment.name} value={environment.name}>
-                {environment.name}
-              </option>
-            ))
+            <>
+              <option value="">Select environment…</option>
+              {persistedName !== null && !nameInList ? (
+                <option value={UNAVAILABLE_SENTINEL} disabled>
+                  Environment unavailable
+                </option>
+              ) : null}
+              {environments?.map((environment) => (
+                <option key={environment.name} value={environment.name}>
+                  {environment.name}
+                </option>
+              ))}
+            </>
           )}
         </select>
+        {updateConfig.isError ? (
+          <p className="text-xs text-destructive" role="alert">
+            {updateConfig.error instanceof ConfigUpdateError
+              ? updateConfig.error.message
+              : 'Failed to update environment'}
+          </p>
+        ) : null}
       </div>
     </header>
   )

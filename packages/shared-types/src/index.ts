@@ -148,3 +148,16 @@ export const EnvironmentsListResponse = Type.Object({
 })
 
 export type EnvironmentsListResponseType = Static<typeof EnvironmentsListResponse>
+
+export const ConfigDto = Type.Object({
+  /** Persisted active environment name; null when none selected */
+  activeEnvironment: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+})
+
+export type ConfigDtoType = Static<typeof ConfigDto>
+
+export const ConfigUpdateRequest = Type.Object({
+  activeEnvironment: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+})
+
+export type ConfigUpdateRequestType = Static<typeof ConfigUpdateRequest>

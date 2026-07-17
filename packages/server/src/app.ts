@@ -1,10 +1,13 @@
 import fastifyStatic from '@fastify/static'
 import Fastify from 'fastify'
+import path from 'node:path'
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { HealthResponse } from '@reqor/shared-types'
 import { CollectionStore } from './collection-store.js'
+import { ConfigStore } from './config-store.js'
 import { EnvironmentStore } from './environment-store.js'
 import { collectionsRoutes } from './routes/collections.js'
+import { configRoutes } from './routes/config.js'
 import { environmentsRoutes } from './routes/environments.js'
 import { executeRoutes } from './routes/execute.js'
 
@@ -21,6 +24,9 @@ export async function buildApp(options: BuildAppOptions) {
   const app = Fastify().withTypeProvider<TypeBoxTypeProvider>()
   const collectionStore = new CollectionStore()
   const environmentStore = new EnvironmentStore()
+  const configStore = new ConfigStore(
+    path.join(options.repositoryRoot, '.reqor', 'config.json'),
+  )
 
   if (options.scanOnStart !== false) {
     await Promise.all([
@@ -29,8 +35,11 @@ export async function buildApp(options: BuildAppOptions) {
     ])
   }
 
+  await configStore.load()
+
   app.decorate('collectionStore', collectionStore)
   app.decorate('environmentStore', environmentStore)
+  app.decorate('configStore', configStore)
 
   app.get(
     '/api/health',
@@ -50,6 +59,11 @@ export async function buildApp(options: BuildAppOptions) {
   })
 
   await app.register(environmentsRoutes, {
+    environmentStore,
+  })
+
+  await app.register(configRoutes, {
+    configStore,
     environmentStore,
   })
 

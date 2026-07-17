@@ -83,38 +83,53 @@ const environmentsPayload = {
   ],
 }
 
+function createFetchMock(configState: { activeEnvironment: string | null }) {
+  return vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+    if (url === '/api/collections') {
+      return Promise.resolve({
+        ok: true,
+        json: async () => listPayload,
+      })
+    }
+    if (url === '/api/environments') {
+      return Promise.resolve({
+        ok: true,
+        json: async () => environmentsPayload,
+      })
+    }
+    if (url === '/api/config' && (!init?.method || init.method === 'GET')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ activeEnvironment: configState.activeEnvironment }),
+      })
+    }
+    if (url === '/api/config' && init?.method === 'PUT') {
+      const body = JSON.parse(String(init.body)) as { activeEnvironment: string | null }
+      configState.activeEnvironment = body.activeEnvironment
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ activeEnvironment: configState.activeEnvironment }),
+      })
+    }
+    if (url === '/api/collections/demo.http') {
+      return Promise.resolve({
+        ok: true,
+        json: async () => detailPayload,
+      })
+    }
+    if (url === '/api/execute' && init?.method === 'POST') {
+      return Promise.resolve({
+        ok: true,
+        json: async () => executePayload,
+      })
+    }
+    return Promise.resolve({ ok: false, status: 404 })
+  })
+}
+
 describe('App', () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
-        if (url === '/api/collections') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => listPayload,
-          })
-        }
-        if (url === '/api/environments') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => environmentsPayload,
-          })
-        }
-        if (url === '/api/collections/demo.http') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => detailPayload,
-          })
-        }
-        if (url === '/api/execute' && init?.method === 'POST') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => executePayload,
-          })
-        }
-        return Promise.resolve({ ok: false, status: 404 })
-      }),
-    )
+    vi.stubGlobal('fetch', createFetchMock({ activeEnvironment: null }))
   })
 
   afterEach(() => {
@@ -140,6 +155,12 @@ describe('App', () => {
         }
         if (url === '/api/environments') {
           return environmentsPromise
+        }
+        if (url === '/api/config') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ activeEnvironment: null }),
+          })
         }
         return Promise.resolve({ ok: false, status: 404 })
       }),
@@ -233,18 +254,217 @@ describe('App', () => {
     })
   })
 
-  it('renders environment selector with names from API', async () => {
+  it('renders environment selector with names from API and no default selection', async () => {
     render(<App />, { wrapper: createWrapper() })
 
     await waitFor(() => {
       const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
-      expect(selector.options).toHaveLength(2)
+      expect(selector.options).toHaveLength(3)
     })
 
     const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
-    expect(selector.options[0]?.text).toBe('development')
-    expect(selector.options[1]?.text).toBe('production')
-    expect(selector.value).toBe('development')
+    expect(selector.options[0]?.text).toBe('Select environment…')
+    expect(selector.options[1]?.text).toBe('development')
+    expect(selector.options[2]?.text).toBe('production')
+    expect(selector.value).toBe('')
+  })
+
+  it('restores persisted environment from config on load', async () => {
+    vi.stubGlobal('fetch', createFetchMock({ activeEnvironment: 'development' }))
+
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect(selector.value).toBe('development')
+    })
+  })
+
+  it('persists environment selection and shows toolbar label', async () => {
+    const configState = { activeEnvironment: 'development' as string | null }
+    vi.stubGlobal('fetch', createFetchMock(configState))
+
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect(selector.value).toBe('development')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+    fireEvent.change(selector, { target: { value: 'production' } })
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/config',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ activeEnvironment: 'production' }),
+        }),
+      )
+      expect(screen.getByText('Environment: production')).toBeDefined()
+    })
+  })
+
+  it('clears environment selection via blank option and hides toolbar label', async () => {
+    const configState = { activeEnvironment: 'production' as string | null }
+    vi.stubGlobal('fetch', createFetchMock(configState))
+
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect(selector.value).toBe('production')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Environment: production')).toBeDefined()
+    })
+
+    const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+    fireEvent.change(selector, { target: { value: '' } })
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/config',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ activeEnvironment: null }),
+        }),
+      )
+      expect(screen.queryByText('Environment: production')).toBeNull()
+    })
+  })
+
+  it('shows unavailable option for stale persisted env, no toolbar label, no auto-PUT, and allows clear', async () => {
+    const configState = { activeEnvironment: 'staging' as string | null }
+    const fetchMock = createFetchMock(configState)
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect([...selector.options].some((option) => option.text === 'Environment unavailable')).toBe(
+        true,
+      )
+      expect(selector.value).toBe('__reqor_unavailable__')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    expect(screen.queryByText(/Environment:/)).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      '/api/config',
+      expect.objectContaining({ method: 'PUT' }),
+    )
+
+    const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+    fireEvent.change(selector, { target: { value: '' } })
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/config',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ activeEnvironment: null }),
+        }),
+      )
+      expect(selector.value).toBe('')
+    })
+  })
+
+  it('shows failed config placeholder when config API fails to load', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/collections') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ collections: [] }),
+          })
+        }
+        if (url === '/api/environments') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => environmentsPayload,
+          })
+        }
+        if (url === '/api/config') {
+          return Promise.resolve({ ok: false, status: 500 })
+        }
+        return Promise.resolve({ ok: false, status: 404 })
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect(selector.disabled).toBe(true)
+      expect(selector.options[0]?.text).toBe('Failed to load config')
+    })
+  })
+
+  it('shows alert when environment PUT fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url === '/api/collections') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => listPayload,
+          })
+        }
+        if (url === '/api/environments') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => environmentsPayload,
+          })
+        }
+        if (url === '/api/config' && (!init?.method || init.method === 'GET')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ activeEnvironment: null }),
+          })
+        }
+        if (url === '/api/config' && init?.method === 'PUT') {
+          return Promise.resolve({
+            ok: false,
+            status: 400,
+            json: async () => ({
+              error: {
+                code: 'INVALID_ENVIRONMENT',
+                message: 'Environment not found',
+                details: { name: 'production' },
+              },
+            }),
+          })
+        }
+        return Promise.resolve({ ok: false, status: 404 })
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+      expect(selector.disabled).toBe(false)
+    })
+
+    const selector = screen.getByRole('combobox', { name: 'Environment' }) as HTMLSelectElement
+    fireEvent.change(selector, { target: { value: 'production' } })
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toBe('Environment not found')
+    })
   })
 
   it('shows empty environments placeholder when API returns none', async () => {
@@ -261,6 +481,12 @@ describe('App', () => {
           return Promise.resolve({
             ok: true,
             json: async () => ({ environments: [] }),
+          })
+        }
+        if (url === '/api/config') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ activeEnvironment: null }),
           })
         }
         return Promise.resolve({ ok: false, status: 404 })
@@ -288,6 +514,12 @@ describe('App', () => {
         }
         if (url === '/api/environments') {
           return Promise.resolve({ ok: false, status: 500 })
+        }
+        if (url === '/api/config') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ activeEnvironment: null }),
+          })
         }
         return Promise.resolve({ ok: false, status: 404 })
       }),
