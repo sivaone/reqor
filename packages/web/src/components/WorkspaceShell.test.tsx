@@ -26,6 +26,7 @@ const defaultExecuteProps = {
   canSend: true,
   preview: null,
   unresolvedError: null,
+  previewError: null,
   executeResult: null,
   executeError: null,
 }

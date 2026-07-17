@@ -9,6 +9,7 @@ import type { ConfigStore } from '../config-store.js'
 import type { EnvResolver } from '../env-resolver.js'
 import type { EnvironmentStore } from '../environment-store.js'
 import { redactSecrets } from '../redact-secrets.js'
+import { resolveEnvironmentName } from '../resolve-environment-name.js'
 import { resolveRequest } from '../resolve-request.js'
 
 export interface PreviewRouteOptions {
@@ -16,17 +17,6 @@ export interface PreviewRouteOptions {
   configStore: ConfigStore
   environmentStore: EnvironmentStore
   envResolver: EnvResolver
-}
-
-function resolveEnvironmentName(
-  requested: string | null | undefined,
-  configStore: ConfigStore,
-  environmentStore: EnvironmentStore,
-): string | null {
-  const candidate =
-    requested !== undefined ? requested : configStore.get().activeEnvironment
-  if (!candidate) return null
-  return environmentStore.get(candidate) ? candidate : null
 }
 
 export const previewRoutes: FastifyPluginAsyncTypebox<PreviewRouteOptions> = async (

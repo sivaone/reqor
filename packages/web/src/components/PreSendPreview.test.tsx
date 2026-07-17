@@ -24,4 +24,19 @@ describe('PreSendPreview', () => {
     expect(screen.getByText('application/json')).toBeDefined()
     expect(screen.getByLabelText('Secret value masked')).toBeDefined()
   })
+
+  it('masks redacted URL values with SecretField', () => {
+    render(
+      <PreSendPreview
+        preview={{
+          url: `https://${SECRET_MASK}/get`,
+          headers: [],
+          unresolved: null,
+          hasVariables: true,
+        }}
+      />,
+    )
+
+    expect(screen.getByLabelText('Secret value masked')).toBeDefined()
+  })
 })

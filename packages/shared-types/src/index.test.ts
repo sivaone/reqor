@@ -10,6 +10,7 @@ import {
   CollectionsRefreshResponse,
   DiagnosticDto,
   ExecuteRequest,
+  ExecuteErrorCode,
   ExecuteResponse,
   ExecuteResponseHeaderDto,
   EnvironmentDto,
@@ -110,6 +111,9 @@ describe('@reqor/shared-types', () => {
   })
 
   it('validates execute request and response DTO sample values', () => {
+    expect(Value.Check(ExecuteErrorCode, 'UNRESOLVED_VARIABLE')).toBe(true)
+    expect(Value.Check(ExecuteErrorCode, 'NOT_A_CODE')).toBe(false)
+
     const executeRequest: ExecuteRequestType = {
       collectionId: 'demo.http',
       requestIndex: 0,
