@@ -101,9 +101,37 @@ export const ExecuteRequest = Type.Object({
   followRedirects: Type.Optional(Type.Boolean()),
   method: Type.Optional(Type.String()),
   url: Type.Optional(Type.String()),
+  /** Active environment override; omit to use configStore.activeEnvironment */
+  environment: Type.Optional(Type.Union([Type.String(), Type.Null()])),
 })
 
 export type ExecuteRequestType = Static<typeof ExecuteRequest>
+
+export const PreviewRequest = Type.Object({
+  collectionId: Type.String(),
+  requestIndex: Type.Integer({ minimum: 0 }),
+  environment: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  method: Type.Optional(Type.String()),
+  url: Type.Optional(Type.String()),
+})
+
+export type PreviewRequestType = Static<typeof PreviewRequest>
+
+export const PreviewUnresolvedDto = Type.Object({
+  name: Type.String(),
+  raw: Type.String(),
+})
+
+export type PreviewUnresolvedDtoType = Static<typeof PreviewUnresolvedDto>
+
+export const PreviewResponse = Type.Object({
+  url: Type.String(),
+  headers: Type.Array(RequestHeaderDto),
+  unresolved: Type.Union([PreviewUnresolvedDto, Type.Null()]),
+  hasVariables: Type.Boolean(),
+})
+
+export type PreviewResponseType = Static<typeof PreviewResponse>
 
 export const ExecuteResponseHeaderDto = Type.Object({
   name: Type.String(),

@@ -4,25 +4,25 @@ baseline_commit: 6012a44
 
 # Story 2.5: Send-Time Variable Resolution and Pre-Send Preview
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
 ## Definition of Done
 
-- [ ] Shared server `resolveRequest()` resolves all MVP placeholder kinds before proxy — same function used by preview and execute (AD-8)
-- [ ] Merge order: active JetBrains environment variables → repo `.env` variants for `env` kind; `dotenv` kind via `resolveDotenv`; builtins generated at send (AD-20 / glossary EnvResolver)
-- [ ] Single-pass resolution only — do not recursively resolve values pulled from env/dotenv files
-- [ ] `EnvResolver` extended in-place — constructor takes `DotenvStore` + `EnvironmentStore`; no second resolver class (Story 2.4 contract)
-- [ ] `POST /api/preview` returns `{ url, headers, unresolved, hasVariables }` with redacted URL + header values; never plaintext secrets (AD-7, UX-DR20)
-- [ ] Preview redaction calls `redactSecrets` on the URL string and **each** header `value` — do not use `redactObject` on header arrays (it skips object items)
-- [ ] `POST /api/execute` accepts optional `environment` (preserve existing `followRedirects`); resolves url/headers/**body** then proxies; returns `400` with `UNRESOLVED_VARIABLE` when blocked (FR9)
-- [ ] Web: inline collapsible pre-send preview below request line when `hasVariables === true`; secrets show `SECRET_MASK` (UX-DR20, UX-DR14)
-- [ ] Web: Send enablement matrix enforced for **button and Ctrl/⌘+Enter** (UX-DR10, UX-DR17, UX-DR21, UX-DR24)
-- [ ] `redactSecrets` wired into preview responses and any execute/preview log paths (NFR6)
-- [ ] `demo.http` + `http-client.env.json` `development` env resolves `{{host}}` end-to-end; mark deferred-work demo item done
-- [ ] `pnpm turbo build test typecheck` passes workspace-wide
-- [ ] SM-2 fixture gate still ≥45/50 (http-parser untouched / non-regressing)
+- [x] Shared server `resolveRequest()` resolves all MVP placeholder kinds before proxy — same function used by preview and execute (AD-8)
+- [x] Merge order: active JetBrains environment variables → repo `.env` variants for `env` kind; `dotenv` kind via `resolveDotenv`; builtins generated at send (AD-20 / glossary EnvResolver)
+- [x] Single-pass resolution only — do not recursively resolve values pulled from env/dotenv files
+- [x] `EnvResolver` extended in-place — constructor takes `DotenvStore` + `EnvironmentStore`; no second resolver class (Story 2.4 contract)
+- [x] `POST /api/preview` returns `{ url, headers, unresolved, hasVariables }` with redacted URL + header values; never plaintext secrets (AD-7, UX-DR20)
+- [x] Preview redaction calls `redactSecrets` on the URL string and **each** header `value` — do not use `redactObject` on header arrays (it skips object items)
+- [x] `POST /api/execute` accepts optional `environment` (preserve existing `followRedirects`); resolves url/headers/**body** then proxies; returns `400` with `UNRESOLVED_VARIABLE` when blocked (FR9)
+- [x] Web: inline collapsible pre-send preview below request line when `hasVariables === true`; secrets show `SECRET_MASK` (UX-DR20, UX-DR14)
+- [x] Web: Send enablement matrix enforced for **button and Ctrl/⌘+Enter** (UX-DR10, UX-DR17, UX-DR21, UX-DR24)
+- [x] `redactSecrets` wired into preview responses and any execute/preview log paths (NFR6)
+- [x] `demo.http` + `http-client.env.json` `development` env resolves `{{host}}` end-to-end; mark deferred-work demo item done
+- [x] `pnpm turbo build test typecheck` passes workspace-wide
+- [x] SM-2 fixture gate still ≥45/50 (http-parser untouched / non-regressing)
 
 ### Anti-patterns (do not ship)
 
@@ -76,8 +76,8 @@ So that I know exactly what request will hit the wire.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend `EnvResolver` + core resolution engine (AC: #1, #4) — AD-8, AD-20
-  - [ ] 1.1 Extend `packages/server/src/env-resolver.ts`:
+- [x] Task 1: Extend `EnvResolver` + core resolution engine (AC: #1, #4) — AD-8, AD-20
+  - [x] 1.1 Extend `packages/server/src/env-resolver.ts`:
     ```typescript
     constructor(
       private readonly dotenvStore: DotenvStore,
@@ -91,15 +91,15 @@ So that I know exactly what request will hit the wire.
     getSecretValuesForRedaction(environmentName?: string | null): string[]
     ```
     Update `app.ts` construction/decorate to pass both stores.
-  - [ ] 1.2 Add `packages/server/src/resolve-request.ts` — `resolveRequest(input)` using `scanVariables` per DTO field (url, each header value, body content); **single-pass**; replace placeholders right-to-left within each field; return `{ resolved: { method, url, headers, body? }, unresolved: { name, raw } | null, secrets: string[], hasVariables: boolean }`
-  - [ ] 1.3 Builtin generators (MVP): `$uuid` → `crypto.randomUUID()`; `$timestamp` → `String(Date.now())`; `$randomInt` → `String(Math.floor(Math.random() * 1000))` (0–999 inclusive)
-  - [ ] 1.4 Merge rule for `env` kind: requires `environmentName`; lookup `environmentStore.get(name)` variable key; if missing, fallback `resolveDotenv(key)`; if still missing → unresolved. Missing/null env → unresolved for `env` kind.
-  - [ ] 1.5 `dotenv` kind: `resolveDotenv(name)` only (works with no active env); missing → unresolved with `name` = KEY
-  - [ ] 1.6 Tests: `env-resolver.test.ts` extensions, `resolve-request.test.ts` (merge order, builtins without env, dotenv without env, unresolved env-kind, overrides, offset replacement, single-pass no recursion, secret redaction list)
+  - [x] 1.2 Add `packages/server/src/resolve-request.ts` — `resolveRequest(input)` using `scanVariables` per DTO field (url, each header value, body content); **single-pass**; replace placeholders right-to-left within each field; return `{ resolved: { method, url, headers, body? }, unresolved: { name, raw } | null, secrets: string[], hasVariables: boolean }`
+  - [x] 1.3 Builtin generators (MVP): `$uuid` → `crypto.randomUUID()`; `$timestamp` → `String(Date.now())`; `$randomInt` → `String(Math.floor(Math.random() * 1000))` (0–999 inclusive)
+  - [x] 1.4 Merge rule for `env` kind: requires `environmentName`; lookup `environmentStore.get(name)` variable key; if missing, fallback `resolveDotenv(key)`; if still missing → unresolved. Missing/null env → unresolved for `env` kind.
+  - [x] 1.5 `dotenv` kind: `resolveDotenv(name)` only (works with no active env); missing → unresolved with `name` = KEY
+  - [x] 1.6 Tests: `env-resolver.test.ts` extensions, `resolve-request.test.ts` (merge order, builtins without env, dotenv without env, unresolved env-kind, overrides, offset replacement, single-pass no recursion, secret redaction list)
 
-- [ ] Task 2: Preview API + execute wiring (AC: #1–#4) — AD-10
-  - [ ] 2.1 Add TypeBox schemas in `packages/shared-types`: `PreviewRequest`, `PreviewResponse` (must include `hasVariables: boolean`); extend `ExecuteRequest` with optional `environment?: string | null` (**keep** `followRedirects`); add `UNRESOLVED_VARIABLE` to `ExecuteErrorCode`
-  - [ ] 2.2 Add `packages/server/src/routes/preview.ts` — `POST /api/preview`; resolve environment from body `environment` ?? `configStore.activeEnvironment`; call shared `resolveRequest()`; redact with:
+- [x] Task 2: Preview API + execute wiring (AC: #1–#4) — AD-10
+  - [x] 2.1 Add TypeBox schemas in `packages/shared-types`: `PreviewRequest`, `PreviewResponse` (must include `hasVariables: boolean`); extend `ExecuteRequest` with optional `environment?: string | null` (**keep** `followRedirects`); add `UNRESOLVED_VARIABLE` to `ExecuteErrorCode`
+  - [x] 2.2 Add `packages/server/src/routes/preview.ts` — `POST /api/preview`; resolve environment from body `environment` ?? `configStore.activeEnvironment`; call shared `resolveRequest()`; redact with:
     ```typescript
     const url = redactSecrets(resolved.url, secrets)
     const headers = resolved.headers.map((h) => ({
@@ -108,22 +108,22 @@ So that I know exactly what request will hit the wire.
     }))
     ```
     Return `{ url, headers, unresolved, hasVariables }` — **omit body** from preview MVP (UX-DR20 URL+headers only)
-  - [ ] 2.3 Update `packages/server/src/proxy/execute-request.ts` — accept resolver + stores; call `resolveRequest()` before fetch; proxy **resolved** method/url/headers/body; throw `ExecuteError('UNRESOLVED_VARIABLE', …)` with 400; preserve redirect/timeout/`followRedirects` behavior
-  - [ ] 2.4 Update `packages/server/src/routes/execute.ts` + `app.ts` — inject stores/resolver into execute route; register preview route with same deps; wire new `EnvResolver(dotenvStore, environmentStore)`
-  - [ ] 2.5 Wire `redactSecrets` into any request-logging in execute/preview paths (NFR6); do not log resolved plaintext secrets
-  - [ ] 2.6 Tests: `preview.test.ts`, extend `execute.test.ts` — resolved send replaces `{{host}}`, body placeholders resolved on execute, UNRESOLVED_VARIABLE 400, secrets redacted in preview header values, `hasVariables` true/false, environment override vs config fallback, `followRedirects` still honored
+  - [x] 2.3 Update `packages/server/src/proxy/execute-request.ts` — accept resolver + stores; call `resolveRequest()` before fetch; proxy **resolved** method/url/headers/body; throw `ExecuteError('UNRESOLVED_VARIABLE', …)` with 400; preserve redirect/timeout/`followRedirects` behavior
+  - [x] 2.4 Update `packages/server/src/routes/execute.ts` + `app.ts` — inject stores/resolver into execute route; register preview route with same deps; wire new `EnvResolver(dotenvStore, environmentStore)`
+  - [x] 2.5 Wire `redactSecrets` into any request-logging in execute/preview paths (NFR6); do not log resolved plaintext secrets
+  - [x] 2.6 Tests: `preview.test.ts`, extend `execute.test.ts` — resolved send replaces `{{host}}`, body placeholders resolved on execute, UNRESOLVED_VARIABLE 400, secrets redacted in preview header values, `hasVariables` true/false, environment override vs config fallback, `followRedirects` still honored
 
-- [ ] Task 3: Web — preview hook + Send gating (AC: #2, #3) — UX-DR10, UX-DR17, UX-DR20, UX-DR21, UX-DR24
-  - [ ] 3.1 Add `packages/web/src/hooks/usePreviewRequest.ts` — TanStack Query calling `POST /api/preview` when collection/request/env/line overrides change; debounce ~300ms; ignore stale responses via `selectionIdentity` (same pattern as execute race guard in `AppLayout`)
-  - [ ] 3.2 Add `packages/web/src/components/PreSendPreview.tsx` — inline collapsible below request line; render only when `hasVariables`; shows resolved URL + header rows; secret header values via `SecretField`; collapsed by default, expand label e.g. "Preview resolved request"
-  - [ ] 3.3 Update `RequestLine.tsx` — render `PreSendPreview` + unresolved inline error (`text-error` or existing error token); apply Send enablement matrix (below)
-  - [ ] 3.4 Update `AppLayout.tsx` **and** `WorkspaceShell.tsx` — thread `activeEnvironment`, preview state, unresolved, send-disabled; include `environment: activeEnvironment` **and** existing `followRedirects` in execute mutation body; **gate Ctrl/⌘+Enter** with the same `canSend` flag as the button; preserve 2.3/2.4 toolbar ownership
-  - [ ] 3.5 Tests: `PreSendPreview.test.tsx`, extend `RequestLine.test.tsx`, `WorkspaceShell.test.tsx`, `AppLayout`/integration — Send disabled on unresolved, keyboard send blocked when gated, preview hidden when `hasVariables === false`, redacted headers, error microcopy exact
+- [x] Task 3: Web — preview hook + Send gating (AC: #2, #3) — UX-DR10, UX-DR17, UX-DR20, UX-DR21, UX-DR24
+  - [x] 3.1 Add `packages/web/src/hooks/usePreviewRequest.ts` — TanStack Query calling `POST /api/preview` when collection/request/env/line overrides change; debounce ~300ms; ignore stale responses via `selectionIdentity` (same pattern as execute race guard in `AppLayout`)
+  - [x] 3.2 Add `packages/web/src/components/PreSendPreview.tsx` — inline collapsible below request line; render only when `hasVariables`; shows resolved URL + header rows; secret header values via `SecretField`; collapsed by default, expand label e.g. "Preview resolved request"
+  - [x] 3.3 Update `RequestLine.tsx` — render `PreSendPreview` + unresolved inline error (`text-error` or existing error token); apply Send enablement matrix (below)
+  - [x] 3.4 Update `AppLayout.tsx` **and** `WorkspaceShell.tsx` — thread `activeEnvironment`, preview state, unresolved, send-disabled; include `environment: activeEnvironment` **and** existing `followRedirects` in execute mutation body; **gate Ctrl/⌘+Enter** with the same `canSend` flag as the button; preserve 2.3/2.4 toolbar ownership
+  - [x] 3.5 Tests: `PreSendPreview.test.tsx`, extend `RequestLine.test.tsx`, `WorkspaceShell.test.tsx`, `AppLayout`/integration — Send disabled on unresolved, keyboard send blocked when gated, preview hidden when `hasVariables === false`, redacted headers, error microcopy exact
 
-- [ ] Task 4: Demo + integration hygiene (AC: all)
-  - [ ] 4.1 Verify `demo.http` sends to resolved host when `development` environment selected and `.env` not required for demo path
-  - [ ] 4.2 Mark deferred-work item “Demo uses unresolved `{{host}}`…” as done/resolved once 4.1 passes
-  - [ ] 4.3 Run `pnpm turbo build test typecheck`; confirm http-parser fixture gate non-regressing
+- [x] Task 4: Demo + integration hygiene (AC: all)
+  - [x] 4.1 Verify `demo.http` sends to resolved host when `development` environment selected and `.env` not required for demo path
+  - [x] 4.2 Mark deferred-work item “Demo uses unresolved `{{host}}`…” as done/resolved once 4.1 passes
+  - [x] 4.3 Run `pnpm turbo build test typecheck`; confirm http-parser fixture gate non-regressing
 
 ## Dev Notes
 
@@ -365,15 +365,48 @@ Resolve per field using `VariableReference.location` + `start`/`end` + `raw`:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Cursor Grok 4.5
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Extended `EnvResolver` with `EnvironmentStore`, `resolveEnv`, `resolveBuiltin`, and env-aware `getSecretValuesForRedaction`.
+- Added shared `resolveRequest()` (single-pass, right-to-left splice) used by both `POST /api/preview` and `POST /api/execute`.
+- Preview redacts URL + each header value via `redactSecrets`; execute resolves url/headers/body and returns `UNRESOLVED_VARIABLE` 400 when blocked.
+- Web: debounced `usePreviewRequest`, collapsible `PreSendPreview`, shared `canSend` gating for Send button and Ctrl/⌘+Enter.
+- Verified `demo.http` + `development` → `https://httpbin.dev/get?source=reqor-demo`; deferred-work demo item marked done.
+- `pnpm turbo build test typecheck` passed workspace-wide (http-parser fixtures non-regressing).
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/2-5-send-time-variable-resolution-and-pre-send-preview.md`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `packages/shared-types/src/index.ts`
+- `packages/shared-types/src/index.test.ts`
+- `packages/server/src/env-resolver.ts`
+- `packages/server/src/env-resolver.test.ts`
+- `packages/server/src/resolve-request.ts`
+- `packages/server/src/resolve-request.test.ts`
+- `packages/server/src/routes/preview.ts`
+- `packages/server/src/preview.test.ts`
+- `packages/server/src/routes/execute.ts`
+- `packages/server/src/proxy/execute-request.ts`
+- `packages/server/src/execute.test.ts`
+- `packages/server/src/app.ts`
+- `packages/web/src/hooks/usePreviewRequest.ts`
+- `packages/web/src/components/PreSendPreview.tsx`
+- `packages/web/src/components/PreSendPreview.test.tsx`
+- `packages/web/src/components/RequestLine.tsx`
+- `packages/web/src/components/RequestLine.test.tsx`
+- `packages/web/src/components/WorkspaceShell.tsx`
+- `packages/web/src/components/WorkspaceShell.test.tsx`
+- `packages/web/src/components/AppLayout.tsx`
+- `packages/web/src/App.test.tsx`
 
 ## Change Log
 
 - 2026-07-17: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-17: Story context validated — hasVariables contract, Send enablement matrix (button + keyboard), redactSecrets-per-header, WorkspaceShell plumbing, EnvResolver ctor, single-pass + env-less builtins/dotenv, stale preview guard, followRedirects/body execute rules, deferred-work demo cleanup
+- 2026-07-17: Implemented send-time resolution, preview API, execute wiring, web preview + Send gating; status → review

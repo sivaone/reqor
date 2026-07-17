@@ -469,4 +469,129 @@ Content-Type: application/json
 
     await app.close()
   })
+
+  it('resolves {{host}} before proxying when environment is selected', async () => {
+    const root = await createRepo({
+      'demo.http': 'GET https://{{host}}/get',
+      'http-client.env.json': JSON.stringify({
+        development: { host: 'httpbin.dev' },
+      }),
+    })
+
+    fetchMock.mockResolvedValue(mockFetchResponse({ status: 200 }))
+
+    const app = await buildApp({ repositoryRoot: root })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/execute',
+      payload: {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        environment: 'development',
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://httpbin.dev/get',
+      expect.objectContaining({ method: 'GET' }),
+    )
+
+    await app.close()
+  })
+
+  it('resolves body placeholders on execute', async () => {
+    const root = await createRepo({
+      'post.http': `POST https://httpbin.dev/post
+Content-Type: application/json
+
+{"token":"{{$dotenv API_KEY}}"}`,
+      '.env': 'API_KEY=body-secret',
+    })
+
+    fetchMock.mockResolvedValue(mockFetchResponse({ status: 200 }))
+
+    const app = await buildApp({ repositoryRoot: root })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/execute',
+      payload: {
+        collectionId: 'post.http',
+        requestIndex: 0,
+        environment: null,
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const [, fetchInit] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(fetchInit.body).toBe('{"token":"body-secret"}')
+
+    await app.close()
+  })
+
+  it('returns UNRESOLVED_VARIABLE 400 when env placeholder cannot resolve', async () => {
+    const root = await createRepo({
+      'demo.http': 'GET https://{{host}}/get',
+    })
+
+    const app = await buildApp({ repositoryRoot: root })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/execute',
+      payload: {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        environment: null,
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({
+      error: {
+        code: 'UNRESOLVED_VARIABLE',
+        message: 'Unresolved variable: {{host}}',
+        details: { name: 'host', raw: '{{host}}' },
+      },
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    await app.close()
+  })
+
+  it('honors followRedirects with resolved URLs', async () => {
+    const root = await createRepo({
+      'demo.http': 'GET https://{{host}}/start',
+      'http-client.env.json': JSON.stringify({
+        development: { host: 'httpbin.dev' },
+      }),
+    })
+
+    fetchMock.mockResolvedValueOnce(
+      mockFetchResponse({
+        status: 302,
+        statusText: 'Found',
+        headers: { location: '/next' },
+        body: '',
+      }),
+    )
+
+    const app = await buildApp({ repositoryRoot: root })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/execute',
+      payload: {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        environment: 'development',
+        followRedirects: false,
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().status).toBe(302)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://httpbin.dev/start')
+
+    await app.close()
+  })
 })

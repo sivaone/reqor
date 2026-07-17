@@ -23,6 +23,9 @@ const defaultExecuteProps = {
   onFollowRedirectsChange: vi.fn(),
   onSend: vi.fn(),
   isSending: false,
+  canSend: true,
+  preview: null,
+  unresolvedError: null,
   executeResult: null,
   executeError: null,
 }
@@ -93,5 +96,27 @@ describe('WorkspaceShell', () => {
     )
 
     expect(screen.getByText(/200 OK · 50 ms · 11 B/)).toBeDefined()
+  })
+
+  it('disables Send when canSend is false and shows unresolved error', () => {
+    render(
+      <WorkspaceShell
+        activeRequest={sampleRequest}
+        isDetailPending={false}
+        isDetailError={false}
+        {...defaultExecuteProps}
+        canSend={false}
+        unresolvedError="Unresolved variable: {{host}}"
+        preview={{
+          url: 'https://{{host}}/get',
+          headers: [],
+          unresolved: { name: 'host', raw: '{{host}}' },
+          hasVariables: true,
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', true)
+    expect(screen.getByText('Unresolved variable: {{host}}')).toBeDefined()
   })
 })

@@ -1,5 +1,8 @@
 import type { ExecuteRequestType, ExecuteResponseType } from '@reqor/shared-types'
 import type { CollectionStore } from '../collection-store.js'
+import type { EnvResolver } from '../env-resolver.js'
+import { redactSecrets } from '../redact-secrets.js'
+import { resolveRequest } from '../resolve-request.js'
 
 export const PROXY_TIMEOUT_MS = 30_000
 const MAX_REDIRECT_HOPS = 10
@@ -19,6 +22,7 @@ export type ExecuteErrorCode =
   | 'INVALID_REQUEST'
   | 'PROXY_FAILED'
   | 'TOO_MANY_REDIRECTS'
+  | 'UNRESOLVED_VARIABLE'
 
 export class ExecuteError extends Error {
   constructor(
@@ -30,6 +34,12 @@ export class ExecuteError extends Error {
     super(message)
     this.name = 'ExecuteError'
   }
+}
+
+export interface ExecuteRequestDeps {
+  envResolver: EnvResolver
+  /** Resolved active environment name (body.environment ?? config); null when none/invalid */
+  environmentName: string | null
 }
 
 function isRedirect(status: number): boolean {
@@ -86,6 +96,7 @@ function byteLength(text: string): number {
 export async function executeRequest(
   collectionStore: CollectionStore,
   body: ExecuteRequestType,
+  deps: ExecuteRequestDeps,
   requestAbort?: AbortSignal,
 ): Promise<ExecuteResponseType> {
   const collection = collectionStore.get(body.collectionId)
@@ -117,11 +128,38 @@ export async function executeRequest(
 
   const followRedirects = body.followRedirects ?? true
   const method = (body.method ?? req.method).toUpperCase().trim()
-  let currentUrl = body.url ?? req.url
+  const templateUrl = body.url ?? req.url
 
   if (!ALLOWED_METHODS.has(method)) {
     throw new ExecuteError('INVALID_REQUEST', 'Invalid HTTP method', 400, { method })
   }
+
+  const resolution = resolveRequest(
+    {
+      method,
+      url: templateUrl,
+      headers: req.headers.map((header) => ({ name: header.name, value: header.value })),
+      ...(req.body
+        ? { body: { kind: req.body.kind, content: req.body.content } }
+        : {}),
+      environmentName: deps.environmentName,
+    },
+    deps.envResolver,
+  )
+
+  if (resolution.unresolved) {
+    throw new ExecuteError(
+      'UNRESOLVED_VARIABLE',
+      `Unresolved variable: ${resolution.unresolved.raw}`,
+      400,
+      {
+        name: resolution.unresolved.name,
+        raw: resolution.unresolved.raw,
+      },
+    )
+  }
+
+  let currentUrl = resolution.resolved.url
 
   if (!isHttpUrl(currentUrl)) {
     throw new ExecuteError(
@@ -132,21 +170,22 @@ export async function executeRequest(
   }
 
   const headers = new Headers()
-  for (const h of req.headers) {
+  for (const h of resolution.resolved.headers) {
     const name = h.name.toLowerCase()
     if (name === 'host' || name === 'content-length') continue
     headers.set(h.name, h.value)
   }
 
   let fetchBody: string | undefined
-  if (req.body && method !== 'GET' && method !== 'HEAD') {
-    fetchBody = req.body.content
+  if (resolution.resolved.body && method !== 'GET' && method !== 'HEAD') {
+    fetchBody = resolution.resolved.body.content
   }
 
   const timeoutSignal = AbortSignal.timeout(PROXY_TIMEOUT_MS)
   const signal = combineSignals(requestAbort, timeoutSignal)
 
   const started = performance.now()
+  const safeUrlForLog = redactSecrets(currentUrl, resolution.secrets)
 
   try {
     let response = await fetch(currentUrl, {
@@ -169,7 +208,7 @@ export async function executeRequest(
         currentUrl = new URL(location, currentUrl).href
       } catch {
         throw new ExecuteError('INVALID_REQUEST', 'Invalid redirect Location', 400, {
-          location,
+          location: redactSecrets(location, resolution.secrets),
         })
       }
 
@@ -218,21 +257,25 @@ export async function executeRequest(
 
     const message = error instanceof Error ? error.message : 'Proxy request failed'
     const cause = error instanceof Error ? error.name : undefined
+    const safeMessage = redactSecrets(message, resolution.secrets)
 
     if (error instanceof Error && error.name === 'AbortError') {
       throw new ExecuteError('PROXY_FAILED', 'Request aborted or timed out', 502, {
         cause: cause ?? 'AbortError',
+        url: safeUrlForLog,
       })
     }
 
     if (error instanceof Error && error.name === 'TimeoutError') {
       throw new ExecuteError('PROXY_FAILED', 'Request timed out', 502, {
         cause: 'TimeoutError',
+        url: safeUrlForLog,
       })
     }
 
-    throw new ExecuteError('PROXY_FAILED', message, 502, {
+    throw new ExecuteError('PROXY_FAILED', safeMessage, 502, {
       cause,
+      url: safeUrlForLog,
     })
   }
 }

@@ -117,6 +117,19 @@ function createFetchMock(configState: { activeEnvironment: string | null }) {
         json: async () => detailPayload,
       })
     }
+    if (url === '/api/preview' && init?.method === 'POST') {
+      const body = JSON.parse(String(init.body)) as { url?: string }
+      const templateUrl = body.url ?? 'https://httpbin.dev/get'
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          url: templateUrl,
+          headers: [],
+          unresolved: null,
+          hasVariables: templateUrl.includes('{{'),
+        }),
+      })
+    }
     if (url === '/api/execute' && init?.method === 'POST') {
       return Promise.resolve({
         ok: true,
@@ -224,6 +237,10 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
     fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
     fireEvent.click(screen.getByRole('button', { name: /^send$/i }))
 
     await waitFor(() => {
@@ -240,6 +257,10 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
     fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
     fireEvent.click(screen.getByRole('button', { name: /^send$/i }))
 
     await waitFor(() => {
@@ -544,9 +565,18 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: /demo\.http/i }))
     fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
+
     fireEvent.change(screen.getByLabelText('Request URL'), {
       target: { value: 'https://httpbin.dev/uuid' },
     })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
+
     fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true })
 
     await waitFor(() => {
@@ -568,5 +598,74 @@ describe('App', () => {
     })
     const prevented = !document.dispatchEvent(saveEvent)
     expect(prevented).toBe(true)
+  })
+
+  it('blocks Ctrl+Enter when unresolved variables gate Send', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url === '/api/collections') {
+          return Promise.resolve({ ok: true, json: async () => listPayload })
+        }
+        if (url === '/api/environments') {
+          return Promise.resolve({ ok: true, json: async () => environmentsPayload })
+        }
+        if (url === '/api/config') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ activeEnvironment: null }),
+          })
+        }
+        if (url === '/api/collections/demo.http') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              ...detailPayload,
+              requests: [
+                {
+                  requestIndex: 0,
+                  fingerprint: 'd'.repeat(64),
+                  method: 'GET',
+                  url: 'https://{{host}}/get',
+                  headers: [],
+                },
+              ],
+            }),
+          })
+        }
+        if (url === '/api/preview' && init?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              url: 'https://{{host}}/get',
+              headers: [],
+              unresolved: { name: 'host', raw: '{{host}}' },
+              hasVariables: true,
+            }),
+          })
+        }
+        if (url === '/api/execute' && init?.method === 'POST') {
+          return Promise.resolve({ ok: true, json: async () => executePayload })
+        }
+        return Promise.resolve({ ok: false, status: 404 })
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /\{\{host\}\}/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Unresolved variable: {{host}}')).toBeDefined()
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', true)
+    })
+
+    fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true })
+
+    expect(fetch).not.toHaveBeenCalledWith(
+      '/api/execute',
+      expect.objectContaining({ method: 'POST' }),
+    )
   })
 })

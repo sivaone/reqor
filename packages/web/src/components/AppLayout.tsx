@@ -4,9 +4,41 @@ import { useCollectionDetail } from '../hooks/useCollectionDetail.js'
 import { useConfig } from '../hooks/useConfig.js'
 import { useEnvironments } from '../hooks/useEnvironments.js'
 import { useExecuteRequest, ExecuteRequestError } from '../hooks/useExecuteRequest.js'
+import { usePreviewRequest } from '../hooks/usePreviewRequest.js'
 import type { SelectedRequest } from '../types/selection.js'
 import { SidebarShell } from './SidebarShell.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
+
+function deriveCanSend(options: {
+  isSending: boolean
+  hasActiveRequest: boolean
+  previewPending: boolean
+  previewFetching: boolean
+  previewError: boolean
+  hasVariables: boolean | undefined
+  unresolved: { name: string; raw: string } | null | undefined
+}): boolean {
+  const {
+    isSending,
+    hasActiveRequest,
+    previewPending,
+    previewFetching,
+    previewError,
+    hasVariables,
+    unresolved,
+  } = options
+
+  if (isSending || !hasActiveRequest) return false
+
+  // Waiting for first preview result — gate Send (unknown hasVariables).
+  if (hasVariables === undefined) return false
+
+  if (hasVariables === false) return true
+
+  // hasVariables === true
+  if (previewPending || previewFetching || previewError) return false
+  return unresolved == null
+}
 
 export function AppLayout() {
   const [selectedRequest, setSelectedRequest] = useState<SelectedRequest>(null)
@@ -63,6 +95,31 @@ export function AppLayout() {
     : null
   const selectionIdentityRef = useRef(selectionIdentity)
   selectionIdentityRef.current = selectionIdentity
+
+  const previewQuery = usePreviewRequest({
+    collectionId: selectedRequest?.collectionId ?? null,
+    requestIndex: selectedRequest?.requestIndex ?? null,
+    environment: activeEnvironment,
+    method: lineMethod,
+    url: lineUrl,
+    enabled: Boolean(activeRequest),
+    selectionIdentity,
+  })
+
+  const canSend = deriveCanSend({
+    isSending: executeMutation.isPending,
+    hasActiveRequest: Boolean(activeRequest),
+    previewPending: previewQuery.isPending,
+    previewFetching: previewQuery.isFetching,
+    previewError: previewQuery.isError,
+    hasVariables: previewQuery.data?.hasVariables,
+    unresolved: previewQuery.data?.unresolved,
+  })
+
+  const unresolvedError =
+    previewQuery.data?.hasVariables && previewQuery.data.unresolved
+      ? `Unresolved variable: ${previewQuery.data.unresolved.raw}`
+      : null
 
   useEffect(() => {
     setExecuteResult(null)
@@ -121,6 +178,7 @@ export function AppLayout() {
           followRedirects,
           method: overrides.method,
           url: overrides.url,
+          environment: activeEnvironment,
         },
         {
           onSuccess: (result) => {
@@ -139,7 +197,7 @@ export function AppLayout() {
         },
       )
     },
-    [executeMutation, followRedirects, selectedRequest, selectionIdentity],
+    [activeEnvironment, executeMutation, followRedirects, selectedRequest, selectionIdentity],
   )
 
   useEffect(() => {
@@ -152,7 +210,7 @@ export function AppLayout() {
         return
       }
 
-      if (event.key === 'Enter' && activeRequest && !executeMutation.isPending) {
+      if (event.key === 'Enter' && activeRequest && canSend) {
         event.preventDefault()
         handleSend({
           method: lineMethod,
@@ -163,7 +221,7 @@ export function AppLayout() {
 
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [activeRequest, executeMutation.isPending, handleSend, lineMethod, lineUrl])
+  }, [activeRequest, canSend, handleSend, lineMethod, lineUrl])
 
   const isSending = executeMutation.isPending
 
@@ -190,6 +248,9 @@ export function AppLayout() {
         onFollowRedirectsChange={setFollowRedirects}
         onSend={handleSend}
         isSending={isSending}
+        canSend={canSend}
+        preview={previewQuery.data ?? null}
+        unresolvedError={unresolvedError}
         executeResult={executeResult}
         executeError={executeError}
       />
