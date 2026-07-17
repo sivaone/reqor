@@ -5,17 +5,34 @@ import {
   ExecuteResponse,
 } from '@reqor/shared-types'
 import type { CollectionStore } from '../collection-store.js'
+import type { ConfigStore } from '../config-store.js'
+import type { EnvResolver } from '../env-resolver.js'
+import type { EnvironmentStore } from '../environment-store.js'
 import { ExecuteError, executeRequest } from '../proxy/execute-request.js'
 
 export interface ExecuteRouteOptions {
   collectionStore: CollectionStore
+  configStore: ConfigStore
+  environmentStore: EnvironmentStore
+  envResolver: EnvResolver
+}
+
+function resolveEnvironmentName(
+  requested: string | null | undefined,
+  configStore: ConfigStore,
+  environmentStore: EnvironmentStore,
+): string | null {
+  const candidate =
+    requested !== undefined ? requested : configStore.get().activeEnvironment
+  if (!candidate) return null
+  return environmentStore.get(candidate) ? candidate : null
 }
 
 export const executeRoutes: FastifyPluginAsyncTypebox<ExecuteRouteOptions> = async (
   app,
   options,
 ) => {
-  const { collectionStore } = options
+  const { collectionStore, configStore, environmentStore, envResolver } = options
 
   app.post(
     '/api/execute',
@@ -42,9 +59,16 @@ export const executeRoutes: FastifyPluginAsyncTypebox<ExecuteRouteOptions> = asy
       request.raw.on('close', onClose)
 
       try {
+        const environmentName = resolveEnvironmentName(
+          request.body.environment,
+          configStore,
+          environmentStore,
+        )
+
         const result = await executeRequest(
           collectionStore,
           request.body,
+          { envResolver, environmentName },
           abortController.signal,
         )
         return result

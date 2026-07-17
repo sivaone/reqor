@@ -1,6 +1,10 @@
-import type { EnvironmentVariableDtoType } from '@reqor/shared-types'
+import type {
+  EnvironmentVariableDtoType,
+  PreviewResponseType,
+} from '@reqor/shared-types'
 import { getMethodColorClass } from '../utils/methodColorClass.js'
 import { EnvironmentVariablesStrip } from './EnvironmentVariablesStrip.js'
+import { PreSendPreview } from './PreSendPreview.js'
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 
@@ -15,6 +19,9 @@ type RequestLineProps = {
   onFollowRedirectsChange: (value: boolean) => void
   onSend: (overrides: { method: string; url: string }) => void
   isSending: boolean
+  canSend: boolean
+  preview?: PreviewResponseType | null
+  unresolvedError?: string | null
 }
 
 export function RequestLine({
@@ -28,7 +35,12 @@ export function RequestLine({
   onFollowRedirectsChange,
   onSend,
   isSending,
+  canSend,
+  preview = null,
+  unresolvedError = null,
 }: RequestLineProps) {
+  const showPreview = preview?.hasVariables === true
+
   return (
     <div className="flex flex-col gap-inset px-inset py-inset">
       {activeEnvironment ? (
@@ -65,7 +77,7 @@ export function RequestLine({
         <button
           type="button"
           onClick={() => onSend({ method, url })}
-          disabled={isSending}
+          disabled={!canSend}
           aria-busy={isSending}
           className="inline-flex shrink-0 items-center gap-inset-sm rounded-md bg-primary px-inset py-inset-sm text-body text-primary-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:opacity-60"
         >
@@ -86,6 +98,12 @@ export function RequestLine({
           Save
         </button>
       </div>
+      {unresolvedError ? (
+        <p className="text-body text-error" role="alert">
+          {unresolvedError}
+        </p>
+      ) : null}
+      {showPreview && preview ? <PreSendPreview preview={preview} /> : null}
       <label className="inline-flex items-center gap-inset-sm text-body text-foreground">
         <input
           type="checkbox"

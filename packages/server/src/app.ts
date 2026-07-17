@@ -12,6 +12,7 @@ import { collectionsRoutes } from './routes/collections.js'
 import { configRoutes } from './routes/config.js'
 import { environmentsRoutes } from './routes/environments.js'
 import { executeRoutes } from './routes/execute.js'
+import { previewRoutes } from './routes/preview.js'
 
 export { DEFAULT_HOST, DEFAULT_PORT } from './constants.js'
 export { loadReqorLocalEnv } from './load-local-env.js'
@@ -27,7 +28,7 @@ export async function buildApp(options: BuildAppOptions) {
   const collectionStore = new CollectionStore()
   const environmentStore = new EnvironmentStore()
   const dotenvStore = new DotenvStore()
-  const envResolver = new EnvResolver(dotenvStore)
+  const envResolver = new EnvResolver(dotenvStore, environmentStore)
   const configStore = new ConfigStore(
     path.join(options.repositoryRoot, '.reqor', 'config.json'),
   )
@@ -77,8 +78,18 @@ export async function buildApp(options: BuildAppOptions) {
     environmentStore,
   })
 
+  await app.register(previewRoutes, {
+    collectionStore,
+    configStore,
+    environmentStore,
+    envResolver,
+  })
+
   await app.register(executeRoutes, {
     collectionStore,
+    configStore,
+    environmentStore,
+    envResolver,
   })
 
   if (options.staticRoot) {

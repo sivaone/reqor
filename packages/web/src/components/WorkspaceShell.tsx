@@ -1,4 +1,9 @@
-import type { ExecuteResponseType, EnvironmentVariableDtoType, RequestDtoType } from '@reqor/shared-types'
+import type {
+  ExecuteResponseType,
+  EnvironmentVariableDtoType,
+  PreviewResponseType,
+  RequestDtoType,
+} from '@reqor/shared-types'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { RequestLine } from './RequestLine.js'
 import { RequestPlaceholder } from './RequestPlaceholder.js'
@@ -20,6 +25,9 @@ type WorkspaceShellProps = {
   onFollowRedirectsChange: (value: boolean) => void
   onSend: (overrides: { method: string; url: string }) => void
   isSending: boolean
+  canSend: boolean
+  preview: PreviewResponseType | null
+  unresolvedError: string | null
   executeResult: ExecuteResponseType | null
   executeError: { code?: string; message: string } | null
 }
@@ -38,6 +46,9 @@ export function WorkspaceShell({
   onFollowRedirectsChange,
   onSend,
   isSending,
+  canSend,
+  preview,
+  unresolvedError,
   executeResult,
   executeError,
 }: WorkspaceShellProps) {
@@ -65,6 +76,9 @@ export function WorkspaceShell({
                 onFollowRedirectsChange={onFollowRedirectsChange}
                 onSend={onSend}
                 isSending={isSending}
+                canSend={canSend}
+                preview={preview}
+                unresolvedError={unresolvedError}
               />
             ) : isDetailPending ? (
               <p className="px-inset py-inset text-foreground-muted text-body">

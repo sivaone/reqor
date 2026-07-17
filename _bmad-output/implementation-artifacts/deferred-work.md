@@ -17,7 +17,7 @@
 
 ## Deferred from: code review of 2-2-environment-file-parsing-and-listing (2026-07-17)
 
-- **Demo uses unresolved `{{host}}` while execute still sends literals** — deferred: I changed it for future testing; restore or resolve in Story 2.5 send-time resolution
+- ~~**Demo uses unresolved `{{host}}` while execute still sends literals** — deferred: I changed it for future testing; restore or resolve in Story 2.5 send-time resolution~~ **Done (2026-07-17 / Story 2.5)** — `demo.http` + `http-client.env.json` `development` resolves `{{host}}` via send-time `resolveRequest`
 - **No `http-client.private.env.json` gitignore guidance or fixture guard** — Story 2.2 adds private-companion parsing but does not document or enforce ignoring private env files; add repo hygiene guidance when private-secret workflows are productized
 
 ## Deferred from: code review of 1-5-app-shell-and-design-system-tokens (2026-07-15)

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { SECRET_MASK } from '@reqor/shared-types'
 import { describe, expect, it, vi } from 'vitest'
 import { RequestLine } from './RequestLine.js'
 
@@ -18,6 +19,7 @@ describe('RequestLine', () => {
         onFollowRedirectsChange={vi.fn()}
         onSend={onSend}
         isSending={false}
+        canSend={true}
       />,
     )
 
@@ -39,7 +41,7 @@ describe('RequestLine', () => {
     })
   })
 
-  it('disables Send while pending and fires follow redirects toggle', () => {
+  it('disables Send when canSend is false', () => {
     const onFollowRedirectsChange = vi.fn()
 
     render(
@@ -52,6 +54,7 @@ describe('RequestLine', () => {
         onFollowRedirectsChange={onFollowRedirectsChange}
         onSend={vi.fn()}
         isSending={true}
+        canSend={false}
       />,
     )
 
@@ -72,6 +75,7 @@ describe('RequestLine', () => {
         onFollowRedirectsChange={vi.fn()}
         onSend={vi.fn()}
         isSending={false}
+        canSend={true}
       />,
     )
 
@@ -95,6 +99,7 @@ describe('RequestLine', () => {
         onFollowRedirectsChange={vi.fn()}
         onSend={vi.fn()}
         isSending={false}
+        canSend={true}
       />,
     )
 
@@ -113,6 +118,7 @@ describe('RequestLine', () => {
         onFollowRedirectsChange={vi.fn()}
         onSend={vi.fn()}
         isSending={false}
+        canSend={true}
       />,
     )
 
@@ -135,10 +141,86 @@ describe('RequestLine', () => {
         onFollowRedirectsChange={vi.fn()}
         onSend={vi.fn()}
         isSending={false}
+        canSend={true}
       />,
     )
 
     expect(screen.getByText('localhost')).toBeDefined()
+    expect(screen.getByLabelText('Secret value masked')).toBeDefined()
+  })
+
+  it('shows unresolved error microcopy and disables Send', () => {
+    render(
+      <RequestLine
+        method="GET"
+        url="https://{{host}}/get"
+        onMethodChange={vi.fn()}
+        onUrlChange={vi.fn()}
+        followRedirects={true}
+        onFollowRedirectsChange={vi.fn()}
+        onSend={vi.fn()}
+        isSending={false}
+        canSend={false}
+        unresolvedError="Unresolved variable: {{host}}"
+        preview={{
+          url: 'https://{{host}}/get',
+          headers: [],
+          unresolved: { name: 'host', raw: '{{host}}' },
+          hasVariables: true,
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('alert').textContent).toBe('Unresolved variable: {{host}}')
+    expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', true)
+    expect(screen.getByText('Preview resolved request')).toBeDefined()
+  })
+
+  it('hides preview when hasVariables is false', () => {
+    render(
+      <RequestLine
+        method="GET"
+        url="https://httpbin.dev/get"
+        onMethodChange={vi.fn()}
+        onUrlChange={vi.fn()}
+        followRedirects={true}
+        onFollowRedirectsChange={vi.fn()}
+        onSend={vi.fn()}
+        isSending={false}
+        canSend={true}
+        preview={{
+          url: 'https://httpbin.dev/get',
+          headers: [],
+          unresolved: null,
+          hasVariables: false,
+        }}
+      />,
+    )
+
+    expect(screen.queryByText('Preview resolved request')).toBeNull()
+  })
+
+  it('shows redacted secret headers in preview', () => {
+    render(
+      <RequestLine
+        method="GET"
+        url="https://httpbin.dev/get"
+        onMethodChange={vi.fn()}
+        onUrlChange={vi.fn()}
+        followRedirects={true}
+        onFollowRedirectsChange={vi.fn()}
+        onSend={vi.fn()}
+        isSending={false}
+        canSend={true}
+        preview={{
+          url: 'https://httpbin.dev/get',
+          headers: [{ name: 'Authorization', value: SECRET_MASK }],
+          unresolved: null,
+          hasVariables: true,
+        }}
+      />,
+    )
+
     expect(screen.getByLabelText('Secret value masked')).toBeDefined()
   })
 })

@@ -17,6 +17,8 @@ import {
   EnvironmentVariableDto,
   HealthResponse,
   ParseStatus,
+  PreviewRequest,
+  PreviewResponse,
   RequestBodyDto,
   RequestDto,
   RequestHeaderDto,
@@ -31,6 +33,8 @@ import {
   type ExecuteRequestType,
   type ExecuteResponseHeaderDtoType,
   type ExecuteResponseType,
+  type PreviewRequestType,
+  type PreviewResponseType,
   type RequestBodyDtoType,
   type RequestHeaderDtoType,
   type RequestDtoType,
@@ -112,12 +116,14 @@ describe('@reqor/shared-types', () => {
       followRedirects: true,
       method: 'GET',
       url: 'https://httpbin.dev/get',
+      environment: 'development',
     }
     expect(Value.Check(ExecuteRequest, executeRequest)).toBe(true)
     expect(
       Value.Check(ExecuteRequest, {
         collectionId: 'demo.http',
         requestIndex: 0,
+        environment: null,
       }),
     ).toBe(true)
 
@@ -136,6 +142,40 @@ describe('@reqor/shared-types', () => {
       sizeBytes: 897,
     }
     expect(Value.Check(ExecuteResponse, executeResponse)).toBe(true)
+  })
+
+  it('validates preview request and response DTO sample values', () => {
+    const previewRequest: PreviewRequestType = {
+      collectionId: 'demo.http',
+      requestIndex: 0,
+      environment: 'development',
+      method: 'GET',
+      url: 'https://{{host}}/get',
+    }
+    expect(Value.Check(PreviewRequest, previewRequest)).toBe(true)
+    expect(
+      Value.Check(PreviewRequest, {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        environment: null,
+      }),
+    ).toBe(true)
+
+    const previewResponse: PreviewResponseType = {
+      url: 'https://httpbin.dev/get',
+      headers: [{ name: 'Authorization', value: SECRET_MASK }],
+      unresolved: null,
+      hasVariables: true,
+    }
+    expect(Value.Check(PreviewResponse, previewResponse)).toBe(true)
+    expect(
+      Value.Check(PreviewResponse, {
+        url: 'https://{{host}}/get',
+        headers: [],
+        unresolved: { name: 'host', raw: '{{host}}' },
+        hasVariables: true,
+      }),
+    ).toBe(true)
   })
 
   it('rejects invalid execute DTO values', () => {
