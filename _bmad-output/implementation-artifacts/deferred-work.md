@@ -1,5 +1,9 @@
 # Deferred Work Log
 
+## Deferred from: code review of 2-5-send-time-variable-resolution-and-pre-send-preview (2026-07-17)
+
+- **Dotenv fallback values redacted in preview URL** [packages/server/src/env-resolver.ts] — all dotenv values are treated as secrets for redaction; env-kind fallback from `.env` may show `••••••` in the URL preview even for non-secret keys like `host`; narrow redaction to referenced keys when productizing clearer preview UX
+
 ## Deferred from: code review of 2-4-secret-resolution-from-env-variants (2026-07-17)
 
 - **`parseEnvLine` parsing gaps** [packages/server/src/parse-env-line.ts] — no inline-comment stripping, unterminated-quote handling, multi-line quoted values, lone-CR line endings, or whitespace-in-key detection; logic moved unchanged from `load-local-env.ts`, pre-existing

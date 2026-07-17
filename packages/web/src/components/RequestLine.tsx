@@ -22,6 +22,7 @@ type RequestLineProps = {
   canSend: boolean
   preview?: PreviewResponseType | null
   unresolvedError?: string | null
+  previewError?: string | null
 }
 
 export function RequestLine({
@@ -38,6 +39,7 @@ export function RequestLine({
   canSend,
   preview = null,
   unresolvedError = null,
+  previewError = null,
 }: RequestLineProps) {
   const showPreview = preview?.hasVariables === true
 
@@ -101,6 +103,11 @@ export function RequestLine({
       {unresolvedError ? (
         <p className="text-body text-error" role="alert">
           {unresolvedError}
+        </p>
+      ) : null}
+      {previewError ? (
+        <p className="text-body text-foreground-muted" role="status">
+          {previewError}
         </p>
       ) : null}
       {showPreview && preview ? <PreSendPreview preview={preview} /> : null}

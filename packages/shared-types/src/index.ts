@@ -107,6 +107,16 @@ export const ExecuteRequest = Type.Object({
 
 export type ExecuteRequestType = Static<typeof ExecuteRequest>
 
+export const ExecuteErrorCode = Type.Union([
+  Type.Literal('NOT_FOUND'),
+  Type.Literal('INVALID_REQUEST'),
+  Type.Literal('PROXY_FAILED'),
+  Type.Literal('TOO_MANY_REDIRECTS'),
+  Type.Literal('UNRESOLVED_VARIABLE'),
+])
+
+export type ExecuteErrorCodeType = Static<typeof ExecuteErrorCode>
+
 export const PreviewRequest = Type.Object({
   collectionId: Type.String(),
   requestIndex: Type.Integer({ minimum: 0 }),

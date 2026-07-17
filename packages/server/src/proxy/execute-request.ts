@@ -1,4 +1,8 @@
-import type { ExecuteRequestType, ExecuteResponseType } from '@reqor/shared-types'
+import type {
+  ExecuteErrorCodeType,
+  ExecuteRequestType,
+  ExecuteResponseType,
+} from '@reqor/shared-types'
 import type { CollectionStore } from '../collection-store.js'
 import type { EnvResolver } from '../env-resolver.js'
 import { redactSecrets } from '../redact-secrets.js'
@@ -17,16 +21,11 @@ const ALLOWED_METHODS = new Set([
   'OPTIONS',
 ])
 
-export type ExecuteErrorCode =
-  | 'NOT_FOUND'
-  | 'INVALID_REQUEST'
-  | 'PROXY_FAILED'
-  | 'TOO_MANY_REDIRECTS'
-  | 'UNRESOLVED_VARIABLE'
+export type ExecuteErrorCode = ExecuteErrorCodeType
 
 export class ExecuteError extends Error {
   constructor(
-    public readonly code: ExecuteErrorCode,
+    public readonly code: ExecuteErrorCodeType,
     message: string,
     public readonly httpStatus: number,
     public readonly details?: unknown,

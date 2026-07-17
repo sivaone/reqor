@@ -223,4 +223,23 @@ describe('RequestLine', () => {
 
     expect(screen.getByLabelText('Secret value masked')).toBeDefined()
   })
+
+  it('shows preview error status without blocking layout', () => {
+    render(
+      <RequestLine
+        method="GET"
+        url="https://httpbin.dev/get"
+        onMethodChange={vi.fn()}
+        onUrlChange={vi.fn()}
+        followRedirects={true}
+        onFollowRedirectsChange={vi.fn()}
+        onSend={vi.fn()}
+        isSending={false}
+        canSend={true}
+        previewError="Failed to preview request"
+      />,
+    )
+
+    expect(screen.getByRole('status').textContent).toBe('Failed to preview request')
+  })
 })

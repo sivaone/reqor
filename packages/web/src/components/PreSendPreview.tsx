@@ -22,7 +22,13 @@ export function PreSendPreview({ preview }: PreSendPreviewProps) {
       <div className="mt-inset-sm grid gap-inset-sm text-body">
         <div>
           <p className="text-label text-foreground-muted">URL</p>
-          <p className="break-all font-mono text-foreground">{preview.url}</p>
+          <p className="break-all font-mono">
+            {isSecretMasked(preview.url) ? (
+              <SecretField value={preview.url} />
+            ) : (
+              <span className="text-foreground">{preview.url}</span>
+            )}
+          </p>
         </div>
         {preview.headers.length > 0 ? (
           <div>

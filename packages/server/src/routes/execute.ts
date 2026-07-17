@@ -9,23 +9,13 @@ import type { ConfigStore } from '../config-store.js'
 import type { EnvResolver } from '../env-resolver.js'
 import type { EnvironmentStore } from '../environment-store.js'
 import { ExecuteError, executeRequest } from '../proxy/execute-request.js'
+import { resolveEnvironmentName } from '../resolve-environment-name.js'
 
 export interface ExecuteRouteOptions {
   collectionStore: CollectionStore
   configStore: ConfigStore
   environmentStore: EnvironmentStore
   envResolver: EnvResolver
-}
-
-function resolveEnvironmentName(
-  requested: string | null | undefined,
-  configStore: ConfigStore,
-  environmentStore: EnvironmentStore,
-): string | null {
-  const candidate =
-    requested !== undefined ? requested : configStore.get().activeEnvironment
-  if (!candidate) return null
-  return environmentStore.get(candidate) ? candidate : null
 }
 
 export const executeRoutes: FastifyPluginAsyncTypebox<ExecuteRouteOptions> = async (

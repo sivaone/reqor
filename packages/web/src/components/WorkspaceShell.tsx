@@ -28,6 +28,7 @@ type WorkspaceShellProps = {
   canSend: boolean
   preview: PreviewResponseType | null
   unresolvedError: string | null
+  previewError: string | null
   executeResult: ExecuteResponseType | null
   executeError: { code?: string; message: string } | null
 }
@@ -49,6 +50,7 @@ export function WorkspaceShell({
   canSend,
   preview,
   unresolvedError,
+  previewError,
   executeResult,
   executeError,
 }: WorkspaceShellProps) {
@@ -79,6 +81,7 @@ export function WorkspaceShell({
                 canSend={canSend}
                 preview={preview}
                 unresolvedError={unresolvedError}
+                previewError={previewError}
               />
             ) : isDetailPending ? (
               <p className="px-inset py-inset text-foreground-muted text-body">

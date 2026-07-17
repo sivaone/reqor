@@ -668,4 +668,72 @@ describe('App', () => {
       expect.objectContaining({ method: 'POST' }),
     )
   })
+
+  it('allows Send after preview refresh fails when last result had no variables', async () => {
+    let previewCalls = 0
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url === '/api/collections') {
+          return Promise.resolve({ ok: true, json: async () => listPayload })
+        }
+        if (url === '/api/environments') {
+          return Promise.resolve({ ok: true, json: async () => environmentsPayload })
+        }
+        if (url === '/api/config') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ activeEnvironment: null }),
+          })
+        }
+        if (url === '/api/collections/demo.http') {
+          return Promise.resolve({ ok: true, json: async () => detailPayload })
+        }
+        if (url === '/api/preview' && init?.method === 'POST') {
+          previewCalls += 1
+          if (previewCalls === 1) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                url: 'https://httpbin.dev/get',
+                headers: [],
+                unresolved: null,
+                hasVariables: false,
+              }),
+            })
+          }
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            json: async () => ({
+              error: { code: 'PROXY_FAILED', message: 'Failed to preview request' },
+            }),
+          })
+        }
+        if (url === '/api/execute' && init?.method === 'POST') {
+          return Promise.resolve({ ok: true, json: async () => executePayload })
+        }
+        return Promise.resolve({ ok: false, status: 404 })
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://httpbin.dev/get?retry=1' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('status').textContent).toMatch(/failed to preview request/i)
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
+  })
 })

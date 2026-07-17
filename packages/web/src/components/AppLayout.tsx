@@ -1,4 +1,4 @@
-import type { ExecuteResponseType, RequestDtoType } from '@reqor/shared-types'
+import type { ExecuteResponseType, PreviewResponseType, RequestDtoType } from '@reqor/shared-types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCollectionDetail } from '../hooks/useCollectionDetail.js'
 import { useConfig } from '../hooks/useConfig.js'
@@ -6,39 +6,9 @@ import { useEnvironments } from '../hooks/useEnvironments.js'
 import { useExecuteRequest, ExecuteRequestError } from '../hooks/useExecuteRequest.js'
 import { usePreviewRequest } from '../hooks/usePreviewRequest.js'
 import type { SelectedRequest } from '../types/selection.js'
+import { deriveCanSend } from '../utils/deriveCanSend.js'
 import { SidebarShell } from './SidebarShell.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
-
-function deriveCanSend(options: {
-  isSending: boolean
-  hasActiveRequest: boolean
-  previewPending: boolean
-  previewFetching: boolean
-  previewError: boolean
-  hasVariables: boolean | undefined
-  unresolved: { name: string; raw: string } | null | undefined
-}): boolean {
-  const {
-    isSending,
-    hasActiveRequest,
-    previewPending,
-    previewFetching,
-    previewError,
-    hasVariables,
-    unresolved,
-  } = options
-
-  if (isSending || !hasActiveRequest) return false
-
-  // Waiting for first preview result — gate Send (unknown hasVariables).
-  if (hasVariables === undefined) return false
-
-  if (hasVariables === false) return true
-
-  // hasVariables === true
-  if (previewPending || previewFetching || previewError) return false
-  return unresolved == null
-}
 
 export function AppLayout() {
   const [selectedRequest, setSelectedRequest] = useState<SelectedRequest>(null)
@@ -95,6 +65,7 @@ export function AppLayout() {
     : null
   const selectionIdentityRef = useRef(selectionIdentity)
   selectionIdentityRef.current = selectionIdentity
+  const lastPreviewRef = useRef<PreviewResponseType | null>(null)
 
   const previewQuery = usePreviewRequest({
     collectionId: selectedRequest?.collectionId ?? null,
@@ -106,20 +77,39 @@ export function AppLayout() {
     selectionIdentity,
   })
 
+  useEffect(() => {
+    lastPreviewRef.current = null
+  }, [selectionIdentity])
+
+  useEffect(() => {
+    if (previewQuery.data) {
+      lastPreviewRef.current = previewQuery.data
+    }
+  }, [previewQuery.data])
+
+  const previewData =
+    previewQuery.data ?? (previewQuery.isError ? lastPreviewRef.current : null)
+
   const canSend = deriveCanSend({
     isSending: executeMutation.isPending,
     hasActiveRequest: Boolean(activeRequest),
     previewPending: previewQuery.isPending,
     previewFetching: previewQuery.isFetching,
-    previewError: previewQuery.isError,
-    hasVariables: previewQuery.data?.hasVariables,
-    unresolved: previewQuery.data?.unresolved,
+    hasVariables: previewData?.hasVariables,
+    unresolved: previewData?.unresolved,
   })
 
   const unresolvedError =
-    previewQuery.data?.hasVariables && previewQuery.data.unresolved
-      ? `Unresolved variable: ${previewQuery.data.unresolved.raw}`
+    previewData?.hasVariables && previewData.unresolved
+      ? `Unresolved variable: ${previewData.unresolved.raw}`
       : null
+
+  const previewError =
+    previewQuery.isError && previewQuery.error instanceof Error
+      ? previewQuery.error.message
+      : previewQuery.isError
+        ? 'Failed to preview request'
+        : null
 
   useEffect(() => {
     setExecuteResult(null)
@@ -249,8 +239,9 @@ export function AppLayout() {
         onSend={handleSend}
         isSending={isSending}
         canSend={canSend}
-        preview={previewQuery.data ?? null}
+        preview={previewData}
         unresolvedError={unresolvedError}
+        previewError={previewError}
         executeResult={executeResult}
         executeError={executeError}
       />
