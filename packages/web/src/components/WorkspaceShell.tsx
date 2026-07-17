@@ -6,6 +6,7 @@ import { ResponsePanel } from './ResponsePanel.js'
 
 type WorkspaceShellProps = {
   activeRequest: RequestDtoType | null
+  activeEnvironment: string | null
   isDetailPending: boolean
   isDetailError: boolean
   collectionId: string | null
@@ -24,6 +25,7 @@ type WorkspaceShellProps = {
 
 export function WorkspaceShell({
   activeRequest,
+  activeEnvironment,
   isDetailPending,
   isDetailError,
   lineMethod,
@@ -51,6 +53,7 @@ export function WorkspaceShell({
               </p>
             ) : activeRequest ? (
               <RequestLine
+                activeEnvironment={activeEnvironment}
                 method={lineMethod}
                 url={lineUrl}
                 onMethodChange={onMethodChange}

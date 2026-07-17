@@ -3,6 +3,7 @@ import { getMethodColorClass } from '../utils/methodColorClass.js'
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 
 type RequestLineProps = {
+  activeEnvironment?: string | null
   method: string
   url: string
   onMethodChange: (method: string) => void
@@ -14,6 +15,7 @@ type RequestLineProps = {
 }
 
 export function RequestLine({
+  activeEnvironment,
   method,
   url,
   onMethodChange,
@@ -25,6 +27,11 @@ export function RequestLine({
 }: RequestLineProps) {
   return (
     <div className="flex flex-col gap-inset px-inset py-inset">
+      {activeEnvironment ? (
+        <p className="text-label text-foreground-muted" aria-live="polite">
+          Environment: {activeEnvironment}
+        </p>
+      ) : null}
       <div className="flex min-w-0 items-center gap-inset-sm">
         <select
           aria-label="HTTP method"

@@ -6,6 +6,7 @@
 - **Whitespace-only and case-insensitive env name matching** — exact name match only for MVP
 - **UTF-8 BOM handling on config.json load** — optional hardening; invalid JSON already maps to null
 - **Disk write failure codes (EACCES/ENOSPC) → typed API error** — follow existing server error patterns when needed
+- **Empty env list leaves orphaned persisted name uncleared** — select is disabled when environments are empty, so a stale `activeEnvironment` cannot be cleared until env files reappear; acceptable for MVP
 
 ## Deferred from: code review of 2-2-environment-file-parsing-and-listing (2026-07-17)
 

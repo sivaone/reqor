@@ -82,4 +82,40 @@ describe('RequestLine', () => {
       'focus-visible:outline-primary',
     )
   })
+
+  it('shows environment label when activeEnvironment prop is set', () => {
+    render(
+      <RequestLine
+        activeEnvironment="production"
+        method="GET"
+        url="https://httpbin.dev/get"
+        onMethodChange={vi.fn()}
+        onUrlChange={vi.fn()}
+        followRedirects={true}
+        onFollowRedirectsChange={vi.fn()}
+        onSend={vi.fn()}
+        isSending={false}
+      />,
+    )
+
+    expect(screen.getByText('Environment: production')).toBeDefined()
+  })
+
+  it('hides environment label when activeEnvironment is null', () => {
+    render(
+      <RequestLine
+        activeEnvironment={null}
+        method="GET"
+        url="https://httpbin.dev/get"
+        onMethodChange={vi.fn()}
+        onUrlChange={vi.fn()}
+        followRedirects={true}
+        onFollowRedirectsChange={vi.fn()}
+        onSend={vi.fn()}
+        isSending={false}
+      />,
+    )
+
+    expect(screen.queryByText(/^Environment:/)).toBeNull()
+  })
 })

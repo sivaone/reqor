@@ -1,6 +1,8 @@
 import type { ExecuteResponseType, RequestDtoType } from '@reqor/shared-types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCollectionDetail } from '../hooks/useCollectionDetail.js'
+import { useConfig } from '../hooks/useConfig.js'
+import { useEnvironments } from '../hooks/useEnvironments.js'
 import { useExecuteRequest, ExecuteRequestError } from '../hooks/useExecuteRequest.js'
 import type { SelectedRequest } from '../types/selection.js'
 import { SidebarShell } from './SidebarShell.js'
@@ -24,6 +26,16 @@ export function AppLayout() {
   } = useCollectionDetail(collectionId)
 
   const executeMutation = useExecuteRequest()
+
+  const { data: config } = useConfig()
+  const { data: envData } = useEnvironments()
+
+  const activeEnvironment = useMemo((): string | null => {
+    const name = config?.activeEnvironment
+    if (!name) return null
+    const exists = envData?.environments?.some((environment) => environment.name === name)
+    return exists ? name : null
+  }, [config?.activeEnvironment, envData?.environments])
 
   const activeRequest = useMemo((): RequestDtoType | null => {
     if (!selectedRequest || !detail) return null
@@ -155,6 +167,7 @@ export function AppLayout() {
       />
       <WorkspaceShell
         activeRequest={activeRequest}
+        activeEnvironment={activeEnvironment}
         isDetailPending={Boolean(selectedRequest) && isDetailPending}
         isDetailError={isDetailError}
         collectionId={selectedRequest?.collectionId ?? null}

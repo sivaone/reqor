@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { Value } from '@sinclair/typebox/value'
 import {
   ApiErrorEnvelope,
+  ConfigDto,
+  ConfigUpdateRequest,
   CollectionDetailDto,
   CollectionSummaryDto,
   CollectionsListResponse,
@@ -20,6 +22,8 @@ import {
   RequestHeaderDto,
   SECRET_MASK,
   type CollectionDetailDtoType,
+  type ConfigDtoType,
+  type ConfigUpdateRequestType,
   type CollectionSummaryDtoType,
   type DiagnosticDtoType,
   type EnvironmentDtoType,
@@ -200,5 +204,16 @@ describe('@reqor/shared-types', () => {
     }
     expect(Value.Check(EnvironmentDto, environment)).toBe(true)
     expect(Value.Check(EnvironmentsListResponse, { environments: [environment] })).toBe(true)
+  })
+
+  it('exports and validates config DTO sample values', () => {
+    const config: ConfigDtoType = { activeEnvironment: 'development' }
+    expect(Value.Check(ConfigDto, config)).toBe(true)
+    expect(Value.Check(ConfigDto, { activeEnvironment: null })).toBe(true)
+
+    const update: ConfigUpdateRequestType = { activeEnvironment: 'staging' }
+    expect(Value.Check(ConfigUpdateRequest, update)).toBe(true)
+    expect(Value.Check(ConfigUpdateRequest, { activeEnvironment: null })).toBe(true)
+    expect(Value.Check(ConfigUpdateRequest, { activeEnvironment: '' })).toBe(false)
   })
 })

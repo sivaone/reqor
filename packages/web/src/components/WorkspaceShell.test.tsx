@@ -11,6 +11,7 @@ const sampleRequest = {
 }
 
 const defaultExecuteProps = {
+  activeEnvironment: null as string | null,
   collectionId: 'demo.http' as string | null,
   requestIndex: 0 as number | null,
   lineMethod: 'GET',
