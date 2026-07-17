@@ -37,6 +37,15 @@ export function AppLayout() {
     return exists ? name : null
   }, [config?.activeEnvironment, envData?.environments])
 
+  // JetBrains env-file vars (already redacted by API) — not repo dotenv.
+  const activeEnvironmentVariables = useMemo(() => {
+    if (!activeEnvironment || !envData?.environments) return []
+    return (
+      envData.environments.find((environment) => environment.name === activeEnvironment)
+        ?.variables ?? []
+    )
+  }, [activeEnvironment, envData?.environments])
+
   const activeRequest = useMemo((): RequestDtoType | null => {
     if (!selectedRequest || !detail) return null
     const byIndex = detail.requests.find(
@@ -168,6 +177,7 @@ export function AppLayout() {
       <WorkspaceShell
         activeRequest={activeRequest}
         activeEnvironment={activeEnvironment}
+        environmentVariables={activeEnvironmentVariables}
         isDetailPending={Boolean(selectedRequest) && isDetailPending}
         isDetailError={isDetailError}
         collectionId={selectedRequest?.collectionId ?? null}

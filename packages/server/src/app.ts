@@ -5,6 +5,8 @@ import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { HealthResponse } from '@reqor/shared-types'
 import { CollectionStore } from './collection-store.js'
 import { ConfigStore } from './config-store.js'
+import { DotenvStore } from './dotenv-store.js'
+import { EnvResolver } from './env-resolver.js'
 import { EnvironmentStore } from './environment-store.js'
 import { collectionsRoutes } from './routes/collections.js'
 import { configRoutes } from './routes/config.js'
@@ -24,6 +26,8 @@ export async function buildApp(options: BuildAppOptions) {
   const app = Fastify().withTypeProvider<TypeBoxTypeProvider>()
   const collectionStore = new CollectionStore()
   const environmentStore = new EnvironmentStore()
+  const dotenvStore = new DotenvStore()
+  const envResolver = new EnvResolver(dotenvStore)
   const configStore = new ConfigStore(
     path.join(options.repositoryRoot, '.reqor', 'config.json'),
   )
@@ -35,10 +39,16 @@ export async function buildApp(options: BuildAppOptions) {
     ])
   }
 
-  await configStore.load()
+  // Dotenv + config load even when scanOnStart is false (same pattern as Story 2.3 config).
+  await Promise.all([
+    dotenvStore.load(options.repositoryRoot),
+    configStore.load(),
+  ])
 
   app.decorate('collectionStore', collectionStore)
   app.decorate('environmentStore', environmentStore)
+  app.decorate('dotenvStore', dotenvStore)
+  app.decorate('envResolver', envResolver)
   app.decorate('configStore', configStore)
 
   app.get(

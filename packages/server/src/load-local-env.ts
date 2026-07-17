@@ -1,32 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { parseEnvLine } from './parse-env-line.js'
 import { findGitRoot } from './resolve-repository-root.js'
 
 const LOCAL_ENV_RELATIVE_PATH = path.join('.reqor', 'local.env')
-
-function parseEnvLine(line: string): [string, string] | undefined {
-  const trimmed = line.trim()
-  if (!trimmed || trimmed.startsWith('#')) {
-    return undefined
-  }
-
-  const separator = trimmed.indexOf('=')
-  if (separator <= 0) {
-    return undefined
-  }
-
-  const key = trimmed.slice(0, separator).trim()
-  let value = trimmed.slice(separator + 1).trim()
-
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    value = value.slice(1, -1)
-  }
-
-  return [key, value]
-}
 
 function applyEnvFile(envPath: string): string {
   const contents = fs.readFileSync(envPath, 'utf8')
@@ -37,6 +14,7 @@ function applyEnvFile(envPath: string): string {
     }
 
     const [key, value] = parsed
+    // Process-env override rule (not dotenv Map merge): never clobber an existing value.
     if (process.env[key] === undefined) {
       process.env[key] = value
     }
