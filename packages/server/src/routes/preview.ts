@@ -8,6 +8,7 @@ import type { CollectionStore } from '../collection-store.js'
 import type { ConfigStore } from '../config-store.js'
 import type { EnvResolver } from '../env-resolver.js'
 import type { EnvironmentStore } from '../environment-store.js'
+import { mergeDraftOverrides } from '../merge-draft-overrides.js'
 import { redactSecrets } from '../redact-secrets.js'
 import { resolveEnvironmentName } from '../resolve-environment-name.js'
 import { resolveRequest } from '../resolve-request.js'
@@ -79,20 +80,11 @@ export const previewRoutes: FastifyPluginAsyncTypebox<PreviewRouteOptions> = asy
         environmentStore,
       )
 
-      const method = (request.body.method ?? req.method).toUpperCase().trim()
-      const url = request.body.url ?? req.url
+      const merged = mergeDraftOverrides(req, request.body)
 
       const resolution = resolveRequest(
         {
-          method,
-          url,
-          headers: req.headers.map((header) => ({
-            name: header.name,
-            value: header.value,
-          })),
-          ...(req.body
-            ? { body: { kind: req.body.kind, content: req.body.content } }
-            : {}),
+          ...merged,
           environmentName,
         },
         envResolver,

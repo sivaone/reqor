@@ -2,30 +2,41 @@ import type {
   ExecuteResponseType,
   EnvironmentVariableDtoType,
   PreviewResponseType,
+  RequestBodyDtoType,
   RequestDtoType,
+  RequestHeaderDtoType,
 } from '@reqor/shared-types'
 import { Group, Panel, Separator } from 'react-resizable-panels'
-import { RequestLine } from './RequestLine.js'
+import type { DraftSendOverrides } from '../types/draftSend.js'
+import type { RequestDraft } from '../utils/requestDraft.js'
+import { RequestEditor } from './RequestEditor.js'
 import { RequestPlaceholder } from './RequestPlaceholder.js'
 import { ResponsePanel } from './ResponsePanel.js'
 
 type WorkspaceShellProps = {
   activeRequest: RequestDtoType | null
+  draft: RequestDraft | null
   activeEnvironment: string | null
   environmentVariables: EnvironmentVariableDtoType[]
   isDetailPending: boolean
   isDetailError: boolean
   collectionId: string | null
   requestIndex: number | null
-  lineMethod: string
-  lineUrl: string
   onMethodChange: (method: string) => void
   onUrlChange: (url: string) => void
+  onHeadersChange: (headers: RequestHeaderDtoType[]) => void
+  onBodyChange: (body: RequestBodyDtoType | undefined) => void
+  onAddBody: () => void
+  onClearBody: () => void
   followRedirects: boolean
   onFollowRedirectsChange: (value: boolean) => void
-  onSend: (overrides: { method: string; url: string }) => void
+  onSend: (overrides: DraftSendOverrides) => void
   isSending: boolean
   canSend: boolean
+  isDraftDirty: boolean
+  canSave: boolean
+  validationError: string | null
+  onSave: () => void
   preview: PreviewResponseType | null
   unresolvedError: string | null
   previewError: string | null
@@ -35,19 +46,26 @@ type WorkspaceShellProps = {
 
 export function WorkspaceShell({
   activeRequest,
+  draft,
   activeEnvironment,
   environmentVariables,
   isDetailPending,
   isDetailError,
-  lineMethod,
-  lineUrl,
   onMethodChange,
   onUrlChange,
+  onHeadersChange,
+  onBodyChange,
+  onAddBody,
+  onClearBody,
   followRedirects,
   onFollowRedirectsChange,
   onSend,
   isSending,
   canSend,
+  isDraftDirty,
+  canSave,
+  validationError,
+  onSave,
   preview,
   unresolvedError,
   previewError,
@@ -66,19 +84,26 @@ export function WorkspaceShell({
               <p className="px-inset py-inset text-foreground-muted text-body">
                 Could not load request
               </p>
-            ) : activeRequest ? (
-              <RequestLine
+            ) : activeRequest && draft ? (
+              <RequestEditor
+                draft={draft}
                 activeEnvironment={activeEnvironment}
                 environmentVariables={environmentVariables}
-                method={lineMethod}
-                url={lineUrl}
                 onMethodChange={onMethodChange}
                 onUrlChange={onUrlChange}
+                onHeadersChange={onHeadersChange}
+                onBodyChange={onBodyChange}
+                onAddBody={onAddBody}
+                onClearBody={onClearBody}
                 followRedirects={followRedirects}
                 onFollowRedirectsChange={onFollowRedirectsChange}
                 onSend={onSend}
                 isSending={isSending}
                 canSend={canSend}
+                isDraftDirty={isDraftDirty}
+                canSave={canSave}
+                validationError={validationError}
+                onSave={onSave}
                 preview={preview}
                 unresolvedError={unresolvedError}
                 previewError={previewError}

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import type { RequestDraft } from '../utils/requestDraft.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
 
 const sampleRequest = {
@@ -10,20 +11,33 @@ const sampleRequest = {
   headers: [],
 }
 
+const sampleDraft: RequestDraft = {
+  method: 'GET',
+  url: 'https://httpbin.dev/get',
+  headers: [],
+}
+
 const defaultExecuteProps = {
+  draft: sampleDraft as RequestDraft | null,
   activeEnvironment: null as string | null,
   environmentVariables: [] as import('@reqor/shared-types').EnvironmentVariableDtoType[],
   collectionId: 'demo.http' as string | null,
   requestIndex: 0 as number | null,
-  lineMethod: 'GET',
-  lineUrl: 'https://httpbin.dev/get',
   onMethodChange: vi.fn(),
   onUrlChange: vi.fn(),
+  onHeadersChange: vi.fn(),
+  onBodyChange: vi.fn(),
+  onAddBody: vi.fn(),
+  onClearBody: vi.fn(),
   followRedirects: true,
   onFollowRedirectsChange: vi.fn(),
   onSend: vi.fn(),
   isSending: false,
   canSend: true,
+  isDraftDirty: false,
+  canSave: false,
+  validationError: null as string | null,
+  onSave: vi.fn(),
   preview: null,
   unresolvedError: null,
   previewError: null,
@@ -39,6 +53,7 @@ describe('WorkspaceShell', () => {
         isDetailPending={false}
         isDetailError={false}
         {...defaultExecuteProps}
+        draft={null}
         collectionId={null}
         requestIndex={null}
       />,
@@ -50,7 +65,7 @@ describe('WorkspaceShell', () => {
     expect(screen.getByText('Response will appear here')).toBeDefined()
   })
 
-  it('renders request line when active request is provided', () => {
+  it('renders request editor when active request and draft are provided', () => {
     render(
       <WorkspaceShell
         activeRequest={sampleRequest}
@@ -62,6 +77,7 @@ describe('WorkspaceShell', () => {
 
     expect(screen.getByLabelText('Request URL')).toHaveProperty('value', 'https://httpbin.dev/get')
     expect(screen.getByRole('button', { name: /^send$/i })).toBeDefined()
+    expect(screen.getByRole('tab', { name: 'Params' })).toBeDefined()
   })
 
   it('shows detail error even when a stale active request is present', () => {

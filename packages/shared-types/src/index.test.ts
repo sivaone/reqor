@@ -120,6 +120,8 @@ describe('@reqor/shared-types', () => {
       followRedirects: true,
       method: 'GET',
       url: 'https://httpbin.dev/get',
+      headers: [{ name: 'Accept', value: 'application/json' }],
+      body: null,
       environment: 'development',
     }
     expect(Value.Check(ExecuteRequest, executeRequest)).toBe(true)
@@ -128,6 +130,13 @@ describe('@reqor/shared-types', () => {
         collectionId: 'demo.http',
         requestIndex: 0,
         environment: null,
+      }),
+    ).toBe(true)
+    expect(
+      Value.Check(ExecuteRequest, {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        body: { kind: 'raw', content: 'hi' },
       }),
     ).toBe(true)
 
@@ -155,6 +164,8 @@ describe('@reqor/shared-types', () => {
       environment: 'development',
       method: 'GET',
       url: 'https://{{host}}/get',
+      headers: [],
+      body: null,
     }
     expect(Value.Check(PreviewRequest, previewRequest)).toBe(true)
     expect(
@@ -162,6 +173,14 @@ describe('@reqor/shared-types', () => {
         collectionId: 'demo.http',
         requestIndex: 0,
         environment: null,
+      }),
+    ).toBe(true)
+    expect(
+      Value.Check(PreviewRequest, {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        headers: [{ name: 'X-Debug', value: '1' }],
+        body: { kind: 'json', content: '{}' },
       }),
     ).toBe(true)
 

@@ -131,6 +131,61 @@ Content-Type: application/json
     await app.close()
   })
 
+  it('applies header override and body null clear from draft', async () => {
+    const root = await createRepo({
+      'post.http': `POST https://httpbin.dev/post
+Accept: text/plain
+Content-Type: application/json
+
+{"name":"disk"}`,
+    })
+
+    fetchMock.mockResolvedValue(mockFetchResponse({ status: 200 }))
+
+    const app = await buildApp({ repositoryRoot: root })
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/execute',
+      payload: {
+        collectionId: 'post.http',
+        requestIndex: 0,
+        headers: [
+          { name: 'Accept', value: 'application/json' },
+          { name: 'X-Draft', value: 'yes' },
+        ],
+        body: { kind: 'raw', content: 'draft-body' },
+      },
+    })
+
+    const [, overrideInit] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const overrideHeaders = overrideInit.headers as Headers
+    expect(overrideHeaders.get('Accept')).toBe('application/json')
+    expect(overrideHeaders.get('X-Draft')).toBe('yes')
+    expect(overrideHeaders.get('Content-Type')).toBeNull()
+    expect(overrideInit.body).toBe('draft-body')
+
+    fetchMock.mockClear()
+    fetchMock.mockResolvedValue(mockFetchResponse({ status: 200 }))
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/execute',
+      payload: {
+        collectionId: 'post.http',
+        requestIndex: 0,
+        headers: [],
+        body: null,
+      },
+    })
+
+    const [, clearInit] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(clearInit.body).toBeUndefined()
+    expect((clearInit.headers as Headers).get('Accept')).toBeNull()
+
+    await app.close()
+  })
+
   it('returns target HTTP 404 as success ExecuteResponse', async () => {
     const root = await createRepo({
       'demo.http': 'GET https://httpbin.dev/missing',

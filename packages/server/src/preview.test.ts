@@ -171,4 +171,59 @@ Authorization: Bearer {{token}}`,
 
     await app.close()
   })
+
+  it('applies header overrides and body null clear before resolution', async () => {
+    const root = await createRepo({
+      'demo.http': [
+        'POST https://httpbin.dev/post',
+        'Accept: text/plain',
+        'Authorization: Bearer {{token}}',
+        '',
+        'disk-body',
+      ].join('\n'),
+      'http-client.env.json': JSON.stringify({
+        development: { token: 'secret-token' },
+      }),
+      'http-client.private.env.json': JSON.stringify({
+        development: { token: 'secret-token' },
+      }),
+    })
+
+    const app = await buildApp({ repositoryRoot: root })
+
+    const headerOverride = await app.inject({
+      method: 'POST',
+      url: '/api/preview',
+      payload: {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        environment: 'development',
+        headers: [
+          { name: 'Accept', value: 'application/json' },
+          { name: 'X-Draft', value: '1' },
+        ],
+      },
+    })
+    expect(headerOverride.statusCode).toBe(200)
+    expect(headerOverride.json().headers).toEqual([
+      { name: 'Accept', value: 'application/json' },
+      { name: 'X-Draft', value: '1' },
+    ])
+
+    const bodyClear = await app.inject({
+      method: 'POST',
+      url: '/api/preview',
+      payload: {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        environment: 'development',
+        headers: [],
+        body: null,
+      },
+    })
+    expect(bodyClear.statusCode).toBe(200)
+    expect(bodyClear.json().headers).toEqual([])
+
+    await app.close()
+  })
 })

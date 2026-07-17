@@ -669,6 +669,149 @@ describe('App', () => {
     )
   })
 
+  it('preserves header edits across sub-tabs and gates Save on dirty/valid', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
+
+    expect(screen.queryByRole('button', { name: /^save$/i })).toBeNull()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Headers (0)' }))
+    fireEvent.click(screen.getByRole('button', { name: /add header/i }))
+    fireEvent.change(screen.getByLabelText('Header 1 name'), {
+      target: { value: 'X-Test' },
+    })
+    fireEvent.change(screen.getByLabelText('Header 1 value'), {
+      target: { value: '1' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', false)
+    })
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Params' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Headers (1)' }))
+    expect(screen.getByLabelText('Header 1 name')).toHaveProperty('value', 'X-Test')
+    expect(screen.getByLabelText('Header 1 value')).toHaveProperty('value', '1')
+  })
+
+  it('shows validation for GET with body and disables Save', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Body' }))
+    fireEvent.click(screen.getByRole('button', { name: /add body/i }))
+    fireEvent.change(screen.getByLabelText('Body content'), {
+      target: { value: 'payload' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText(/GET requests should not include a body/i)).toBeDefined()
+      expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', true)
+    })
+  })
+
+  it('sends draft headers and body null on execute after clear', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url === '/api/collections') {
+          return Promise.resolve({ ok: true, json: async () => listPayload })
+        }
+        if (url === '/api/environments') {
+          return Promise.resolve({ ok: true, json: async () => environmentsPayload })
+        }
+        if (url === '/api/config') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ activeEnvironment: null }),
+          })
+        }
+        if (url === '/api/collections/demo.http') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              ...detailPayload,
+              requests: [
+                {
+                  requestIndex: 0,
+                  fingerprint: 'd'.repeat(64),
+                  method: 'POST',
+                  url: 'https://httpbin.dev/post',
+                  headers: [{ name: 'Accept', value: 'text/plain' }],
+                  body: { kind: 'raw', content: 'disk' },
+                },
+              ],
+            }),
+          })
+        }
+        if (url === '/api/preview' && init?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              url: 'https://httpbin.dev/post',
+              headers: [],
+              unresolved: null,
+              hasVariables: false,
+            }),
+          })
+        }
+        if (url === '/api/execute' && init?.method === 'POST') {
+          return Promise.resolve({ ok: true, json: async () => executePayload })
+        }
+        return Promise.resolve({ ok: false, status: 404 })
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/post/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Body' }))
+    fireEvent.click(screen.getByRole('button', { name: /remove body/i }))
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Headers (1)' }))
+    fireEvent.change(screen.getByLabelText('Header 1 value'), {
+      target: { value: 'application/json' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }))
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/execute',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringMatching(/"body":null/),
+        }),
+      )
+    })
+
+    const executeCall = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(
+      (call) => call[0] === '/api/execute',
+    )
+    expect(executeCall).toBeDefined()
+    const payload = JSON.parse(String((executeCall?.[1] as RequestInit).body))
+    expect(payload.headers).toEqual([{ name: 'Accept', value: 'application/json' }])
+    expect(payload.body).toBeNull()
+  })
+
   it('allows Send after preview refresh fails when last result had no variables', async () => {
     let previewCalls = 0
 
