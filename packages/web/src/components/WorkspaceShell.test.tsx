@@ -12,6 +12,7 @@ const sampleRequest = {
 
 const defaultExecuteProps = {
   activeEnvironment: null as string | null,
+  environmentVariables: [] as import('@reqor/shared-types').EnvironmentVariableDtoType[],
   collectionId: 'demo.http' as string | null,
   requestIndex: 0 as number | null,
   lineMethod: 'GET',

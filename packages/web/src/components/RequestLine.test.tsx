@@ -118,4 +118,27 @@ describe('RequestLine', () => {
 
     expect(screen.queryByText(/^Environment:/)).toBeNull()
   })
+
+  it('shows environment variables strip with masked secrets', () => {
+    render(
+      <RequestLine
+        activeEnvironment="development"
+        environmentVariables={[
+          { key: 'host', value: 'localhost', isSecret: false },
+          { key: 'token', value: '••••••', isSecret: true },
+        ]}
+        method="GET"
+        url="https://httpbin.dev/get"
+        onMethodChange={vi.fn()}
+        onUrlChange={vi.fn()}
+        followRedirects={true}
+        onFollowRedirectsChange={vi.fn()}
+        onSend={vi.fn()}
+        isSending={false}
+      />,
+    )
+
+    expect(screen.getByText('localhost')).toBeDefined()
+    expect(screen.getByLabelText('Secret value masked')).toBeDefined()
+  })
 })

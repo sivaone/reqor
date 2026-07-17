@@ -1,4 +1,4 @@
-import type { ExecuteResponseType, RequestDtoType } from '@reqor/shared-types'
+import type { ExecuteResponseType, EnvironmentVariableDtoType, RequestDtoType } from '@reqor/shared-types'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { RequestLine } from './RequestLine.js'
 import { RequestPlaceholder } from './RequestPlaceholder.js'
@@ -7,6 +7,7 @@ import { ResponsePanel } from './ResponsePanel.js'
 type WorkspaceShellProps = {
   activeRequest: RequestDtoType | null
   activeEnvironment: string | null
+  environmentVariables: EnvironmentVariableDtoType[]
   isDetailPending: boolean
   isDetailError: boolean
   collectionId: string | null
@@ -26,6 +27,7 @@ type WorkspaceShellProps = {
 export function WorkspaceShell({
   activeRequest,
   activeEnvironment,
+  environmentVariables,
   isDetailPending,
   isDetailError,
   lineMethod,
@@ -54,6 +56,7 @@ export function WorkspaceShell({
             ) : activeRequest ? (
               <RequestLine
                 activeEnvironment={activeEnvironment}
+                environmentVariables={environmentVariables}
                 method={lineMethod}
                 url={lineUrl}
                 onMethodChange={onMethodChange}
