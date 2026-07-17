@@ -1,5 +1,12 @@
 # Deferred Work Log
 
+## Deferred from: code review of 2-3-environment-selection-with-persistence (2026-07-17)
+
+- **Concurrent PUTs / multi-process stale in-memory config** — local single-writer MVP assumed; revisit if multi-instance becomes supported
+- **Whitespace-only and case-insensitive env name matching** — exact name match only for MVP
+- **UTF-8 BOM handling on config.json load** — optional hardening; invalid JSON already maps to null
+- **Disk write failure codes (EACCES/ENOSPC) → typed API error** — follow existing server error patterns when needed
+
 ## Deferred from: code review of 2-2-environment-file-parsing-and-listing (2026-07-17)
 
 - **Demo uses unresolved `{{host}}` while execute still sends literals** — deferred: I changed it for future testing; restore or resolve in Story 2.5 send-time resolution
