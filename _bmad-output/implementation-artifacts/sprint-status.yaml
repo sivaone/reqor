@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-17T14:15:00
+last_updated: 2026-07-17T20:50:00
 project: reqor
 project_key: NOKEY
 tracking_system: file-system
@@ -59,16 +59,16 @@ development_status:
   1-7-http-proxy-execution-and-response-panel: done
   epic-1-retrospective: skipped
 
-  epic-2: in-progress
+  epic-2: done
   2-1-variable-and-dynamic-placeholder-parsing: done
   2-2-environment-file-parsing-and-listing: done
   2-3-environment-selection-with-persistence: done
   2-4-secret-resolution-from-env-variants: done
-  2-5-send-time-variable-resolution-and-pre-send-preview: review
-  epic-2-retrospective: optional
+  2-5-send-time-variable-resolution-and-pre-send-preview: done
+  epic-2-retrospective: skipped
 
-  epic-3: backlog
-  3-1-visual-request-editor: backlog
+  epic-3: in-progress
+  3-1-visual-request-editor: ready-for-dev
   3-2-raw-http-editor-with-syntax-highlighting: backlog
   3-3-server-side-save-with-minimal-diff-write: backlog
   epic-3-retrospective: optional
