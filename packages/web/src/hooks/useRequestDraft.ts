@@ -22,22 +22,41 @@ export type UseRequestDraftResult = {
   clearBody: () => void
 }
 
+function initialDraft(
+  activeRequest: RequestDtoType | null,
+  selectionIdentity: string | null,
+): RequestDraft | null {
+  if (!selectionIdentity || !activeRequest) return null
+  return draftFromRequest(activeRequest)
+}
+
 export function useRequestDraft(
   activeRequest: RequestDtoType | null,
   selectionIdentity: string | null,
 ): UseRequestDraftResult {
-  const [draft, setDraftState] = useState<RequestDraft | null>(null)
-  const [baseline, setBaseline] = useState<RequestDraft | null>(null)
+  const [draft, setDraftState] = useState<RequestDraft | null>(() =>
+    initialDraft(activeRequest, selectionIdentity),
+  )
+  const [baseline, setBaseline] = useState<RequestDraft | null>(() =>
+    initialDraft(activeRequest, selectionIdentity),
+  )
+  const [trackedSelection, setTrackedSelection] = useState(selectionIdentity)
+
+  if (selectionIdentity !== trackedSelection) {
+    setTrackedSelection(selectionIdentity)
+    const next = initialDraft(activeRequest, selectionIdentity)
+    setDraftState(next)
+    setBaseline(next)
+  }
 
   useEffect(() => {
-    if (!selectionIdentity || !activeRequest) {
-      setDraftState(null)
-      setBaseline(null)
-      return
-    }
-    const next = draftFromRequest(activeRequest)
-    setBaseline(next)
-    setDraftState(next)
+    if (!selectionIdentity || !activeRequest) return
+    setDraftState((prev) => {
+      if (prev !== null) return prev
+      const next = draftFromRequest(activeRequest)
+      setBaseline(next)
+      return next
+    })
   }, [selectionIdentity, activeRequest])
 
   const setDraft = useCallback(

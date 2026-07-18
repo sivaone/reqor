@@ -1,5 +1,11 @@
 # Deferred Work Log
 
+## Deferred from: code review of 3-1-visual-request-editor (2026-07-17)
+
+- **Duplicate query keys collapsed by URLSearchParams** [packages/web/src/utils/requestDraft.ts] — spec mandates built-in URLSearchParams only; duplicate-key round-trip not supported
+- **Duplicate header names coalesced at execute** [packages/server/src/proxy/execute-request.ts] — Headers.set keeps last duplicate; no product requirement for duplicate-name warnings in 3.1
+- **Index-based React keys in editable header/param rows** [packages/web/src/components/RequestHeadersPanel.tsx] — focus glitch on mid-list delete tolerable for MVP; stable row IDs can follow in polish pass
+
 ## Deferred from: code review of 2-5-send-time-variable-resolution-and-pre-send-preview (2026-07-17)
 
 - **Dotenv fallback values redacted in preview URL** [packages/server/src/env-resolver.ts] — all dotenv values are treated as secrets for redaction; env-kind fallback from `.env` may show `••••••` in the URL preview even for non-secret keys like `host`; narrow redaction to referenced keys when productizing clearer preview UX

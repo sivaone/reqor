@@ -260,6 +260,7 @@ export function AppLayout() {
         isDetailError={isDetailError}
         collectionId={selectedRequest?.collectionId ?? null}
         requestIndex={selectedRequest?.requestIndex ?? null}
+        selectionIdentity={selectionIdentity}
         onMethodChange={setMethod}
         onUrlChange={setUrl}
         onHeadersChange={setHeaders}

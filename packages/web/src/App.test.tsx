@@ -591,6 +591,15 @@ describe('App', () => {
       }),
     )
 
+    const executeCall = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(
+      (call) => call[0] === '/api/execute',
+    )
+    expect(executeCall).toBeDefined()
+    const payload = JSON.parse(String((executeCall?.[1] as RequestInit).body))
+    expect(payload.url).toBe('https://httpbin.dev/uuid')
+    expect(payload.headers).toEqual([])
+    expect(payload.body).toBeNull()
+
     const saveEvent = new KeyboardEvent('keydown', {
       key: 's',
       ctrlKey: true,

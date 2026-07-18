@@ -23,6 +23,7 @@ const defaultExecuteProps = {
   environmentVariables: [] as import('@reqor/shared-types').EnvironmentVariableDtoType[],
   collectionId: 'demo.http' as string | null,
   requestIndex: 0 as number | null,
+  selectionIdentity: 'demo:0:aaa' as string | null,
   onMethodChange: vi.fn(),
   onUrlChange: vi.fn(),
   onHeadersChange: vi.fn(),
@@ -56,6 +57,7 @@ describe('WorkspaceShell', () => {
         draft={null}
         collectionId={null}
         requestIndex={null}
+        selectionIdentity={null}
       />,
     )
 

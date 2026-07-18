@@ -23,6 +23,27 @@ export type DraftValidation = {
 
 const BODYLESS_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
+type UrlParts = {
+  base: string
+  query: string
+  fragment: string
+}
+
+function splitUrlParts(url: string): UrlParts {
+  const hashIndex = url.indexOf('#')
+  const withoutHash = hashIndex === -1 ? url : url.slice(0, hashIndex)
+  const fragment = hashIndex === -1 ? '' : url.slice(hashIndex)
+  const qIndex = withoutHash.indexOf('?')
+  if (qIndex === -1) {
+    return { base: withoutHash, query: '', fragment }
+  }
+  return {
+    base: withoutHash.slice(0, qIndex),
+    query: withoutHash.slice(qIndex + 1),
+    fragment,
+  }
+}
+
 export function draftFromRequest(req: RequestDtoType): RequestDraft {
   return {
     method: req.method.toUpperCase(),
@@ -43,22 +64,36 @@ function bodyEquals(
   return a.kind === b.kind && a.content === b.content
 }
 
-export function draftEquals(a: RequestDraft, b: RequestDraft): boolean {
-  if (a.method !== b.method || a.url !== b.url) return false
-  if (a.headers.length !== b.headers.length) return false
-  for (let i = 0; i < a.headers.length; i++) {
-    const left = a.headers[i]!
-    const right = b.headers[i]!
-    if (left.name !== right.name || left.value !== right.value) return false
+/** Empty body on bodyless methods has no wire effect — ignore for dirty comparison. */
+function normalizeDraftForCompare(draft: RequestDraft): RequestDraft {
+  const method = draft.method.toUpperCase().trim()
+  const bodyContent = draft.body?.content?.trim() ?? ''
+  if (BODYLESS_METHODS.has(method) && !bodyContent) {
+    const { body: _removed, ...rest } = draft
+    return rest
   }
-  return bodyEquals(a.body, b.body)
+  return draft
 }
 
-/** Split on first `?` — never throws for template or relative URLs. */
+export function draftEquals(a: RequestDraft, b: RequestDraft): boolean {
+  const left = normalizeDraftForCompare(a)
+  const right = normalizeDraftForCompare(b)
+  if (left.method !== right.method || left.url !== right.url) return false
+  if (left.headers.length !== right.headers.length) return false
+  for (let i = 0; i < left.headers.length; i++) {
+    const leftHeader = left.headers[i]!
+    const rightHeader = right.headers[i]!
+    if (leftHeader.name !== rightHeader.name || leftHeader.value !== rightHeader.value) {
+      return false
+    }
+  }
+  return bodyEquals(left.body, right.body)
+}
+
+/** Split on first `?` and preserve `#fragment` — never throws for template or relative URLs. */
 export function parseUrlParams(url: string): UrlParam[] {
-  const qIndex = url.indexOf('?')
-  if (qIndex === -1) return []
-  const query = url.slice(qIndex + 1)
+  const { query } = splitUrlParts(url)
+  if (!query) return []
   const params = new URLSearchParams(query)
   const rows: UrlParam[] = []
   params.forEach((value, key) => {
@@ -67,17 +102,16 @@ export function parseUrlParams(url: string): UrlParam[] {
   return rows
 }
 
-/** Rebuild URL preserving base (including `{{...}}`) exactly; omit `?` when empty. */
+/** Rebuild URL preserving base (including `{{...}}`) and fragment exactly; omit `?` when empty. */
 export function applyUrlParams(url: string, params: UrlParam[]): string {
-  const qIndex = url.indexOf('?')
-  const base = qIndex === -1 ? url : url.slice(0, qIndex)
-  if (params.length === 0) return base
+  const { base, fragment } = splitUrlParts(url)
+  if (params.length === 0) return `${base}${fragment}`
   const search = new URLSearchParams()
   for (const param of params) {
     search.append(param.key, param.value)
   }
   const serialized = search.toString()
-  return serialized ? `${base}?${serialized}` : base
+  return serialized ? `${base}?${serialized}${fragment}` : `${base}${fragment}`
 }
 
 export function validateRequestDraft(draft: RequestDraft): DraftValidation {
@@ -107,6 +141,15 @@ export function validateRequestDraft(draft: RequestDraft): DraftValidation {
       return {
         valid: false,
         message: 'Header name is required',
+      }
+    }
+  }
+
+  for (const param of parseUrlParams(draft.url)) {
+    if (param.key.trim() === '') {
+      return {
+        valid: false,
+        message: 'Query parameter name is required',
       }
     }
   }

@@ -224,6 +224,23 @@ Authorization: Bearer {{token}}`,
     expect(bodyClear.statusCode).toBe(200)
     expect(bodyClear.json().headers).toEqual([])
 
+    const bodyOverride = await app.inject({
+      method: 'POST',
+      url: '/api/preview',
+      payload: {
+        collectionId: 'demo.http',
+        requestIndex: 0,
+        environment: 'development',
+        headers: [{ name: 'Accept', value: 'text/plain' }],
+        body: { kind: 'raw', content: 'hello {{unknownvar}}' },
+      },
+    })
+    expect(bodyOverride.statusCode).toBe(200)
+    expect(bodyOverride.json()).toMatchObject({
+      hasVariables: true,
+      unresolved: { name: 'unknownvar', raw: '{{unknownvar}}' },
+    })
+
     await app.close()
   })
 })

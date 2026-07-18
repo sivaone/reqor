@@ -72,12 +72,33 @@ describe('useRequestDraft', () => {
       result.current.addBody()
     })
     expect(result.current.draft?.body).toEqual({ kind: 'raw', content: '' })
+    expect(result.current.isDirty).toBe(false)
+
+    act(() => {
+      result.current.setBody({ kind: 'raw', content: 'payload' })
+    })
     expect(result.current.isDirty).toBe(true)
 
     act(() => {
       result.current.clearBody()
     })
     expect(result.current.draft?.body).toBeUndefined()
+  })
+
+  it('preserves edits when activeRequest reference changes for same selection', () => {
+    const { result, rerender } = renderHook(
+      ({ req, id }: { req: RequestDtoType; id: string }) => useRequestDraft(req, id),
+      { initialProps: { req: requestA, id: 'demo:0:aaa' } },
+    )
+
+    act(() => {
+      result.current.setUrl('https://edited')
+    })
+    expect(result.current.isDirty).toBe(true)
+
+    rerender({ req: { ...requestA, headers: [...requestA.headers] }, id: 'demo:0:aaa' })
+    expect(result.current.draft?.url).toBe('https://edited')
+    expect(result.current.isDirty).toBe(true)
   })
 
   it('surfaces validation for GET with body', () => {
