@@ -4,7 +4,7 @@ baseline_commit: e0a7201
 
 # Story 3.1: Visual Request Editor
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -376,9 +376,24 @@ Cursor Grok 4.5
 - `packages/web/src/components/AppLayout.tsx`
 - `packages/web/src/App.test.tsx`
 
+### Review Findings
+
+- [x] [Review][Patch] Draft edits lost on collection detail refetch [packages/web/src/hooks/useRequestDraft.ts:41] — effect depends on `activeRequest` reference; TanStack Query refetch produces a new object for the same request and resets unsaved draft. Reset only on `selectionIdentity` change.
+- [x] [Review][Patch] URL hash fragments dropped when editing Params [packages/web/src/utils/requestDraft.ts:71] — `parseUrlParams`/`applyUrlParams` split only on `?`; `#fragment` is lost on any param edit/rebuild.
+- [x] [Review][Patch] Empty query-param keys allowed without validation [packages/web/src/utils/requestDraft.ts:83] — Params panel can serialize `?=` URLs; unlike headers, no validation blocks Save.
+- [x] [Review][Patch] Sub-tab selection persists across request switches [packages/web/src/components/RequestEditor.tsx:63] — `activeTab` local state is not reset when selection/draft changes; switching requests may leave user on Headers/Body from prior request.
+- [x] [Review][Patch] "Add body" marks draft dirty on bodyless methods with no wire effect [packages/web/src/hooks/useRequestDraft.ts:84] — empty `{ kind: 'raw', content: '' }` passes validation on GET/HEAD/OPTIONS, enables Save stub, but execute still omits body.
+- [x] [Review][Patch] Draft init flicker shows placeholder after request load [packages/web/src/hooks/useRequestDraft.ts:29] — `draft` starts `null` and is set in `useEffect`; `WorkspaceShell` briefly shows `RequestPlaceholder` despite `activeRequest` being set.
+- [x] [Review][Patch] Missing preview body-object override test [packages/server/src/preview.test.ts:213] — Task 4.3 requires body override coverage; diff adds header override and `body: null` clear only.
+- [x] [Review][Patch] Send integration test does not assert draft headers/body in payload [packages/web/src/App.test.tsx] — Task 3.5 marks Ctrl+Enter full-draft done; test only checks edited URL in execute payload.
+
+- [x] [Review][Defer] Duplicate query keys collapsed by URLSearchParams [packages/web/src/utils/requestDraft.ts:62] — deferred, spec mandates built-in URLSearchParams only; duplicate-key round-trip not supported
+- [x] [Review][Defer] Duplicate header names coalesced at execute [packages/server/src/proxy/execute-request.ts:171] — deferred, Headers.set keeps last duplicate; no product requirement for duplicate-name warnings in 3.1
+- [x] [Review][Defer] Index-based React keys in editable header/param rows [packages/web/src/components/RequestHeadersPanel.tsx] — deferred, focus glitch on mid-list delete is tolerable for MVP; stable row IDs can follow in polish pass
+
 ## Change Log
 
 - 2026-07-17: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-17: Story context validated — draft model, header/body API overrides for preview/execute, Raw tab deferred to 3.2, Save stub until 3.3, validation matrix, tab UI patterns from ResponsePanel
 - 2026-07-17: Hardened override/`null` body clear, Params algorithm for template URLs, Add body UX, case-insensitive Content-Type, Ctrl+Enter full-draft continuity, Save hide-when-clean test notes
-- 2026-07-17: Implemented visual request editor — draft state, Params/Headers/Body panels, Save stub UX, preview/execute header+body overrides; status → review
+- 2026-07-17: Code review patches applied — draft reset on selection only, URL fragment preservation, param validation, sub-tab reset, bodyless empty-body dirty normalization, sync draft init, preview body override test, execute payload assertions

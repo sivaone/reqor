@@ -67,4 +67,23 @@ describe('RequestEditor', () => {
     rerender(<RequestEditor {...baseProps} isDraftDirty={true} canSave={true} />)
     expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', false)
   })
+
+  it('resets sub-tab to Params when selection changes', () => {
+    const { rerender } = render(
+      <RequestEditor {...baseProps} selectionIdentity="demo:0:aaa" />,
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Headers (1)' }))
+    expect(screen.getByRole('tab', { name: 'Headers (1)' })).toHaveProperty('ariaSelected', 'true')
+
+    rerender(
+      <RequestEditor
+        {...baseProps}
+        draft={{ ...draft, method: 'POST', url: 'https://httpbin.dev/post' }}
+        selectionIdentity="demo:1:bbb"
+      />,
+    )
+
+    expect(screen.getByRole('tab', { name: 'Params' })).toHaveProperty('ariaSelected', 'true')
+  })
 })

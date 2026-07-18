@@ -15,6 +15,7 @@ import { RequestSubTabs, type RequestSubTab } from './RequestSubTabs.js'
 
 type RequestEditorProps = {
   draft: RequestDraft
+  selectionIdentity?: string | null
   activeEnvironment?: string | null
   environmentVariables?: EnvironmentVariableDtoType[]
   onMethodChange: (method: string) => void
@@ -39,6 +40,7 @@ type RequestEditorProps = {
 
 export function RequestEditor({
   draft,
+  selectionIdentity = null,
   activeEnvironment,
   environmentVariables = [],
   onMethodChange,
@@ -61,6 +63,13 @@ export function RequestEditor({
   previewError = null,
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<RequestSubTab>('params')
+  const [trackedSelection, setTrackedSelection] = useState(selectionIdentity)
+
+  if (selectionIdentity !== trackedSelection) {
+    setTrackedSelection(selectionIdentity)
+    setActiveTab('params')
+  }
+
   const draftBody: DraftSendOverrides['body'] = draft.body ?? null
 
   return (

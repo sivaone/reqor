@@ -22,6 +22,7 @@ type WorkspaceShellProps = {
   isDetailError: boolean
   collectionId: string | null
   requestIndex: number | null
+  selectionIdentity: string | null
   onMethodChange: (method: string) => void
   onUrlChange: (url: string) => void
   onHeadersChange: (headers: RequestHeaderDtoType[]) => void
@@ -51,6 +52,7 @@ export function WorkspaceShell({
   environmentVariables,
   isDetailPending,
   isDetailError,
+  selectionIdentity,
   onMethodChange,
   onUrlChange,
   onHeadersChange,
@@ -87,6 +89,7 @@ export function WorkspaceShell({
             ) : activeRequest && draft ? (
               <RequestEditor
                 draft={draft}
+                selectionIdentity={selectionIdentity}
                 activeEnvironment={activeEnvironment}
                 environmentVariables={environmentVariables}
                 onMethodChange={onMethodChange}

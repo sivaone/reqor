@@ -78,6 +78,17 @@ describe('parseUrlParams / applyUrlParams', () => {
     expect(parseUrlParams('https://httpbin.dev/get')).toEqual([])
     expect(applyUrlParams('https://httpbin.dev/get?x=1', [])).toBe('https://httpbin.dev/get')
   })
+
+  it('preserves URL hash fragments when editing params', () => {
+    const url = 'https://httpbin.dev/get?retry=1#section'
+    const params = parseUrlParams(url)
+    expect(params).toEqual([{ key: 'retry', value: '1' }])
+    expect(applyUrlParams(url, params)).toBe(url)
+    expect(applyUrlParams(url, [{ key: 'retry', value: '2' }])).toBe(
+      'https://httpbin.dev/get?retry=2#section',
+    )
+    expect(applyUrlParams(url, [])).toBe('https://httpbin.dev/get#section')
+  })
 })
 
 describe('validateRequestDraft', () => {
@@ -122,6 +133,14 @@ describe('validateRequestDraft', () => {
     )
     expect(result.valid).toBe(false)
     expect(result.message).toMatch(/Header name is required/i)
+  })
+
+  it('rejects empty query parameter names', () => {
+    const result = validateRequestDraft(
+      draft({ url: 'https://httpbin.dev/get?=' }),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.message).toMatch(/Query parameter name is required/i)
   })
 
   it('allows POST with body and Content-Type', () => {
