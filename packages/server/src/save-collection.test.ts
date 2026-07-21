@@ -41,6 +41,35 @@ Content-Type: application/json
     expect(result.warning).toBeUndefined()
   })
 
+  it('patches multiple changed request blocks without corrupting later spans', () => {
+    const incoming = `# shared comment
+PUT https://api.example.com/users
+Accept: application/json
+X-Extra: 1
+
+###
+
+# second request
+PATCH https://api.example.com/users
+Content-Type: application/json
+
+{"name":"b"}
+`
+    const result = minimalDiffSave(MULTI, incoming)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.warning).toBeUndefined()
+    expect(result.content).toContain('# shared comment')
+    expect(result.content).toContain('# second request')
+    expect(result.content).toContain('PUT https://api.example.com/users')
+    expect(result.content).toContain('X-Extra: 1')
+    expect(result.content).toContain('PATCH https://api.example.com/users')
+    expect(result.content).toContain('{"name":"b"}')
+    expect(result.content).not.toContain('GET https://api.example.com/users')
+    expect(result.content).not.toContain('POST https://api.example.com/users')
+  })
+
   it('preserves inter-request comments and blank lines outside edited spans', () => {
     const incoming = `# shared comment
 GET https://api.example.com/users?limit=5

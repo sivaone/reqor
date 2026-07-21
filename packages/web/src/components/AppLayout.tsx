@@ -48,6 +48,7 @@ export function AppLayout() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus | null>(null)
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false)
   const pendingNavigationRef = useRef<(() => void) | null>(null)
+  const savingRef = useRef(false)
 
   const collectionId = selectedRequest?.collectionId
   const {
@@ -220,14 +221,22 @@ export function AppLayout() {
   }, [detail, selectedRequest])
 
   const runPendingNavigation = useCallback(() => {
+    if (savingRef.current || savePending) {
+      pendingNavigationRef.current = null
+      setUnsavedDialogOpen(false)
+      return
+    }
     const action = pendingNavigationRef.current
     pendingNavigationRef.current = null
     setUnsavedDialogOpen(false)
     action?.()
-  }, [])
+  }, [savePending])
 
   const guardNavigation = useCallback(
     (action: () => void) => {
+      if (savingRef.current || savePending) {
+        return
+      }
       if (isDirty) {
         pendingNavigationRef.current = action
         setUnsavedDialogOpen(true)
@@ -235,7 +244,7 @@ export function AppLayout() {
       }
       action()
     },
-    [isDirty],
+    [isDirty, savePending],
   )
 
   const handleSelectRequest = useCallback(
@@ -289,108 +298,141 @@ export function AppLayout() {
   )
 
   const handleSave = useCallback(async () => {
-    if (!effectiveCanSave || !selectedRequest || !draft || !baseline) return
+    if (
+      !effectiveCanSave ||
+      !selectedRequest ||
+      !draft ||
+      !baseline ||
+      !selectionIdentity ||
+      savingRef.current
+    ) {
+      return
+    }
 
+    savingRef.current = true
+    const saveIdentity = selectionIdentity
+    const saveSelection = selectedRequest
     setSaveStatus(null)
     let contentToSave = draft.content
 
-    if (structuredFieldsDifferFromBaseline(draft, baseline)) {
-      try {
-        const syncResponse = await syncMutateAsync({
-          collectionId: selectedRequest.collectionId,
-          body: buildSyncPayload('to-raw', draft, selectedRequest.requestIndex),
-        })
-        setParseDiagnostics(syncResponse.diagnostics)
-        setParseBlockingSave(syncResponse.parseStatus === 'error')
-        if (syncResponse.parseStatus === 'error') {
-          const diagnostic = syncResponse.diagnostics[0]
+    try {
+      if (structuredFieldsDifferFromBaseline(draft, baseline)) {
+        try {
+          const syncResponse = await syncMutateAsync({
+            collectionId: saveSelection.collectionId,
+            body: buildSyncPayload('to-raw', draft, saveSelection.requestIndex),
+          })
+          if (selectionIdentityRef.current !== saveIdentity) return
+
+          setParseDiagnostics(syncResponse.diagnostics)
+          setParseBlockingSave(syncResponse.parseStatus === 'error')
+          if (syncResponse.parseStatus === 'error') {
+            const diagnostic = syncResponse.diagnostics[0]
+            setSaveStatus({
+              kind: 'error',
+              message: diagnostic
+                ? formatParseDiagnostic(diagnostic)
+                : 'Parse error before save',
+            })
+            return
+          }
+
+          const matched = matchRequestAfterSync(
+            syncResponse,
+            saveSelection.requestIndex,
+            saveSelection.fingerprint,
+            'to-raw',
+          )
+          if (!matched) {
+            setSaveStatus({
+              kind: 'error',
+              message: 'Could not rematch request after sync',
+            })
+            return
+          }
+
+          applySyncResult({ content: syncResponse.content, request: matched })
+          contentToSave = syncResponse.content
+        } catch (error) {
+          if (selectionIdentityRef.current !== saveIdentity) return
           setSaveStatus({
             kind: 'error',
-            message: diagnostic
-              ? formatParseDiagnostic(diagnostic)
-              : 'Parse error before save',
+            message: error instanceof Error ? error.message : 'Failed to sync before save',
+          })
+          return
+        }
+      }
+
+      try {
+        const response: SaveCollectionResponseType = await saveMutation.mutateAsync({
+          collectionId: saveSelection.collectionId,
+          content: contentToSave,
+        })
+        if (selectionIdentityRef.current !== saveIdentity) return
+
+        const matched =
+          response.requests.find(
+            (request) => request.requestIndex === saveSelection.requestIndex,
+          ) ??
+          response.requests.find(
+            (request) => request.fingerprint === saveSelection.fingerprint,
+          )
+        if (!matched) {
+          setSaveStatus({
+            kind: 'error',
+            message: 'Saved on disk but could not rematch the active request',
           })
           return
         }
 
-        const matched = matchRequestAfterSync(
-          syncResponse,
-          selectedRequest.requestIndex,
-          selectedRequest.fingerprint,
-          'to-raw',
-        )
-        if (!matched) return
-
-        applySyncResult({ content: syncResponse.content, request: matched })
-        contentToSave = syncResponse.content
-      } catch (error) {
-        setSaveStatus({
-          kind: 'error',
-          message: error instanceof Error ? error.message : 'Failed to sync before save',
-        })
-        return
-      }
-    }
-
-    try {
-      const response: SaveCollectionResponseType = await saveMutation.mutateAsync({
-        collectionId: selectedRequest.collectionId,
-        content: contentToSave,
-      })
-
-      const matched =
-        response.requests.find(
-          (request) => request.requestIndex === selectedRequest.requestIndex,
-        ) ??
-        response.requests.find(
-          (request) => request.fingerprint === selectedRequest.fingerprint,
-        )
-      if (matched) {
         applySaveResult({ content: response.content, request: matched })
-        if (matched.fingerprint !== selectedRequest.fingerprint) {
+        if (matched.fingerprint !== saveSelection.fingerprint) {
           setSelectedRequest({
-            collectionId: selectedRequest.collectionId,
+            collectionId: saveSelection.collectionId,
             requestIndex: matched.requestIndex,
             fingerprint: matched.fingerprint,
           })
         }
-      }
 
-      const basename =
-        selectedRequest.collectionId.split('/').pop() ?? selectedRequest.collectionId
-      const successMessage = `Saved to ${basename}`
+        const basename =
+          saveSelection.collectionId.split('/').pop() ?? saveSelection.collectionId
+        const successMessage = `Saved to ${basename}`
 
-      if (response.warning?.code === 'FULL_REWRITE') {
-        setSaveStatus({
-          kind: 'warning',
-          message: response.warning.message,
-          successMessage,
-        })
-      } else {
-        setSaveStatus({ kind: 'success', message: successMessage })
-      }
-    } catch (error) {
-      const collectionPath = selectedRequest.collectionId
-      if (error instanceof SaveCollectionError && error.code === 'WRITE_FAILED') {
+        if (response.warning?.code === 'FULL_REWRITE') {
+          setSaveStatus({
+            kind: 'warning',
+            message: response.warning.message,
+            successMessage,
+          })
+        } else {
+          setSaveStatus({ kind: 'success', message: successMessage })
+        }
+      } catch (error) {
+        if (selectionIdentityRef.current !== saveIdentity) return
+        const collectionPath = saveSelection.collectionId
+        if (error instanceof SaveCollectionError && error.code === 'WRITE_FAILED') {
+          setSaveStatus({
+            kind: 'error',
+            message: `Cannot write to ${collectionPath}. File may be read-only.`,
+          })
+          return
+        }
+        if (error instanceof SaveCollectionError && error.code === 'PARSE_ERROR') {
+          setSaveStatus({
+            kind: 'error',
+            message: error.line
+              ? `Parse error at line ${error.line}`
+              : error.message,
+          })
+          return
+        }
         setSaveStatus({
           kind: 'error',
-          message: `Cannot write to ${collectionPath}. File may be read-only.`,
+          message: error instanceof Error ? error.message : 'Failed to save collection',
         })
-        return
       }
-      if (error instanceof SaveCollectionError && error.code === 'PARSE_ERROR') {
-        setSaveStatus({
-          kind: 'error',
-          message: error.line
-            ? `Parse error at line ${error.line}`
-            : error.message,
-        })
-        return
-      }
-      setSaveStatus({
-        kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to save collection',
-      })
+    } finally {
+      savingRef.current = false
     }
   }, [
     applySaveResult,
@@ -400,6 +442,7 @@ export function AppLayout() {
     effectiveCanSave,
     saveMutation,
     selectedRequest,
+    selectionIdentity,
     setParseBlockingSave,
     syncMutateAsync,
   ])

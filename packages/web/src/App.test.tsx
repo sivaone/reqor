@@ -1213,4 +1213,112 @@ POST https://httpbin.dev/post
     expect(screen.getByRole('dialog')).toBeDefined()
     expect(screen.getByText('Discard unsaved changes?')).toBeDefined()
   })
+
+  it('shows write-failed error copy and keeps Save available', async () => {
+    const baseFetch = createFetchMock({ activeEnvironment: null })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url === '/api/collections/demo.http' && init?.method === 'PUT') {
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            json: async () => ({
+              error: {
+                code: 'WRITE_FAILED',
+                message: 'permission denied',
+                details: { id: 'demo.http' },
+              },
+            }),
+          })
+        }
+        return baseFetch(url, init)
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Raw .http' }))
+    await waitFor(() => {
+      expect(screen.getByLabelText('Raw HTTP file')).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByLabelText('Raw HTTP file'), {
+      target: {
+        value: `GET https://httpbin.dev/get?fail=1
+
+###
+
+POST https://httpbin.dev/post
+`,
+      },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', false)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Cannot write to demo.http. File may be read-only.'),
+      ).toBeDefined()
+      expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', false)
+    })
+  })
+
+  it('disables Save while pre-save sync is pending', async () => {
+    let resolveSync: ((value: unknown) => void) | undefined
+    const syncGate = new Promise((resolve) => {
+      resolveSync = resolve
+    })
+    const baseFetch = createFetchMock({ activeEnvironment: null })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url === '/api/collections/demo.http/sync' && init?.method === 'POST') {
+          await syncGate
+          return baseFetch(url, init)
+        }
+        return baseFetch(url, init)
+      }),
+    )
+
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://httpbin.dev/get?pending=1' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', false)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', true)
+    })
+
+    expect(baseFetch).not.toHaveBeenCalledWith(
+      '/api/collections/demo.http',
+      expect.objectContaining({ method: 'PUT' }),
+    )
+
+    resolveSync?.(undefined)
+
+    await waitFor(() => {
+      expect(baseFetch).toHaveBeenCalledWith(
+        '/api/collections/demo.http',
+        expect.objectContaining({ method: 'PUT' }),
+      )
+    })
+  })
 })

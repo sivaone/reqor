@@ -165,7 +165,19 @@ export const collectionsRoutes: FastifyPluginAsyncTypebox<
         })
       }
 
-      const diff = minimalDiffSave(collection.content, request.body.content)
+      const disk = await collectionStore.readDiskContent(id, repositoryRoot)
+      if (!disk.ok) {
+        const status = disk.code === 'NOT_FOUND' ? 404 : 500
+        return reply.status(status).send({
+          error: {
+            code: disk.code,
+            message: disk.message,
+            details: { id },
+          },
+        })
+      }
+
+      const diff = minimalDiffSave(disk.content, request.body.content)
       if (!diff.ok) {
         return reply.status(400).send({
           error: {

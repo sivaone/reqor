@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildApp } from './app.js'
 
 describe('collections API', () => {
@@ -417,6 +417,78 @@ POST https://api.example.com/users`,
     expect(response.statusCode).toBe(200)
     expect(response.json().warning).toMatchObject({ code: 'FULL_REWRITE' })
 
+    await app.close()
+  })
+
+  it('PUT uses on-disk bytes as minimal-diff base, not stale in-memory content', async () => {
+    const root = await createRepo({
+      'demo.http': `# keep me
+GET https://api.example.com/v1
+
+###
+
+POST https://api.example.com/v1`,
+    })
+    const app = await buildApp({ repositoryRoot: root })
+
+    await fs.writeFile(
+      path.join(root, 'demo.http'),
+      `# keep me
+GET https://api.example.com/v2
+
+###
+
+POST https://api.example.com/v2`,
+      'utf8',
+    )
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/collections/demo.http',
+      payload: {
+        content: `# keep me
+PUT https://api.example.com/v2
+
+###
+
+POST https://api.example.com/v2`,
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const onDisk = await fs.readFile(path.join(root, 'demo.http'), 'utf8')
+    expect(onDisk).toContain('# keep me')
+    expect(onDisk).toContain('PUT https://api.example.com/v2')
+    expect(onDisk).toContain('POST https://api.example.com/v2')
+    expect(onDisk).not.toContain('api.example.com/v1')
+
+    await app.close()
+  })
+
+  it('PUT returns WRITE_FAILED when disk write fails', async () => {
+    const root = await createRepo({
+      'demo.http': 'GET https://api.example.com/demo',
+    })
+    const app = await buildApp({ repositoryRoot: root })
+    const { default: fsPromises } = await import('node:fs/promises')
+    const writeSpy = vi.spyOn(fsPromises, 'writeFile').mockRejectedValueOnce(
+      Object.assign(new Error('permission denied'), { code: 'EACCES' }),
+    )
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/collections/demo.http',
+      payload: { content: 'POST https://api.example.com/demo' },
+    })
+
+    expect(response.statusCode).toBe(500)
+    expect(response.json()).toMatchObject({
+      error: { code: 'WRITE_FAILED' },
+    })
+    const onDisk = await fs.readFile(path.join(root, 'demo.http'), 'utf8')
+    expect(onDisk).toBe('GET https://api.example.com/demo')
+
+    writeSpy.mockRestore()
     await app.close()
   })
 
