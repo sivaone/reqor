@@ -22,19 +22,40 @@ const HEADER = /^([^:#\s][^:]*)(:)(.*)$/
 const SEPARATOR = /^###(.*)$/
 const COMMENT = /^#(.*)$/
 
-function tokenizeLine(line: string, inBody: boolean): { tokens: HttpToken[]; inBody: boolean } {
-  if (inBody) {
+type LineState = {
+  inBody: boolean
+  /** True once a request-line was seen since the last `###` separator. */
+  seenMethod: boolean
+}
+
+function tokenizeLine(
+  line: string,
+  state: LineState,
+): { tokens: HttpToken[]; state: LineState } {
+  if (state.inBody) {
     if (SEPARATOR.test(line)) {
-      return { tokens: [{ type: 'separator', value: line }], inBody: false }
+      return {
+        tokens: [{ type: 'separator', value: line }],
+        state: { inBody: false, seenMethod: false },
+      }
     }
-    return { tokens: [{ type: 'body', value: line }], inBody: true }
+    return {
+      tokens: [{ type: 'body', value: line }],
+      state: { inBody: true, seenMethod: state.seenMethod },
+    }
   }
 
   if (SEPARATOR.test(line)) {
-    return { tokens: [{ type: 'separator', value: line }], inBody: false }
+    return {
+      tokens: [{ type: 'separator', value: line }],
+      state: { inBody: false, seenMethod: false },
+    }
   }
   if (COMMENT.test(line)) {
-    return { tokens: [{ type: 'comment', value: line }], inBody: false }
+    return {
+      tokens: [{ type: 'comment', value: line }],
+      state: { inBody: false, seenMethod: state.seenMethod },
+    }
   }
 
   const methodMatch = METHODS.exec(line)
@@ -46,7 +67,7 @@ function tokenizeLine(line: string, inBody: boolean): { tokens: HttpToken[]; inB
     ]
     tokens.push(...tokenizeUrl(url!))
     if (rest) tokens.push({ type: 'plain', value: rest })
-    return { tokens, inBody: false }
+    return { tokens, state: { inBody: false, seenMethod: true } }
   }
 
   const headerMatch = HEADER.exec(line)
@@ -57,15 +78,26 @@ function tokenizeLine(line: string, inBody: boolean): { tokens: HttpToken[]; inB
         { type: 'plain', value: headerMatch[2]! },
         { type: 'header-value', value: headerMatch[3]! },
       ],
-      inBody: false,
+      state: { inBody: false, seenMethod: state.seenMethod },
     }
   }
 
+  // Blank lines start the body only after a request-line in this section.
+  // Leading blanks after `###` (or at file start) must not swallow the next method.
   if (line.trim() === '') {
-    return { tokens: [{ type: 'plain', value: line }], inBody: true }
+    return {
+      tokens: [{ type: 'plain', value: line }],
+      state: {
+        inBody: state.seenMethod,
+        seenMethod: state.seenMethod,
+      },
+    }
   }
 
-  return { tokens: [{ type: 'plain', value: line }], inBody: false }
+  return {
+    tokens: [{ type: 'plain', value: line }],
+    state: { inBody: false, seenMethod: state.seenMethod },
+  }
 }
 
 function tokenizeUrl(url: string): HttpToken[] {
@@ -92,11 +124,11 @@ function tokenizeUrl(url: string): HttpToken[] {
 export function tokenizeHttp(content: string): HttpToken[] {
   const lines = content.split(/\r?\n/)
   const tokens: HttpToken[] = []
-  let inBody = false
+  let state: LineState = { inBody: false, seenMethod: false }
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!
-    const result = tokenizeLine(line, inBody)
-    inBody = result.inBody
+    const result = tokenizeLine(line, state)
+    state = result.state
     tokens.push(...result.tokens)
     if (i < lines.length - 1) {
       tokens.push({ type: 'plain', value: '\n' })
