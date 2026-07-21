@@ -4,7 +4,7 @@ baseline_commit: 32a06a8
 
 # Story 3.2: Raw `.http` Editor with Syntax Highlighting
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -15,7 +15,7 @@ Status: review
 - [ ] Visual and raw modes share **one draft** including `content` string — tab switches do not discard unsaved edits (AD-18, UX-DR11)
 - [ ] **Mode switch** (visual ↔ raw) POSTs current draft to server for re-parse/sync **before** updating the target mode’s display (AD-18)
 - [ ] Sync uses slash-safe route `POST /api/collections/*/sync` (collection ids are path strings); `serializeRequest` exported from `@reqor/http-parser` for server patch
-- [ ] After successful sync: draft/baseline updated in place; TanStack Query `['collection', id]` cache updated via `setQueryData`; **no** `selectionIdentity` change that would reset the draft
+- [ ] After successful sync: draft updated in place (baseline remains disk-loaded until Story 3.3 Save — dirty/Save UX preserved); TanStack Query `['collection', id]` cache updated via `setQueryData`; **no** `selectionIdentity` change that would reset the draft
 - [ ] **Web never serializes `.http` text** — no `@reqor/http-parser` in `@reqor/web`; server alone parses/patches/serializes request blocks (AD-3, AD-18, AD-22)
 - [ ] Raw syntax/parse errors display **inline with line number** via `role="alert"` — UI does not crash (FR12, UX-DR17)
 - [ ] Visual draft overrides for Send/preview from Story 3.1 **non-regressed**; after successful sync, structured fields and `content` stay coherent
@@ -71,7 +71,7 @@ So that I can edit requests exactly as they appear on disk.
 
 6. **And** switching among Params, Headers, Body, and Raw **does not discard** unsaved draft edits (UX-DR11)  
    **And** selection change still resets draft from loaded collection + request (Story 3.1 behavior)  
-   **And** successful sync updates draft/baseline **in place** without treating the response as a selection change
+   **And** successful sync updates draft **in place** without treating the response as a selection change (baseline stays disk-loaded until Story 3.3 — Save remains enabled when dirty vs disk)
 
 7. **And** Save button behavior unchanged from Story 3.1 — hidden when clean, enabled when dirty+valid, **stub handler** (Story 3.3 persists)  
    **And** parse errors on raw tab may disable Save (`canSave`) when `parseStatus === 'error'` — product-consistent with “invalid draft”
@@ -86,7 +86,7 @@ So that I can edit requests exactly as they appear on disk.
     - Extend existing `draftFromRequest(activeRequest, content)` — structured fields from request + full file text (do **not** invent a parallel helper name)
     - Extend `draftEquals` to compare `content`
     - Extend `validateRequestDraft` — optional: when `parseErrors.length > 0`, return invalid with first diagnostic message (or separate `canSave` gate in hook)
-  - [x] 1.2 Update `useRequestDraft` — accept `collectionContent: string | undefined`; init/reset baseline+draft with content; add `setContent(text: string)`; add `applySyncResult(...)` (or equivalent) that updates draft **and** baseline fields from sync without requiring a new `selectionIdentity`; preserve selection-only reset (not refetch)
+  - [x] 1.2 Update `useRequestDraft` — accept `collectionContent: string | undefined`; init/reset baseline+draft with content; add `setContent(text: string)`; add `applySyncResult(...)` (or equivalent) that updates draft from sync without requiring a new `selectionIdentity` (**baseline unchanged** — disk baseline until Story 3.3 Save); preserve selection-only reset (not refetch)
   - [x] 1.3 Update `AppLayout.tsx` — pass `detail?.content` into `useRequestDraft`; thread `requestIndex` for sync calls
   - [x] 1.4 Unit tests: content in dirty detection; reset includes content; selection reset clears raw edits; `applySyncResult` does not wipe dirty state incorrectly when only normalizing content
 
@@ -159,8 +159,8 @@ type RequestDraft = {
 | Collection detail loaded + request selected | `draft = draftFromRequest(activeRequest, detail.content)`; baseline = same |
 | User edits visual fields | Update structured fields immutably; dirty if differs from baseline |
 | User edits raw `content` | `setContent(text)`; dirty if content differs from baseline |
-| Switch visual → Raw | POST sync with visual patch → `applySyncResult` (content + structured); `setQueryData` |
-| Switch Raw → visual | POST sync with `content` → on success `applySyncResult`; on error show diagnostics, keep raw text |
+| Switch visual → Raw | POST sync with visual patch → `applySyncResult` (content + structured); `setQueryData`; baseline unchanged (Save stays dirty vs disk) |
+| Switch Raw → visual | POST sync with `content` → on success `applySyncResult`; on error show diagnostics, keep raw text; baseline unchanged |
 | Selection changes | Discard draft; re-init from new collection content + request (no confirm — Story 3.3) |
 | Save clicked | No-op stub — Story 3.3 |
 
@@ -168,7 +168,7 @@ type RequestDraft = {
 
 **Critical — `selectionIdentity` trap:** AppLayout builds  
 `` `${collectionId}:${requestIndex}:${fingerprint}` ``  
-and `useRequestDraft` **resets** when that string changes. Visual edits that change method/URL change fingerprint. After sync, apply the response into draft/baseline and query cache; **do not** push a new selection object that only differs by fingerprint, or the draft (including dirty raw edits) will be wiped.
+and `useRequestDraft` **resets** when that string changes. Visual edits that change method/URL change fingerprint. After sync, apply the response into draft and query cache (baseline stays disk-loaded until Story 3.3); **do not** push a new selection object that only differs by fingerprint, or the draft (including dirty raw edits) will be wiped.
 
 ### Server sync contract (new — required for AD-18)
 
@@ -442,3 +442,27 @@ Cursor Grok 4.5
 - 2026-07-21: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-21: Story context hardened — slash-safe sync route, export serializeRequest, selectionIdentity/draft-reset guard, query cache update, rematch policy, 300ms debounce, CodeMirror catalog pins, AD error envelope
 - 2026-07-21: Implemented raw editor, server sync API, bidirectional tab sync, highlighting, and tests — status review
+- 2026-07-21: Code review — 1 decision-needed, 11 patch, 4 defer, 6 dismissed
+- 2026-07-21: Review decision — baseline stays disk-loaded until Story 3.3 Save; spec amended
+- 2026-07-21: Code review patches applied — tab sync hardening, rematch, scroll sync, tests green
+
+### Review Findings
+
+- [x] [Review][Decision] Baseline not updated after successful sync — **resolved:** keep current behavior (baseline disk-loaded until Story 3.3); spec amended per review choice (B).
+
+- [x] [Review][Patch] Raw tab bounce after visual→raw sync [packages/web/src/components/RequestEditor.tsx:105]
+- [x] [Review][Patch] Highlight overlay scroll desync on long files [packages/web/src/components/RequestRawPanel.tsx:26]
+- [x] [Review][Patch] RequestLine edits on Raw tab lost on visual switch [packages/web/src/components/RequestEditor.tsx:168]
+- [x] [Review][Patch] Debounced raw re-parse does not reconcile structured draft for Send/preview [packages/web/src/components/RequestEditor.tsx:190]
+- [x] [Review][Patch] Visual→raw patch sends `body: null` when draft body omitted, clearing raw body [packages/web/src/utils/syncOnTabSwitch.ts:24]
+- [x] [Review][Patch] Rematch returns request at index without fingerprint/method+url validation [packages/web/src/utils/syncOnTabSwitch.ts:36]
+- [x] [Review][Patch] `activeRequest` resolves by index without fingerprint check [packages/web/src/components/AppLayout.tsx:69]
+- [x] [Review][Patch] Overlapping sync calls lack sequencing/cancellation guard [packages/web/src/components/RequestEditor.tsx:111]
+- [x] [Review][Patch] Preview debounce retriggers on fingerprint-only `selectionIdentity` change [packages/web/src/hooks/usePreviewRequest.ts:38]
+- [x] [Review][Patch] Missing integration test: valid raw edit → visual tab shows updated fields [packages/web/src/App.test.tsx]
+- [x] [Review][Patch] Visual→raw sync proceeds when `parseStatus === 'error'` [packages/web/src/components/RequestEditor.tsx:122]
+
+- [x] [Review][Defer] Visual patch re-serialization drops intra-request `#` comments [packages/server/src/sync-collection.ts:69] — deferred, known MVP span/serializer limitation per spec
+- [x] [Review][Defer] Patched blocks normalize to LF inside CRLF files [packages/http-parser/src/serialize.ts:22] — deferred, low-impact formatting edge
+- [x] [Review][Defer] Collection id URL encoding not using `encodeURIComponent` [packages/web/src/hooks/useSyncCollection.ts:32] — deferred, pre-existing pattern in `useCollectionDetail`
+- [x] [Review][Defer] Only first parse diagnostic rendered; spec allows optional multi-error list [packages/web/src/components/RequestRawPanel.tsx:43] — deferred, MVP meets minimum FR12

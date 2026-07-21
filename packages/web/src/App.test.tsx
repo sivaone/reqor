@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { createHash } from 'node:crypto'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -19,6 +20,10 @@ function createWrapper() {
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   }
+}
+
+function fingerprint(method: string, url: string): string {
+  return createHash('sha256').update(`${method}:${url}`).digest('hex')
 }
 
 const listPayload = {
@@ -44,14 +49,14 @@ POST https://httpbin.dev/post
   requests: [
     {
       requestIndex: 0,
-      fingerprint: 'd'.repeat(64),
+      fingerprint: fingerprint('GET', 'https://httpbin.dev/get'),
       method: 'GET',
       url: 'https://httpbin.dev/get',
       headers: [],
     },
     {
       requestIndex: 1,
-      fingerprint: 'e'.repeat(64),
+      fingerprint: fingerprint('POST', 'https://httpbin.dev/post'),
       method: 'POST',
       url: 'https://httpbin.dev/post',
       headers: [],
@@ -128,8 +133,12 @@ function createFetchMock(configState: { activeEnvironment: string | null }) {
         requestIndex?: number
         patch?: { method: string; url: string; headers: unknown[]; body?: unknown }
       }
-      const method = body.patch?.method ?? 'GET'
-      const requestUrl = body.patch?.url ?? 'https://httpbin.dev/get'
+      const requestLine = body.content
+        .split('\n')
+        .find((line) => line.trim() && !line.startsWith('#') && !line.startsWith('###'))
+      const parsed = requestLine?.match(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+(\S+)/i)
+      const method = body.patch?.method ?? parsed?.[1]?.toUpperCase() ?? 'GET'
+      const requestUrl = body.patch?.url ?? parsed?.[2] ?? 'https://httpbin.dev/get'
       return Promise.resolve({
         ok: true,
         json: async () => ({
@@ -144,14 +153,14 @@ function createFetchMock(configState: { activeEnvironment: string | null }) {
             : [
                 {
                   requestIndex: 0,
-                  fingerprint: 'd'.repeat(64),
+                  fingerprint: fingerprint(method, requestUrl),
                   method,
                   url: requestUrl,
                   headers: body.patch?.headers ?? [],
                 },
                 {
                   requestIndex: 1,
-                  fingerprint: 'e'.repeat(64),
+                  fingerprint: fingerprint('POST', 'https://httpbin.dev/post'),
                   method: 'POST',
                   url: 'https://httpbin.dev/post',
                   headers: [],
@@ -1038,5 +1047,37 @@ describe('App', () => {
     expect(screen.getByRole('tab', { name: 'Raw .http' }).getAttribute('aria-selected')).toBe(
       'true',
     )
+  })
+
+  it('updates structured fields when valid raw edit switches to Headers', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Raw .http' }))
+    await waitFor(() => {
+      expect(screen.getByLabelText('Raw HTTP file')).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByLabelText('Raw HTTP file'), {
+      target: {
+        value: `GET https://httpbin.dev/get?from=raw
+
+###
+
+POST https://httpbin.dev/post
+`,
+      },
+    })
+
+    fireEvent.click(screen.getByRole('tab', { name: /Headers/ }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Request URL')).toHaveProperty(
+        'value',
+        'https://httpbin.dev/get?from=raw',
+      )
+    })
   })
 })

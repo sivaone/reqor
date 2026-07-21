@@ -1,4 +1,5 @@
 import type { DiagnosticDtoType } from '@reqor/shared-types'
+import { useCallback, useRef } from 'react'
 import { highlightHttpHtml } from '../utils/highlightHttp.js'
 import { formatParseDiagnostic } from '../utils/syncOnTabSwitch.js'
 
@@ -19,21 +20,43 @@ export function RequestRawPanel({
 }: RequestRawPanelProps) {
   const highlighted = highlightHttpHtml(content)
   const firstError = diagnostics[0]
+  const preRef = useRef<HTMLPreElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const syncingScrollRef = useRef(false)
+
+  const syncScroll = useCallback((source: 'textarea' | 'pre') => {
+    const pre = preRef.current
+    const textarea = textareaRef.current
+    if (!pre || !textarea || syncingScrollRef.current) return
+
+    syncingScrollRef.current = true
+    if (source === 'textarea') {
+      pre.scrollTop = textarea.scrollTop
+      pre.scrollLeft = textarea.scrollLeft
+    } else {
+      textarea.scrollTop = pre.scrollTop
+      textarea.scrollLeft = pre.scrollLeft
+    }
+    syncingScrollRef.current = false
+  }, [])
 
   return (
     <div className="flex min-h-0 flex-1 flex-col px-inset py-inset-sm">
       <div className="relative min-h-[12rem] flex-1 overflow-hidden rounded-sm border border-border bg-surface">
         <pre
+          ref={preRef}
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 overflow-auto whitespace-pre-wrap break-words p-inset-sm text-mono text-[13px] leading-5"
           dangerouslySetInnerHTML={{ __html: highlighted || ' ' }}
         />
         <textarea
+          ref={textareaRef}
           aria-label="Raw HTTP file"
           className="absolute inset-0 z-10 h-full w-full resize-none overflow-auto bg-transparent p-inset-sm text-mono text-[13px] leading-5 text-transparent caret-foreground outline-none"
           value={content}
           spellCheck={false}
           onChange={(event) => onContentChange(event.target.value)}
+          onScroll={() => syncScroll('textarea')}
           onBlur={onBlur}
         />
       </div>

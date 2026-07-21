@@ -24,7 +24,7 @@ import { RequestSubTabs, type RequestSubTab } from './RequestSubTabs.js'
 
 type RequestEditorProps = {
   draft: RequestDraft
-  selectionIdentity?: string | null
+  draftSelectionKey?: string | null
   collectionId: string | null
   requestIndex: number | null
   requestFingerprint: string | null
@@ -61,7 +61,7 @@ type RequestEditorProps = {
 
 export function RequestEditor({
   draft,
-  selectionIdentity = null,
+  draftSelectionKey = null,
   collectionId,
   requestIndex,
   requestFingerprint,
@@ -93,39 +93,84 @@ export function RequestEditor({
   syncPending = false,
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<RequestSubTab>('params')
-  const [trackedSelection, setTrackedSelection] = useState(selectionIdentity)
+  const [trackedSelection, setTrackedSelection] = useState(draftSelectionKey)
   const [localSyncPending, setLocalSyncPending] = useState(false)
   const [localDiagnostics, setLocalDiagnostics] = useState<DiagnosticDtoType[]>(parseDiagnostics)
   const draftRef = useRef(draft)
+  const activeTabRef = useRef(activeTab)
+  const syncSeqRef = useRef(0)
+  const tabChangeInFlightRef = useRef(false)
+  const selectionKeyAtSyncRef = useRef(draftSelectionKey)
+  const structuredEditedOnRawRef = useRef(false)
 
   useEffect(() => {
     draftRef.current = draft
   }, [draft])
 
-  if (selectionIdentity !== trackedSelection) {
-    setTrackedSelection(selectionIdentity)
+  useEffect(() => {
+    activeTabRef.current = activeTab
+  }, [activeTab])
+
+  useEffect(() => {
+    selectionKeyAtSyncRef.current = draftSelectionKey
+  }, [draftSelectionKey])
+
+  if (draftSelectionKey !== trackedSelection) {
+    setTrackedSelection(draftSelectionKey)
     setActiveTab('params')
     setLocalDiagnostics([])
+    structuredEditedOnRawRef.current = false
   }
+
+  const markStructuredEditedOnRaw = useCallback(() => {
+    if (activeTabRef.current === 'raw') {
+      structuredEditedOnRawRef.current = true
+    }
+  }, [])
+
+  const wrapStructuredChange = useCallback(
+    <T extends (...args: never[]) => void>(handler: T): T => {
+      const wrapped = ((...args: Parameters<T>) => {
+        markStructuredEditedOnRaw()
+        handler(...args)
+      }) as T
+      return wrapped
+    },
+    [markStructuredEditedOnRaw],
+  )
 
   const runSync = useCallback(
     async (direction: 'to-raw' | 'to-visual') => {
       if (!collectionId || requestIndex === null || requestFingerprint === null) {
         return false
       }
+
+      const seq = ++syncSeqRef.current
+      const selectionKeyAtStart = selectionKeyAtSyncRef.current
+
       setLocalSyncPending(true)
       try {
-        const body = buildSyncPayload(direction, draftRef.current, requestIndex)
+        const body = buildSyncPayload(direction, draftRef.current, requestIndex, {
+          includeStructuredPatch:
+            direction === 'to-visual' && structuredEditedOnRawRef.current,
+        })
         const response = await syncCollection({ collectionId, body })
+
+        if (seq !== syncSeqRef.current) return false
+        if (selectionKeyAtStart !== selectionKeyAtSyncRef.current) return false
+
         setLocalDiagnostics(response.diagnostics)
         onParseDiagnostics(response.diagnostics, response.parseStatus)
-        if (response.parseStatus === 'error' && direction === 'to-visual') {
+
+        if (response.parseStatus === 'error') {
           return false
         }
+
         const matched = matchRequestAfterSync(
           response,
           requestIndex,
           requestFingerprint,
+          direction,
         )
         if (!matched) {
           const fallback = [
@@ -144,15 +189,19 @@ export function RequestEditor({
           return false
         }
         onSyncSuccess(response, matched.requestIndex)
+        structuredEditedOnRawRef.current = false
         return true
       } catch (error) {
+        if (seq !== syncSeqRef.current) return false
         const message = error instanceof Error ? error.message : 'Failed to sync collection'
         const fallback = [{ line: 1, message }]
         setLocalDiagnostics(fallback)
         onParseDiagnostics(fallback, 'error')
         return false
       } finally {
-        setLocalSyncPending(false)
+        if (seq === syncSeqRef.current) {
+          setLocalSyncPending(false)
+        }
       }
     },
     [
@@ -167,40 +216,80 @@ export function RequestEditor({
 
   const handleTabChange = useCallback(
     async (next: RequestSubTab) => {
+      if (tabChangeInFlightRef.current) return
+
       const fromVisual = isVisualTab(activeTab)
       const toVisual = isVisualTab(next)
       const crossingToRaw = fromVisual && next === 'raw'
       const crossingToVisual = activeTab === 'raw' && toVisual
 
-      if (crossingToRaw) {
-        const ok = await runSync('to-raw')
-        if (!ok) return
-      } else if (crossingToVisual) {
-        const ok = await runSync('to-visual')
-        if (!ok) {
-          // Keep raw tab; diagnostics already surfaced
-          return
-        }
+      if (!crossingToRaw && !crossingToVisual) {
+        setActiveTab(next)
+        return
       }
-      setActiveTab(next)
+
+      tabChangeInFlightRef.current = true
+      try {
+        if (crossingToRaw) {
+          const ok = await runSync('to-raw')
+          if (!ok) return
+        } else if (crossingToVisual) {
+          const ok = await runSync('to-visual')
+          if (!ok) return
+        }
+        setActiveTab(next)
+      } finally {
+        tabChangeInFlightRef.current = false
+      }
     },
     [activeTab, runSync],
   )
 
   const runDiagnosticsSync = useCallback(async () => {
     if (!collectionId || requestIndex === null) return
+
+    const seq = ++syncSeqRef.current
+    const tabAtStart = activeTabRef.current
+    const selectionKeyAtStart = selectionKeyAtSyncRef.current
+
     try {
       const body = buildSyncPayload('to-visual', draftRef.current, requestIndex)
       const response = await syncCollection({ collectionId, body })
+
+      if (seq !== syncSeqRef.current) return
+      if (tabAtStart !== 'raw' || activeTabRef.current !== 'raw') return
+      if (selectionKeyAtStart !== selectionKeyAtSyncRef.current) return
+
       setLocalDiagnostics(response.diagnostics)
       onParseDiagnostics(response.diagnostics, response.parseStatus)
+
+      if (response.parseStatus === 'ok' && requestFingerprint !== null) {
+        const matched = matchRequestAfterSync(
+          response,
+          requestIndex,
+          requestFingerprint,
+          'to-visual',
+        )
+        if (matched) {
+          onSyncSuccess(response, matched.requestIndex)
+        }
+      }
     } catch (error) {
+      if (seq !== syncSeqRef.current) return
+      if (tabAtStart !== 'raw' || activeTabRef.current !== 'raw') return
       const message = error instanceof Error ? error.message : 'Failed to sync collection'
       const fallback = [{ line: 1, message }]
       setLocalDiagnostics(fallback)
       onParseDiagnostics(fallback, 'error')
     }
-  }, [collectionId, onParseDiagnostics, requestIndex, syncCollection])
+  }, [
+    collectionId,
+    onParseDiagnostics,
+    onSyncSuccess,
+    requestFingerprint,
+    requestIndex,
+    syncCollection,
+  ])
 
   useEffect(() => {
     if (activeTab !== 'raw' || !collectionId || requestIndex === null) return
@@ -226,8 +315,8 @@ export function RequestEditor({
         url={draft.url}
         headers={draft.headers}
         body={draftBody}
-        onMethodChange={onMethodChange}
-        onUrlChange={onUrlChange}
+        onMethodChange={wrapStructuredChange(onMethodChange)}
+        onUrlChange={wrapStructuredChange(onUrlChange)}
         followRedirects={followRedirects}
         onFollowRedirectsChange={onFollowRedirectsChange}
         onSend={onSend}
@@ -254,7 +343,7 @@ export function RequestEditor({
         aria-labelledby="request-tab-params"
         hidden={activeTab !== 'params'}
       >
-        <RequestParamsPanel url={draft.url} onUrlChange={onUrlChange} />
+        <RequestParamsPanel url={draft.url} onUrlChange={wrapStructuredChange(onUrlChange)} />
       </div>
       <div
         role="tabpanel"
@@ -262,7 +351,10 @@ export function RequestEditor({
         aria-labelledby="request-tab-headers"
         hidden={activeTab !== 'headers'}
       >
-        <RequestHeadersPanel headers={draft.headers} onHeadersChange={onHeadersChange} />
+        <RequestHeadersPanel
+          headers={draft.headers}
+          onHeadersChange={wrapStructuredChange(onHeadersChange)}
+        />
       </div>
       <div
         role="tabpanel"
@@ -272,9 +364,9 @@ export function RequestEditor({
       >
         <RequestBodyPanel
           body={draft.body}
-          onBodyChange={onBodyChange}
-          onAddBody={onAddBody}
-          onClearBody={onClearBody}
+          onBodyChange={wrapStructuredChange(onBodyChange)}
+          onAddBody={wrapStructuredChange(onAddBody)}
+          onClearBody={wrapStructuredChange(onClearBody)}
         />
       </div>
       <div

@@ -26,7 +26,7 @@ type WorkspaceShellProps = {
   collectionId: string | null
   requestIndex: number | null
   requestFingerprint: string | null
-  selectionIdentity: string | null
+  draftSelectionKey: string | null
   onMethodChange: (method: string) => void
   onUrlChange: (url: string) => void
   onHeadersChange: (headers: RequestHeaderDtoType[]) => void
@@ -68,7 +68,7 @@ export function WorkspaceShell({
   collectionId,
   requestIndex,
   requestFingerprint,
-  selectionIdentity,
+  draftSelectionKey,
   onMethodChange,
   onUrlChange,
   onHeadersChange,
@@ -111,7 +111,7 @@ export function WorkspaceShell({
             ) : activeRequest && draft ? (
               <RequestEditor
                 draft={draft}
-                selectionIdentity={selectionIdentity}
+                draftSelectionKey={draftSelectionKey}
                 collectionId={collectionId}
                 requestIndex={requestIndex}
                 requestFingerprint={requestFingerprint}

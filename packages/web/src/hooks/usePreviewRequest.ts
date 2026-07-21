@@ -22,8 +22,8 @@ export type UsePreviewRequestParams = {
   /** `null` clears disk body for preview */
   body: RequestBodyDtoType | null
   enabled: boolean
-  /** Race-guard identity — included in query key so stale selection results are ignored */
-  selectionIdentity: string | null
+  /** Race-guard identity — collection+index only; fingerprint changes must not retrigger preview */
+  draftSelectionKey: string | null
 }
 
 export function usePreviewRequest(params: UsePreviewRequestParams) {
@@ -43,19 +43,19 @@ export function usePreviewRequest(params: UsePreviewRequestParams) {
     params.headers,
     params.body,
     params.enabled,
-    params.selectionIdentity,
+    params.draftSelectionKey,
   ])
 
   const canQuery =
     debounced.enabled &&
     debounced.collectionId != null &&
     debounced.requestIndex != null &&
-    debounced.selectionIdentity != null
+    debounced.draftSelectionKey != null
 
   return useQuery({
     queryKey: [
       'preview',
-      debounced.selectionIdentity,
+      debounced.draftSelectionKey,
       debounced.collectionId,
       debounced.requestIndex,
       debounced.environment,

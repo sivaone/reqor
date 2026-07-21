@@ -1,5 +1,12 @@
 # Deferred Work Log
 
+## Deferred from: code review of 3-2-raw-http-editor-with-syntax-highlighting (2026-07-21)
+
+- **Visual patch re-serialization drops intra-request `#` comments** [packages/server/src/sync-collection.ts] — known MVP span/serializer limitation; Story 3.3 improves line tracking
+- **Patched blocks normalize to LF inside CRLF files** [packages/http-parser/src/serialize.ts] — low-impact formatting edge; full newline preservation can follow in polish pass
+- **Collection id URL encoding not using `encodeURIComponent`** [packages/web/src/hooks/useSyncCollection.ts] — pre-existing pattern in `useCollectionDetail`; encode both when special-character ids are supported
+- **Only first parse diagnostic rendered** [packages/web/src/components/RequestRawPanel.tsx] — spec minimum (FR12) met; multi-error list is optional enhancement
+
 ## Deferred from: code review of 3-1-visual-request-editor (2026-07-17)
 
 - **Duplicate query keys collapsed by URLSearchParams** [packages/web/src/utils/requestDraft.ts] — spec mandates built-in URLSearchParams only; duplicate-key round-trip not supported

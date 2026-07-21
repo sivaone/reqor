@@ -17,7 +17,6 @@ import { useSyncCollection } from '../hooks/useSyncCollection.js'
 import type { DraftSendOverrides } from '../types/draftSend.js'
 import type { SelectedRequest } from '../types/selection.js'
 import { deriveCanSend } from '../utils/deriveCanSend.js'
-import { matchRequestAfterSync } from '../utils/syncOnTabSwitch.js'
 import { SidebarShell } from './SidebarShell.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
 
@@ -66,7 +65,7 @@ export function AppLayout() {
     const byIndex = detail.requests.find(
       (request) => request.requestIndex === selectedRequest.requestIndex,
     )
-    if (byIndex) return byIndex
+    if (byIndex?.fingerprint === selectedRequest.fingerprint) return byIndex
     const byFingerprint = detail.requests.find(
       (request) => request.fingerprint === selectedRequest.fingerprint,
     )
@@ -114,7 +113,7 @@ export function AppLayout() {
     headers: draftHeaders,
     body: draftBody,
     enabled: Boolean(activeRequest && draft),
-    selectionIdentity,
+    draftSelectionKey,
   })
 
   useEffect(() => {
@@ -256,19 +255,25 @@ export function AppLayout() {
 
   const handleSyncSuccess = useCallback(
     (response: SyncCollectionResponseType, matchedRequestIndex: number) => {
-      const matched =
-        matchRequestAfterSync(
-          response,
-          matchedRequestIndex,
-          selectedRequest?.fingerprint ?? '',
-        ) ?? response.requests.find((request) => request.requestIndex === matchedRequestIndex)
+      const matched = response.requests.find(
+        (request) => request.requestIndex === matchedRequestIndex,
+      )
       if (!matched) return
       applySyncResult({ content: response.content, request: matched })
       setParseDiagnostics(response.diagnostics)
       setParseBlockingSave(response.parseStatus === 'error')
-      // Keep selection index stable; rematch effect updates fingerprint from query cache.
+      if (
+        selectedRequest &&
+        matched.fingerprint !== selectedRequest.fingerprint
+      ) {
+        setSelectedRequest({
+          collectionId: selectedRequest.collectionId,
+          requestIndex: matched.requestIndex,
+          fingerprint: matched.fingerprint,
+        })
+      }
     },
-    [applySyncResult, selectedRequest?.fingerprint, setParseBlockingSave],
+    [applySyncResult, selectedRequest, setParseBlockingSave],
   )
 
   const syncCollection = useCallback(
@@ -325,7 +330,7 @@ export function AppLayout() {
         collectionId={selectedRequest?.collectionId ?? null}
         requestIndex={selectedRequest?.requestIndex ?? null}
         requestFingerprint={selectedRequest?.fingerprint ?? null}
-        selectionIdentity={selectionIdentity}
+        draftSelectionKey={draftSelectionKey}
         onMethodChange={setMethod}
         onUrlChange={setUrl}
         onHeadersChange={setHeaders}
