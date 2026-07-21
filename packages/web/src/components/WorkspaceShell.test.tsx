@@ -25,7 +25,7 @@ const defaultExecuteProps = {
   collectionId: 'demo.http' as string | null,
   requestIndex: 0 as number | null,
   requestFingerprint: 'c'.repeat(64) as string | null,
-  selectionIdentity: 'demo:0:aaa' as string | null,
+  draftSelectionKey: 'demo:0' as string | null,
   onMethodChange: vi.fn(),
   onUrlChange: vi.fn(),
   onHeadersChange: vi.fn(),
@@ -71,7 +71,7 @@ describe('WorkspaceShell', () => {
         collectionId={null}
         requestIndex={null}
         requestFingerprint={null}
-        selectionIdentity={null}
+        draftSelectionKey={null}
       />,
     )
 

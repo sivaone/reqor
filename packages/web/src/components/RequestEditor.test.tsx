@@ -93,7 +93,7 @@ describe('RequestEditor', () => {
 
   it('resets sub-tab to Params when selection changes', () => {
     const { rerender } = render(
-      <RequestEditor {...baseProps} selectionIdentity="demo:0:aaa" />,
+      <RequestEditor {...baseProps} draftSelectionKey="demo:0" />,
     )
 
     fireEvent.click(screen.getByRole('tab', { name: 'Headers (1)' }))
@@ -103,11 +103,39 @@ describe('RequestEditor', () => {
       <RequestEditor
         {...baseProps}
         draft={{ ...draft, method: 'POST', url: 'https://httpbin.dev/post' }}
-        selectionIdentity="demo:1:bbb"
+        draftSelectionKey="demo:1"
       />,
     )
 
     expect(screen.getByRole('tab', { name: 'Params' })).toHaveProperty('ariaSelected', 'true')
+  })
+
+  it('stays on Raw tab when fingerprint updates after visual-to-raw sync', async () => {
+    const syncCollection = vi.fn().mockResolvedValue({
+      ...syncOk,
+      requests: [
+        {
+          ...syncOk.requests[0]!,
+          url: 'https://httpbin.dev/get?raw=1',
+          fingerprint: 'b'.repeat(64),
+        },
+      ],
+    })
+    render(
+      <RequestEditor
+        {...baseProps}
+        draftSelectionKey="demo:0"
+        syncCollection={syncCollection}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw .http' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Raw .http' }).getAttribute('aria-selected')).toBe(
+        'true',
+      )
+    })
   })
 
   it('syncs when switching to Raw tab', async () => {
@@ -131,6 +159,51 @@ describe('RequestEditor', () => {
       expect(onSyncSuccess).toHaveBeenCalled()
     })
     expect(screen.getByLabelText('Raw HTTP file')).toBeDefined()
+  })
+
+  it('updates structured fields when switching from Raw to Headers after raw edit', async () => {
+    const syncCollection = vi.fn().mockResolvedValue({
+      content: 'GET https://httpbin.dev/get?from=raw\n',
+      parseStatus: 'ok' as const,
+      requests: [
+        {
+          requestIndex: 0,
+          fingerprint: 'b'.repeat(64),
+          method: 'GET',
+          url: 'https://httpbin.dev/get?from=raw',
+          headers: [{ name: 'Accept', value: 'application/json' }],
+        },
+      ],
+      diagnostics: [],
+    })
+    const onSyncSuccess = vi.fn()
+    render(
+      <RequestEditor
+        {...baseProps}
+        draft={{
+          ...draft,
+          content: 'GET https://httpbin.dev/get?from=raw\n',
+        }}
+        syncCollection={syncCollection}
+        onSyncSuccess={onSyncSuccess}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw .http' }))
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Raw .http' }).getAttribute('aria-selected')).toBe(
+        'true',
+      )
+    })
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Headers (1)' }))
+
+    await waitFor(() => {
+      expect(onSyncSuccess).toHaveBeenCalled()
+    })
+    expect(screen.getByRole('tab', { name: 'Headers (1)' }).getAttribute('aria-selected')).toBe(
+      'true',
+    )
   })
 
   it('shows parse error alert and stays on Raw when reparse fails', async () => {
