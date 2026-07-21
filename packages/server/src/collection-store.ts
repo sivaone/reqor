@@ -13,8 +13,17 @@ export class CollectionStore {
   private collections = new Map<string, CollectionDetailDtoType>()
   private loadQueue: Promise<void> = Promise.resolve()
 
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const run = this.loadQueue.then(operation)
+    this.loadQueue = run.then(
+      () => undefined,
+      () => undefined,
+    )
+    return run
+  }
+
   async loadAll(repositoryRoot: string): Promise<CollectionSummaryDtoType[]> {
-    const operation = this.loadQueue.then(async () => {
+    return this.enqueue(async () => {
       const nextCollections = new Map<string, CollectionDetailDtoType>()
       const ids = await scanHttpFiles(repositoryRoot)
 
@@ -36,13 +45,6 @@ export class CollectionStore {
 
       return this.list()
     })
-
-    this.loadQueue = operation.then(
-      () => undefined,
-      () => undefined,
-    )
-
-    return operation
   }
 
   get(id: string): CollectionDetailDtoType | undefined {
@@ -65,12 +67,11 @@ export class CollectionStore {
     return absolute
   }
 
-  async save(
+  async readDiskContent(
     id: string,
-    content: string,
     repositoryRoot: string,
   ): Promise<
-    | { ok: true; detail: CollectionDetailDtoType }
+    | { ok: true; content: string; absolutePath: string }
     | { ok: false; code: 'NOT_FOUND' | 'WRITE_FAILED'; message: string }
   > {
     if (!this.collections.has(id)) {
@@ -86,34 +87,61 @@ export class CollectionStore {
       }
     }
 
-    const dir = path.dirname(absolutePath)
-    const basename = path.basename(absolutePath)
-    const tempPath = path.join(dir, `.${basename}.${process.pid}.${Date.now()}.tmp`)
-
     try {
-      await fs.mkdir(dir, { recursive: true })
-      await fs.writeFile(tempPath, content, 'utf8')
-      await fs.rename(tempPath, absolutePath)
+      const content = await fs.readFile(absolutePath, 'utf8')
+      return { ok: true, content, absolutePath }
     } catch (error) {
-      await fs.rm(tempPath, { force: true }).catch(() => undefined)
-      const code = (error as NodeJS.ErrnoException | undefined)?.code
-      if (code === 'EACCES' || code === 'EPERM' || code === 'ENOSPC') {
+      return {
+        ok: false,
+        code: 'WRITE_FAILED',
+        message: error instanceof Error ? error.message : 'Failed to read collection file',
+      }
+    }
+  }
+
+  async save(
+    id: string,
+    content: string,
+    repositoryRoot: string,
+  ): Promise<
+    | { ok: true; detail: CollectionDetailDtoType }
+    | { ok: false; code: 'NOT_FOUND' | 'WRITE_FAILED'; message: string }
+  > {
+    return this.enqueue(async () => {
+      if (!this.collections.has(id)) {
+        return { ok: false, code: 'NOT_FOUND', message: 'Collection not found' }
+      }
+
+      const absolutePath = this.resolveAbsolutePath(repositoryRoot, id)
+      if (!absolutePath) {
+        return {
+          ok: false,
+          code: 'WRITE_FAILED',
+          message: 'Collection path is outside repository root',
+        }
+      }
+
+      const dir = path.dirname(absolutePath)
+      const basename = path.basename(absolutePath)
+      const tempPath = path.join(dir, `.${basename}.${process.pid}.${Date.now()}.tmp`)
+
+      try {
+        await fs.mkdir(dir, { recursive: true })
+        await fs.writeFile(tempPath, content, 'utf8')
+        await fs.rename(tempPath, absolutePath)
+      } catch (error) {
+        await fs.rm(tempPath, { force: true }).catch(() => undefined)
         return {
           ok: false,
           code: 'WRITE_FAILED',
           message: error instanceof Error ? error.message : 'Failed to write collection file',
         }
       }
-      return {
-        ok: false,
-        code: 'WRITE_FAILED',
-        message: error instanceof Error ? error.message : 'Failed to write collection file',
-      }
-    }
 
-    const parseResult = parseHttpFile(content, { file: id })
-    const detail = toCollectionDetail(id, content, parseResult)
-    this.collections.set(id, detail)
-    return { ok: true, detail }
+      const parseResult = parseHttpFile(content, { file: id })
+      const detail = toCollectionDetail(id, content, parseResult)
+      this.collections.set(id, detail)
+      return { ok: true, detail }
+    })
   }
 }

@@ -149,7 +149,12 @@ export function RequestEditor({
 
   const runSync = useCallback(
     async (direction: 'to-raw' | 'to-visual') => {
-      if (!collectionId || requestIndex === null || requestFingerprint === null) {
+      if (
+        savePending ||
+        !collectionId ||
+        requestIndex === null ||
+        requestFingerprint === null
+      ) {
         return false
       }
 
@@ -166,6 +171,7 @@ export function RequestEditor({
 
         if (seq !== syncSeqRef.current) return false
         if (selectionKeyAtStart !== selectionKeyAtSyncRef.current) return false
+        if (savePending) return false
 
         setLocalDiagnostics(response.diagnostics)
         onParseDiagnostics(response.diagnostics, response.parseStatus)
@@ -218,6 +224,7 @@ export function RequestEditor({
       onSyncSuccess,
       requestFingerprint,
       requestIndex,
+      savePending,
       syncCollection,
     ],
   )
@@ -254,7 +261,7 @@ export function RequestEditor({
   )
 
   const runDiagnosticsSync = useCallback(async () => {
-    if (!collectionId || requestIndex === null) return
+    if (savePending || !collectionId || requestIndex === null) return
 
     const seq = ++syncSeqRef.current
     const tabAtStart = activeTabRef.current
@@ -267,6 +274,7 @@ export function RequestEditor({
       if (seq !== syncSeqRef.current) return
       if (tabAtStart !== 'raw' || activeTabRef.current !== 'raw') return
       if (selectionKeyAtStart !== selectionKeyAtSyncRef.current) return
+      if (savePending) return
 
       setLocalDiagnostics(response.diagnostics)
       onParseDiagnostics(response.diagnostics, response.parseStatus)
@@ -296,18 +304,19 @@ export function RequestEditor({
     onSyncSuccess,
     requestFingerprint,
     requestIndex,
+    savePending,
     syncCollection,
   ])
 
   useEffect(() => {
-    if (activeTab !== 'raw' || !collectionId || requestIndex === null) return
+    if (savePending || activeTab !== 'raw' || !collectionId || requestIndex === null) return
 
     const handle = window.setTimeout(() => {
       void runDiagnosticsSync()
     }, PREVIEW_DEBOUNCE_MS)
 
     return () => window.clearTimeout(handle)
-  }, [activeTab, collectionId, draft.content, requestIndex, runDiagnosticsSync])
+  }, [activeTab, collectionId, draft.content, requestIndex, runDiagnosticsSync, savePending])
 
   const draftBody: DraftSendOverrides['body'] = draft.body ?? null
   const pending = syncPending || localSyncPending

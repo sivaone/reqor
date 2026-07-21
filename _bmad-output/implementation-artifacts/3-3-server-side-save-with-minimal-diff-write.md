@@ -4,7 +4,7 @@ baseline_commit: 5d875a8
 
 # Story 3.3: Server-Side Save with Minimal-Diff Write
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -181,6 +181,19 @@ So that my teammates see clean, reviewable diffs.
   - [x] 7.1 Server: fixture → PUT edit → disk shows single-block git-friendly diff
   - [x] 7.2 `App.test.tsx`: 3.1/3.2 regression; raw save; visual-only save (sync then PUT); Save disabled while sync pending
   - [x] 7.3 `pnpm turbo build test typecheck`
+
+### Review Findings
+
+- [x] [Review][Patch] Multi-request splice uses stale disk spans after earlier edits [packages/server/src/save-collection.ts:125] — loop ascending with original `diskRequest.span` on mutating `patchedContent`; splice descending by startLine or re-parse after each splice; add multi-block edit test
+- [x] [Review][Patch] In-flight save can clobber draft after navigate/discard [packages/web/src/components/AppLayout.tsx:291] — capture `selectionIdentity` at save start; ignore completion if selection changed; block discard while `savePending` (or treat like dirty+pending)
+- [x] [Review][Patch] PUT minimal-diff uses in-memory store content, not fresh disk read [packages/server/src/routes/collections.ts:169] — read resolved file bytes before `minimalDiffSave` per Task 2.1 / AD-4
+- [x] [Review][Patch] Pre-save rematch failure aborts silently [packages/web/src/components/AppLayout.tsx:322] — set error `saveStatus` when `matchRequestAfterSync` returns null
+- [x] [Review][Patch] Save success shown even when request rematch / baseline commit skipped [packages/web/src/components/AppLayout.tsx:348] — if no matched request after PUT, show error (or still align content) instead of unconditional success
+- [x] [Review][Patch] Tab/diagnostics sync not gated by `savePending` [packages/web/src/components/RequestEditor.tsx:150] — refuse `runSync` / `runDiagnosticsSync` / tab-switch sync while save is in flight
+- [x] [Review][Patch] Overlapping Save not re-entrancy locked [packages/web/src/components/AppLayout.tsx:291] — `savingRef` (or equivalent) so double Ctrl+S before `isPending` cannot start a second PUT
+- [x] [Review][Patch] `CollectionStore.save` not serialized with `loadAll` queue [packages/server/src/collection-store.ts:68] — enqueue save on the same load queue so refresh cannot reload pre-save bytes over a successful write
+- [x] [Review][Patch] Missing WRITE_FAILED / path-escape / fs-failure tests [packages/server/src/collections.test.ts] — cover `500 WRITE_FAILED`, path containment reject, mocked atomic write failure (Task 1.4 / 2.2)
+- [x] [Review][Patch] Incomplete web coverage for save error copy and Save no-op while sync pending [packages/web/src/App.test.tsx] — Task 4.3 assertions still missing
 
 ## Dev Notes
 
@@ -482,3 +495,4 @@ Composer
 - 2026-07-21: Pre-save visual→raw sync so PUT never persists stale visual-only `draft.content`
 - 2026-07-21: Shared splice extract; path containment; `applySaveResult` disk alignment; `WRITE_FAILED`→500; Task 6 best-effort; save/sync pending gate
 - 2026-07-21: Story 3.3 implemented — server minimal-diff save, web save UX, navigate-away confirm, full test suite green
+- 2026-07-21: Code review patches applied — descending multi-span splice, fresh disk read, save/load queue, save identity + re-entrancy guards, sync gated on savePending, WRITE_FAILED/path tests, web error/pending coverage

@@ -119,14 +119,20 @@ export function minimalDiffSave(
     return fullRewrite(incomingParse)
   }
 
-  let patchedContent = diskContent
-  let usedFallback = false
-
+  // Patch later spans first so earlier disk spans stay valid after line-count shifts.
+  const changes: Array<{ diskRequest: ParsedRequest; incomingRequest: ParsedRequest }> = []
   for (let index = 0; index < incomingParse.requests.length; index++) {
     const diskRequest = diskParse.requests[index]!
     const incomingRequest = incomingParse.requests[index]!
     if (requestsEquivalent(diskRequest, incomingRequest)) continue
+    changes.push({ diskRequest, incomingRequest })
+  }
+  changes.sort((a, b) => b.diskRequest.span.startLine - a.diskRequest.span.startLine)
 
+  let patchedContent = diskContent
+  let usedFallback = false
+
+  for (const { diskRequest, incomingRequest } of changes) {
     const serializedBlock = serializeRequest(incomingRequest)
     const spliced = spliceRequestSpan(patchedContent, diskRequest.span, serializedBlock)
     if (!spliced.ok) {
