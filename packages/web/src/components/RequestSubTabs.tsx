@@ -1,4 +1,4 @@
-export type RequestSubTab = 'params' | 'headers' | 'body'
+export type RequestSubTab = 'params' | 'headers' | 'body' | 'raw'
 
 type RequestSubTabsProps = {
   activeTab: RequestSubTab
@@ -10,6 +10,7 @@ const TABS: Array<{ id: RequestSubTab; label: string }> = [
   { id: 'params', label: 'Params' },
   { id: 'headers', label: 'Headers' },
   { id: 'body', label: 'Body' },
+  { id: 'raw', label: 'Raw .http' },
 ]
 
 export function RequestSubTabs({ activeTab, onTabChange, headersCount }: RequestSubTabsProps) {

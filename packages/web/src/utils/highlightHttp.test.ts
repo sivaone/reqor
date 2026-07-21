@@ -1,0 +1,32 @@
+import { describe, expect, it } from 'vitest'
+import { highlightHttpHtml, tokenizeHttp } from './highlightHttp.js'
+
+describe('tokenizeHttp / highlightHttpHtml', () => {
+  it('tokenizes method, url placeholders, headers, separators, and comments', () => {
+    const content = `# comment
+GET {{host}}/users
+Accept: application/json
+
+###
+
+POST https://example.com
+`
+
+    const types = tokenizeHttp(content).map((token) => token.type)
+    expect(types).toContain('comment')
+    expect(types).toContain('method')
+    expect(types).toContain('placeholder')
+    expect(types).toContain('header-name')
+    expect(types).toContain('separator')
+
+    const html = highlightHttpHtml(content)
+    expect(html).toContain('text-primary')
+    expect(html).toContain('text-success')
+  })
+
+  it('escapes HTML in highlighted output', () => {
+    const html = highlightHttpHtml('GET /<script>\n')
+    expect(html).toContain('&lt;script&gt;')
+    expect(html).not.toContain('<script>')
+  })
+})

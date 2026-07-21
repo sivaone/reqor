@@ -19,10 +19,11 @@ const baseRequest: RequestDtoType = {
 }
 
 describe('draftFromRequest / draftEquals', () => {
-  it('copies method uppercased and deep-clones headers/body', () => {
-    const draft = draftFromRequest(baseRequest)
+  it('copies method uppercased and deep-clones headers/body including content', () => {
+    const draft = draftFromRequest(baseRequest, 'GET https://example.com\n')
     expect(draft.method).toBe('GET')
     expect(draft.url).toBe('https://httpbin.dev/get?x=1')
+    expect(draft.content).toBe('GET https://example.com\n')
     expect(draft.headers).toEqual([{ name: 'Accept', value: 'application/json' }])
     expect(draft.body).toEqual({ kind: 'json', content: '{"a":1}' })
     draft.headers[0]!.name = 'X'
@@ -30,14 +31,15 @@ describe('draftFromRequest / draftEquals', () => {
   })
 
   it('omits body when request has none', () => {
-    const draft = draftFromRequest({ ...baseRequest, body: undefined })
+    const draft = draftFromRequest({ ...baseRequest, body: undefined }, '')
     expect(draft.body).toBeUndefined()
   })
 
-  it('detects dirty when any field differs', () => {
-    const a = draftFromRequest(baseRequest)
-    const b = draftFromRequest(baseRequest)
+  it('detects dirty when any field differs including content', () => {
+    const a = draftFromRequest(baseRequest, 'file-a')
+    const b = draftFromRequest(baseRequest, 'file-a')
     expect(draftEquals(a, b)).toBe(true)
+    expect(draftEquals(a, { ...b, content: 'file-b' })).toBe(false)
     expect(draftEquals(a, { ...b, method: 'POST' })).toBe(false)
     expect(draftEquals(a, { ...b, url: 'https://other' })).toBe(false)
     expect(draftEquals(a, { ...b, headers: [] })).toBe(false)
@@ -93,6 +95,7 @@ describe('parseUrlParams / applyUrlParams', () => {
 
 describe('validateRequestDraft', () => {
   const draft = (overrides: Partial<RequestDraft> = {}): RequestDraft => ({
+    content: '',
     method: 'GET',
     url: 'https://httpbin.dev/get',
     headers: [],

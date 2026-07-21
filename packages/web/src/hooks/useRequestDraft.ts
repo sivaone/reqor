@@ -7,6 +7,11 @@ import {
   validateRequestDraft,
 } from '../utils/requestDraft.js'
 
+export type SyncResultApply = {
+  content: string
+  request: RequestDtoType
+}
+
 export type UseRequestDraftResult = {
   draft: RequestDraft | null
   baseline: RequestDraft | null
@@ -14,50 +19,71 @@ export type UseRequestDraftResult = {
   validation: { valid: boolean; message?: string }
   canSave: boolean
   setDraft: (updater: RequestDraft | ((prev: RequestDraft) => RequestDraft)) => void
+  setContent: (content: string) => void
   setMethod: (method: string) => void
   setUrl: (url: string) => void
   setHeaders: (headers: RequestHeaderDtoType[]) => void
   setBody: (body: RequestBodyDtoType | undefined) => void
   addBody: () => void
   clearBody: () => void
+  applySyncResult: (result: SyncResultApply) => void
+  setParseBlockingSave: (blocking: boolean) => void
 }
 
 function initialDraft(
   activeRequest: RequestDtoType | null,
   selectionIdentity: string | null,
+  collectionContent: string,
 ): RequestDraft | null {
   if (!selectionIdentity || !activeRequest) return null
-  return draftFromRequest(activeRequest)
+  return draftFromRequest(activeRequest, collectionContent)
 }
 
 export function useRequestDraft(
   activeRequest: RequestDtoType | null,
   selectionIdentity: string | null,
+  collectionContent: string = '',
 ): UseRequestDraftResult {
   const [draft, setDraftState] = useState<RequestDraft | null>(() =>
-    initialDraft(activeRequest, selectionIdentity),
+    initialDraft(activeRequest, selectionIdentity, collectionContent),
   )
   const [baseline, setBaseline] = useState<RequestDraft | null>(() =>
-    initialDraft(activeRequest, selectionIdentity),
+    initialDraft(activeRequest, selectionIdentity, collectionContent),
   )
   const [trackedSelection, setTrackedSelection] = useState(selectionIdentity)
+  const [parseBlockingSave, setParseBlockingSave] = useState(false)
 
   if (selectionIdentity !== trackedSelection) {
     setTrackedSelection(selectionIdentity)
-    const next = initialDraft(activeRequest, selectionIdentity)
+    const next = initialDraft(activeRequest, selectionIdentity, collectionContent)
     setDraftState(next)
     setBaseline(next)
+    setParseBlockingSave(false)
   }
 
   useEffect(() => {
     if (!selectionIdentity || !activeRequest) return
     setDraftState((prev) => {
-      if (prev !== null) return prev
-      const next = draftFromRequest(activeRequest)
-      setBaseline(next)
-      return next
+      if (prev === null) {
+        const next = draftFromRequest(activeRequest, collectionContent)
+        setBaseline(next)
+        return next
+      }
+      return prev
     })
-  }, [selectionIdentity, activeRequest])
+  }, [selectionIdentity, activeRequest, collectionContent])
+
+  useEffect(() => {
+    if (!selectionIdentity || !collectionContent) return
+    setDraftState((prev) => {
+      if (!prev || prev.content !== '') return prev
+      return { ...prev, content: collectionContent }
+    })
+    setBaseline((prev) => {
+      if (!prev || prev.content !== '') return prev
+      return { ...prev, content: collectionContent }
+    })
+  }, [selectionIdentity, collectionContent])
 
   const setDraft = useCallback(
     (updater: RequestDraft | ((prev: RequestDraft) => RequestDraft)) => {
@@ -67,6 +93,13 @@ export function useRequestDraft(
       })
     },
     [],
+  )
+
+  const setContent = useCallback(
+    (content: string) => {
+      setDraft((prev) => ({ ...prev, content }))
+    },
+    [setDraft],
   )
 
   const setMethod = useCallback((method: string) => {
@@ -108,6 +141,12 @@ export function useRequestDraft(
     setBody(undefined)
   }, [setBody])
 
+  const applySyncResult = useCallback((result: SyncResultApply) => {
+    const next = draftFromRequest(result.request, result.content)
+    setDraftState(next)
+    // Keep baseline as disk-loaded state so Save stays dirty until Story 3.3 persists.
+  }, [])
+
   const isDirty = useMemo(() => {
     if (!draft || !baseline) return false
     return !draftEquals(draft, baseline)
@@ -118,7 +157,7 @@ export function useRequestDraft(
     return validateRequestDraft(draft)
   }, [draft])
 
-  const canSave = isDirty && validation.valid
+  const canSave = isDirty && validation.valid && !parseBlockingSave
 
   return {
     draft,
@@ -127,11 +166,14 @@ export function useRequestDraft(
     validation,
     canSave,
     setDraft,
+    setContent,
     setMethod,
     setUrl,
     setHeaders,
     setBody,
     addBody,
     clearBody,
+    applySyncResult,
+    setParseBlockingSave,
   }
 }

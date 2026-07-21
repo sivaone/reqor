@@ -10,6 +10,8 @@ import type {
 
 const PREVIEW_DEBOUNCE_MS = 300
 
+export { PREVIEW_DEBOUNCE_MS }
+
 export type UsePreviewRequestParams = {
   collectionId: string | null
   requestIndex: number | null

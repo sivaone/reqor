@@ -178,6 +178,83 @@ POST https://api.example.com/users`,
     await app.close()
   })
 
+  it('syncs nested collection id with visual patch without writing disk', async () => {
+    const root = await createRepo({
+      'http/users.http': `# keep
+GET https://api.example.com/users
+Accept: application/json
+
+###
+
+POST https://api.example.com/users
+`,
+    })
+    const app = await buildApp({ repositoryRoot: root })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/collections/http/users.http/sync',
+      payload: {
+        content: `# keep
+GET https://api.example.com/users
+Accept: application/json
+
+###
+
+POST https://api.example.com/users
+`,
+        requestIndex: 0,
+        patch: {
+          method: 'GET',
+          url: 'https://api.example.com/users?limit=5',
+          headers: [{ name: 'Accept', value: 'application/json' }],
+          body: null,
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json()
+    expect(body.parseStatus).toBe('ok')
+    expect(body.content).toContain('users?limit=5')
+    expect(body.content).toContain('# keep')
+    expect(body.content).toContain('POST https://api.example.com/users')
+    expect(body.requests[0].url).toBe('https://api.example.com/users?limit=5')
+
+    const onDisk = await fs.readFile(path.join(root, 'http', 'users.http'), 'utf8')
+    expect(onDisk).not.toContain('limit=5')
+
+    await app.close()
+  })
+
+  it('returns INVALID_REQUEST_INDEX for sync patch with bad index', async () => {
+    const root = await createRepo({
+      'demo.http': 'GET https://api.example.com/demo',
+    })
+    const app = await buildApp({ repositoryRoot: root })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/collections/demo.http/sync',
+      payload: {
+        content: 'GET https://api.example.com/demo',
+        requestIndex: 3,
+        patch: {
+          method: 'GET',
+          url: 'https://api.example.com/demo',
+          headers: [],
+        },
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toMatchObject({
+      error: { code: 'INVALID_REQUEST_INDEX' },
+    })
+
+    await app.close()
+  })
+
   it('retrieves collection ids containing literal percent escapes', async () => {
     const root = await createRepo({
       'literal%2Fname.http': 'GET https://api.example.com/literal',

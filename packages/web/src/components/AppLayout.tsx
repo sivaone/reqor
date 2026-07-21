@@ -1,8 +1,10 @@
 import type {
+  DiagnosticDtoType,
   ExecuteResponseType,
   PreviewResponseType,
   RequestDtoType,
   RequestHeaderDtoType,
+  SyncCollectionResponseType,
 } from '@reqor/shared-types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCollectionDetail } from '../hooks/useCollectionDetail.js'
@@ -11,9 +13,11 @@ import { useEnvironments } from '../hooks/useEnvironments.js'
 import { useExecuteRequest, ExecuteRequestError } from '../hooks/useExecuteRequest.js'
 import { usePreviewRequest } from '../hooks/usePreviewRequest.js'
 import { useRequestDraft } from '../hooks/useRequestDraft.js'
+import { useSyncCollection } from '../hooks/useSyncCollection.js'
 import type { DraftSendOverrides } from '../types/draftSend.js'
 import type { SelectedRequest } from '../types/selection.js'
 import { deriveCanSend } from '../utils/deriveCanSend.js'
+import { matchRequestAfterSync } from '../utils/syncOnTabSwitch.js'
 import { SidebarShell } from './SidebarShell.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
 
@@ -26,6 +30,7 @@ export function AppLayout() {
   const [executeError, setExecuteError] = useState<{ code?: string; message: string } | null>(
     null,
   )
+  const [parseDiagnostics, setParseDiagnostics] = useState<DiagnosticDtoType[]>([])
 
   const collectionId = selectedRequest?.collectionId
   const {
@@ -35,6 +40,7 @@ export function AppLayout() {
   } = useCollectionDetail(collectionId)
 
   const executeMutation = useExecuteRequest()
+  const { mutateAsync: syncMutateAsync, isPending: syncPending } = useSyncCollection()
 
   const { data: config } = useConfig()
   const { data: envData } = useEnvironments()
@@ -60,13 +66,17 @@ export function AppLayout() {
     const byIndex = detail.requests.find(
       (request) => request.requestIndex === selectedRequest.requestIndex,
     )
-    if (byIndex?.fingerprint === selectedRequest.fingerprint) return byIndex
+    if (byIndex) return byIndex
     const byFingerprint = detail.requests.find(
       (request) => request.fingerprint === selectedRequest.fingerprint,
     )
     return byFingerprint ?? null
   }, [selectedRequest, detail])
 
+  // Draft resets on collection+index only — fingerprint updates after sync must not wipe edits.
+  const draftSelectionKey = selectedRequest
+    ? `${selectedRequest.collectionId}:${selectedRequest.requestIndex}`
+    : null
   const selectionIdentity = selectedRequest
     ? `${selectedRequest.collectionId}:${selectedRequest.requestIndex}:${selectedRequest.fingerprint}`
     : null
@@ -85,7 +95,10 @@ export function AppLayout() {
     setBody,
     addBody,
     clearBody,
-  } = useRequestDraft(activeRequest, selectionIdentity)
+    setContent,
+    applySyncResult,
+    setParseBlockingSave,
+  } = useRequestDraft(activeRequest, draftSelectionKey, detail?.content ?? '')
 
   const draftMethod = draft?.method ?? 'GET'
   const draftUrl = draft?.url ?? ''
@@ -106,7 +119,9 @@ export function AppLayout() {
 
   useEffect(() => {
     lastPreviewRef.current = null
-  }, [selectionIdentity])
+    setParseDiagnostics([])
+    setParseBlockingSave(false)
+  }, [draftSelectionKey, setParseBlockingSave])
 
   useEffect(() => {
     if (previewQuery.data) {
@@ -146,10 +161,20 @@ export function AppLayout() {
   useEffect(() => {
     if (!selectedRequest || !detail || detail.id !== selectedRequest.collectionId) return
 
+    // Prefer requestIndex after sync (fingerprint may change when method/url edits).
     const byIndex = detail.requests.find(
       (request) => request.requestIndex === selectedRequest.requestIndex,
     )
-    if (byIndex?.fingerprint === selectedRequest.fingerprint) return
+    if (byIndex) {
+      if (byIndex.fingerprint !== selectedRequest.fingerprint) {
+        setSelectedRequest({
+          collectionId: selectedRequest.collectionId,
+          requestIndex: byIndex.requestIndex,
+          fingerprint: byIndex.fingerprint,
+        })
+      }
+      return
+    }
 
     const byFingerprint = detail.requests.find(
       (request) => request.fingerprint === selectedRequest.fingerprint,
@@ -162,6 +187,10 @@ export function AppLayout() {
       })
       return
     }
+
+    // Do not clear selection while the collection detail is in a parse-error state
+    // (raw editor may temporarily produce zero requests during sync).
+    if (detail.parseStatus === 'error') return
 
     setSelectedRequest(null)
   }, [detail, selectedRequest])
@@ -214,8 +243,43 @@ export function AppLayout() {
   )
 
   const handleSave = useCallback(() => {
-    // Story 3.3 wires disk persistence; stub keeps Save UX gated in 3.1.
+    // Story 3.3 wires disk persistence; stub keeps Save UX gated in 3.1/3.2.
   }, [])
+
+  const handleParseDiagnostics = useCallback(
+    (diagnostics: DiagnosticDtoType[], parseStatus: 'ok' | 'error') => {
+      setParseDiagnostics(diagnostics)
+      setParseBlockingSave(parseStatus === 'error')
+    },
+    [setParseBlockingSave],
+  )
+
+  const handleSyncSuccess = useCallback(
+    (response: SyncCollectionResponseType, matchedRequestIndex: number) => {
+      const matched =
+        matchRequestAfterSync(
+          response,
+          matchedRequestIndex,
+          selectedRequest?.fingerprint ?? '',
+        ) ?? response.requests.find((request) => request.requestIndex === matchedRequestIndex)
+      if (!matched) return
+      applySyncResult({ content: response.content, request: matched })
+      setParseDiagnostics(response.diagnostics)
+      setParseBlockingSave(response.parseStatus === 'error')
+      // Keep selection index stable; rematch effect updates fingerprint from query cache.
+    },
+    [applySyncResult, selectedRequest?.fingerprint, setParseBlockingSave],
+  )
+
+  const syncCollection = useCallback(
+    async (input: {
+      collectionId: string
+      body: Parameters<typeof syncMutateAsync>[0]['body']
+    }) => {
+      return syncMutateAsync(input)
+    },
+    [syncMutateAsync],
+  )
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -260,6 +324,7 @@ export function AppLayout() {
         isDetailError={isDetailError}
         collectionId={selectedRequest?.collectionId ?? null}
         requestIndex={selectedRequest?.requestIndex ?? null}
+        requestFingerprint={selectedRequest?.fingerprint ?? null}
         selectionIdentity={selectionIdentity}
         onMethodChange={setMethod}
         onUrlChange={setUrl}
@@ -267,6 +332,12 @@ export function AppLayout() {
         onBodyChange={setBody}
         onAddBody={addBody}
         onClearBody={clearBody}
+        onContentChange={setContent}
+        onSyncSuccess={handleSyncSuccess}
+        onParseDiagnostics={handleParseDiagnostics}
+        syncCollection={syncCollection}
+        parseDiagnostics={parseDiagnostics}
+        syncPending={syncPending}
         followRedirects={followRedirects}
         onFollowRedirectsChange={setFollowRedirects}
         onSend={handleSend}
