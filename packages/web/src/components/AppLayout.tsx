@@ -4,6 +4,7 @@ import type {
   PreviewResponseType,
   RequestDtoType,
   RequestHeaderDtoType,
+  SaveCollectionResponseType,
   SyncCollectionResponseType,
 } from '@reqor/shared-types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -13,12 +14,26 @@ import { useEnvironments } from '../hooks/useEnvironments.js'
 import { useExecuteRequest, ExecuteRequestError } from '../hooks/useExecuteRequest.js'
 import { usePreviewRequest } from '../hooks/usePreviewRequest.js'
 import { useRequestDraft } from '../hooks/useRequestDraft.js'
+import { SaveCollectionError, useSaveCollection } from '../hooks/useSaveCollection.js'
 import { useSyncCollection } from '../hooks/useSyncCollection.js'
 import type { DraftSendOverrides } from '../types/draftSend.js'
 import type { SelectedRequest } from '../types/selection.js'
 import { deriveCanSend } from '../utils/deriveCanSend.js'
+import {
+  buildSyncPayload,
+  formatParseDiagnostic,
+  matchRequestAfterSync,
+} from '../utils/syncOnTabSwitch.js'
+import { structuredFieldsDifferFromBaseline } from '../utils/requestDraft.js'
 import { SidebarShell } from './SidebarShell.js'
+import { UnsavedChangesDialog } from './UnsavedChangesDialog.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
+
+type SaveStatus = {
+  kind: 'success' | 'warning' | 'error'
+  message: string
+  successMessage?: string
+}
 
 const EMPTY_HEADERS: RequestHeaderDtoType[] = []
 
@@ -30,6 +45,9 @@ export function AppLayout() {
     null,
   )
   const [parseDiagnostics, setParseDiagnostics] = useState<DiagnosticDtoType[]>([])
+  const [saveStatus, setSaveStatus] = useState<SaveStatus | null>(null)
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false)
+  const pendingNavigationRef = useRef<(() => void) | null>(null)
 
   const collectionId = selectedRequest?.collectionId
   const {
@@ -40,6 +58,8 @@ export function AppLayout() {
 
   const executeMutation = useExecuteRequest()
   const { mutateAsync: syncMutateAsync, isPending: syncPending } = useSyncCollection()
+  const saveMutation = useSaveCollection()
+  const savePending = saveMutation.isPending
 
   const { data: config } = useConfig()
   const { data: envData } = useEnvironments()
@@ -85,6 +105,7 @@ export function AppLayout() {
 
   const {
     draft,
+    baseline,
     isDirty,
     validation,
     canSave,
@@ -96,8 +117,11 @@ export function AppLayout() {
     clearBody,
     setContent,
     applySyncResult,
+    applySaveResult,
     setParseBlockingSave,
   } = useRequestDraft(activeRequest, draftSelectionKey, detail?.content ?? '')
+
+  const effectiveCanSave = canSave && !syncPending && !savePending
 
   const draftMethod = draft?.method ?? 'GET'
   const draftUrl = draft?.url ?? ''
@@ -120,6 +144,7 @@ export function AppLayout() {
     lastPreviewRef.current = null
     setParseDiagnostics([])
     setParseBlockingSave(false)
+    setSaveStatus(null)
   }, [draftSelectionKey, setParseBlockingSave])
 
   useEffect(() => {
@@ -194,13 +219,35 @@ export function AppLayout() {
     setSelectedRequest(null)
   }, [detail, selectedRequest])
 
-  const handleSelectRequest = useCallback((selection: NonNullable<SelectedRequest>) => {
-    setSelectedRequest(selection)
+  const runPendingNavigation = useCallback(() => {
+    const action = pendingNavigationRef.current
+    pendingNavigationRef.current = null
+    setUnsavedDialogOpen(false)
+    action?.()
   }, [])
 
+  const guardNavigation = useCallback(
+    (action: () => void) => {
+      if (isDirty) {
+        pendingNavigationRef.current = action
+        setUnsavedDialogOpen(true)
+        return
+      }
+      action()
+    },
+    [isDirty],
+  )
+
+  const handleSelectRequest = useCallback(
+    (selection: NonNullable<SelectedRequest>) => {
+      guardNavigation(() => setSelectedRequest(selection))
+    },
+    [guardNavigation],
+  )
+
   const handleClearSelection = useCallback(() => {
-    setSelectedRequest(null)
-  }, [])
+    guardNavigation(() => setSelectedRequest(null))
+  }, [guardNavigation])
 
   const handleSend = useCallback(
     (overrides: DraftSendOverrides) => {
@@ -241,9 +288,121 @@ export function AppLayout() {
     [activeEnvironment, executeMutation, followRedirects, selectedRequest, selectionIdentity],
   )
 
-  const handleSave = useCallback(() => {
-    // Story 3.3 wires disk persistence; stub keeps Save UX gated in 3.1/3.2.
-  }, [])
+  const handleSave = useCallback(async () => {
+    if (!effectiveCanSave || !selectedRequest || !draft || !baseline) return
+
+    setSaveStatus(null)
+    let contentToSave = draft.content
+
+    if (structuredFieldsDifferFromBaseline(draft, baseline)) {
+      try {
+        const syncResponse = await syncMutateAsync({
+          collectionId: selectedRequest.collectionId,
+          body: buildSyncPayload('to-raw', draft, selectedRequest.requestIndex),
+        })
+        setParseDiagnostics(syncResponse.diagnostics)
+        setParseBlockingSave(syncResponse.parseStatus === 'error')
+        if (syncResponse.parseStatus === 'error') {
+          const diagnostic = syncResponse.diagnostics[0]
+          setSaveStatus({
+            kind: 'error',
+            message: diagnostic
+              ? formatParseDiagnostic(diagnostic)
+              : 'Parse error before save',
+          })
+          return
+        }
+
+        const matched = matchRequestAfterSync(
+          syncResponse,
+          selectedRequest.requestIndex,
+          selectedRequest.fingerprint,
+          'to-raw',
+        )
+        if (!matched) return
+
+        applySyncResult({ content: syncResponse.content, request: matched })
+        contentToSave = syncResponse.content
+      } catch (error) {
+        setSaveStatus({
+          kind: 'error',
+          message: error instanceof Error ? error.message : 'Failed to sync before save',
+        })
+        return
+      }
+    }
+
+    try {
+      const response: SaveCollectionResponseType = await saveMutation.mutateAsync({
+        collectionId: selectedRequest.collectionId,
+        content: contentToSave,
+      })
+
+      const matched =
+        response.requests.find(
+          (request) => request.requestIndex === selectedRequest.requestIndex,
+        ) ??
+        response.requests.find(
+          (request) => request.fingerprint === selectedRequest.fingerprint,
+        )
+      if (matched) {
+        applySaveResult({ content: response.content, request: matched })
+        if (matched.fingerprint !== selectedRequest.fingerprint) {
+          setSelectedRequest({
+            collectionId: selectedRequest.collectionId,
+            requestIndex: matched.requestIndex,
+            fingerprint: matched.fingerprint,
+          })
+        }
+      }
+
+      const basename =
+        selectedRequest.collectionId.split('/').pop() ?? selectedRequest.collectionId
+      const successMessage = `Saved to ${basename}`
+
+      if (response.warning?.code === 'FULL_REWRITE') {
+        setSaveStatus({
+          kind: 'warning',
+          message: response.warning.message,
+          successMessage,
+        })
+      } else {
+        setSaveStatus({ kind: 'success', message: successMessage })
+      }
+    } catch (error) {
+      const collectionPath = selectedRequest.collectionId
+      if (error instanceof SaveCollectionError && error.code === 'WRITE_FAILED') {
+        setSaveStatus({
+          kind: 'error',
+          message: `Cannot write to ${collectionPath}. File may be read-only.`,
+        })
+        return
+      }
+      if (error instanceof SaveCollectionError && error.code === 'PARSE_ERROR') {
+        setSaveStatus({
+          kind: 'error',
+          message: error.line
+            ? `Parse error at line ${error.line}`
+            : error.message,
+        })
+        return
+      }
+      setSaveStatus({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to save collection',
+      })
+    }
+  }, [
+    applySaveResult,
+    applySyncResult,
+    baseline,
+    draft,
+    effectiveCanSave,
+    saveMutation,
+    selectedRequest,
+    setParseBlockingSave,
+    syncMutateAsync,
+  ])
 
   const handleParseDiagnostics = useCallback(
     (diagnostics: DiagnosticDtoType[], parseStatus: 'ok' | 'error') => {
@@ -293,6 +452,9 @@ export function AppLayout() {
 
       if (event.key.toLowerCase() === 's') {
         event.preventDefault()
+        if (effectiveCanSave) {
+          void handleSave()
+        }
         return
       }
 
@@ -309,7 +471,7 @@ export function AppLayout() {
 
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [activeRequest, canSend, draft, handleSend])
+  }, [activeRequest, canSend, draft, effectiveCanSave, handleSave, handleSend])
 
   const isSending = executeMutation.isPending
 
@@ -349,14 +511,26 @@ export function AppLayout() {
         isSending={isSending}
         canSend={canSend}
         isDraftDirty={isDirty}
-        canSave={canSave}
+        canSave={effectiveCanSave}
         validationError={validation.message ?? null}
-        onSave={handleSave}
+        onSave={() => {
+          void handleSave()
+        }}
+        saveStatus={saveStatus}
+        savePending={savePending}
         preview={previewData}
         unresolvedError={unresolvedError}
         previewError={previewError}
         executeResult={executeResult}
         executeError={executeError}
+      />
+      <UnsavedChangesDialog
+        open={unsavedDialogOpen}
+        onConfirm={runPendingNavigation}
+        onCancel={() => {
+          pendingNavigationRef.current = null
+          setUnsavedDialogOpen(false)
+        }}
       />
     </div>
   )

@@ -51,6 +51,12 @@ type WorkspaceShellProps = {
   canSave: boolean
   validationError: string | null
   onSave: () => void
+  saveStatus?: {
+    kind: 'success' | 'warning' | 'error'
+    message: string
+    successMessage?: string
+  } | null
+  savePending?: boolean
   preview: PreviewResponseType | null
   unresolvedError: string | null
   previewError: string | null
@@ -90,6 +96,8 @@ export function WorkspaceShell({
   canSave,
   validationError,
   onSave,
+  saveStatus = null,
+  savePending = false,
   preview,
   unresolvedError,
   previewError,
@@ -138,6 +146,8 @@ export function WorkspaceShell({
                 canSave={canSave}
                 validationError={validationError}
                 onSave={onSave}
+                saveStatus={saveStatus}
+                savePending={savePending}
                 preview={preview}
                 unresolvedError={unresolvedError}
                 previewError={previewError}

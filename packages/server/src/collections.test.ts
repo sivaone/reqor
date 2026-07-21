@@ -320,6 +320,106 @@ POST https://api.example.com/users
     await app.close()
   })
 
+  it('PUT saves collection content to disk and returns updated detail', async () => {
+    const root = await createRepo({
+      'http/users.http': `GET https://api.example.com/users
+
+###
+
+POST https://api.example.com/users`,
+    })
+    const app = await buildApp({ repositoryRoot: root })
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/collections/http/users.http',
+      payload: {
+        content: `PUT https://api.example.com/users
+
+###
+
+POST https://api.example.com/users`,
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json()
+    expect(body.parseStatus).toBe('ok')
+    expect(body.content).toContain('PUT https://api.example.com/users')
+    expect(body.savedAt).toEqual(expect.any(String))
+
+    const onDisk = await fs.readFile(path.join(root, 'http', 'users.http'), 'utf8')
+    expect(onDisk).toContain('PUT https://api.example.com/users')
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: '/api/collections/http/users.http',
+    })
+    expect(detail.json().requests[0].method).toBe('PUT')
+
+    await app.close()
+  })
+
+  it('PUT returns PARSE_ERROR and does not write disk on invalid content', async () => {
+    const root = await createRepo({
+      'demo.http': 'GET https://api.example.com/demo',
+    })
+    const app = await buildApp({ repositoryRoot: root })
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/collections/demo.http',
+      payload: { content: 'NOT_A_VALID_REQUEST' },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toMatchObject({
+      error: { code: 'PARSE_ERROR' },
+    })
+
+    const onDisk = await fs.readFile(path.join(root, 'demo.http'), 'utf8')
+    expect(onDisk).toBe('GET https://api.example.com/demo')
+
+    await app.close()
+  })
+
+  it('PUT saves nested collection id paths', async () => {
+    const root = await createRepo({
+      'http/nested/demo.http': 'GET https://api.example.com/nested',
+    })
+    const app = await buildApp({ repositoryRoot: root })
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/collections/http/nested/demo.http',
+      payload: { content: 'POST https://api.example.com/nested' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const onDisk = await fs.readFile(path.join(root, 'http', 'nested', 'demo.http'), 'utf8')
+    expect(onDisk).toContain('POST https://api.example.com/nested')
+
+    await app.close()
+  })
+
+  it('PUT includes FULL_REWRITE warning when disk file is corrupt', async () => {
+    const root = await createRepo({
+      'broken.http': 'NOT_A_VALID_REQUEST',
+    })
+    const app = await buildApp({ repositoryRoot: root })
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/collections/broken.http',
+      payload: { content: 'GET https://api.example.com/fixed' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().warning).toMatchObject({ code: 'FULL_REWRITE' })
+
+    await app.close()
+  })
+
   it('refreshes 100 files within 3 seconds (NFR3)', async () => {
     const files = Object.fromEntries(
       Array.from({ length: 100 }, (_, index) => [

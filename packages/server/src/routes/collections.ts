@@ -4,10 +4,13 @@ import {
   CollectionDetailDto,
   CollectionsListResponse,
   CollectionsRefreshResponse,
+  SaveCollectionRequest,
+  SaveCollectionResponse,
   SyncCollectionRequest,
   SyncCollectionResponse,
 } from '@reqor/shared-types'
 import type { CollectionStore } from '../collection-store.js'
+import { minimalDiffSave } from '../save-collection.js'
 import { syncCollection } from '../sync-collection.js'
 
 export interface CollectionsRouteOptions {
@@ -131,6 +134,68 @@ export const collectionsRoutes: FastifyPluginAsyncTypebox<
       }
 
       return collection
+    },
+  )
+
+  app.put(
+    '/api/collections/*',
+    {
+      schema: {
+        body: SaveCollectionRequest,
+        response: {
+          200: SaveCollectionResponse,
+          400: ApiErrorEnvelope,
+          404: ApiErrorEnvelope,
+          500: ApiErrorEnvelope,
+        },
+      },
+    },
+    async (request, reply) => {
+      const params = request.params as { '*': string }
+      const id = params['*'] ?? ''
+
+      const collection = collectionStore.get(id)
+      if (!collection) {
+        return reply.status(404).send({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Collection not found',
+            details: { id },
+          },
+        })
+      }
+
+      const diff = minimalDiffSave(collection.content, request.body.content)
+      if (!diff.ok) {
+        return reply.status(400).send({
+          error: {
+            code: diff.code,
+            message: diff.message,
+            details: { line: diff.line },
+          },
+        })
+      }
+
+      const saved = await collectionStore.save(id, diff.content, repositoryRoot)
+      if (!saved.ok) {
+        const status = saved.code === 'NOT_FOUND' ? 404 : 500
+        return reply.status(status).send({
+          error: {
+            code: saved.code,
+            message: saved.message,
+            details: { id },
+          },
+        })
+      }
+
+      return {
+        savedAt: new Date().toISOString(),
+        content: saved.detail.content,
+        parseStatus: saved.detail.parseStatus,
+        requests: saved.detail.requests,
+        diagnostics: saved.detail.diagnostics,
+        ...(diff.warning ? { warning: diff.warning } : {}),
+      }
     },
   )
 

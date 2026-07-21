@@ -5,6 +5,7 @@ import {
   draftEquals,
   draftFromRequest,
   parseUrlParams,
+  structuredFieldsDifferFromBaseline,
   validateRequestDraft,
   type RequestDraft,
 } from './requestDraft.js'
@@ -47,6 +48,31 @@ describe('draftFromRequest / draftEquals', () => {
     const noBody = { ...b }
     delete noBody.body
     expect(draftEquals(a, noBody)).toBe(false)
+  })
+})
+
+describe('structuredFieldsDifferFromBaseline', () => {
+  const baseline = {
+    content: 'GET https://example.com',
+    method: 'GET',
+    url: 'https://example.com',
+    headers: [],
+  }
+
+  it('returns true when structured fields change but content stays stale', () => {
+    const draft = {
+      ...baseline,
+      url: 'https://example.com/edited',
+    }
+    expect(structuredFieldsDifferFromBaseline(draft, baseline)).toBe(true)
+  })
+
+  it('returns false when only raw content changes', () => {
+    const draft = {
+      ...baseline,
+      content: 'POST https://example.com',
+    }
+    expect(structuredFieldsDifferFromBaseline(draft, baseline)).toBe(false)
   })
 })
 

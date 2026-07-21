@@ -84,16 +84,30 @@ export function draftEquals(a: RequestDraft, b: RequestDraft): boolean {
   const left = normalizeDraftForCompare(a)
   const right = normalizeDraftForCompare(b)
   if (left.content !== right.content) return false
-  if (left.method !== right.method || left.url !== right.url) return false
-  if (left.headers.length !== right.headers.length) return false
-  for (let i = 0; i < left.headers.length; i++) {
-    const leftHeader = left.headers[i]!
-    const rightHeader = right.headers[i]!
+  return structuredFieldsEqual(left, right)
+}
+
+function structuredFieldsEqual(a: RequestDraft, b: RequestDraft): boolean {
+  if (a.method !== b.method || a.url !== b.url) return false
+  if (a.headers.length !== b.headers.length) return false
+  for (let index = 0; index < a.headers.length; index++) {
+    const leftHeader = a.headers[index]!
+    const rightHeader = b.headers[index]!
     if (leftHeader.name !== rightHeader.name || leftHeader.value !== rightHeader.value) {
       return false
     }
   }
-  return bodyEquals(left.body, right.body)
+  return bodyEquals(a.body, b.body)
+}
+
+export function structuredFieldsDifferFromBaseline(
+  draft: RequestDraft,
+  baseline: RequestDraft,
+): boolean {
+  return !structuredFieldsEqual(
+    normalizeDraftForCompare(draft),
+    normalizeDraftForCompare(baseline),
+  )
 }
 
 /** Split on first `?` and preserve `#fragment` — never throws for template or relative URLs. */
