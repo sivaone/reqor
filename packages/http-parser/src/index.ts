@@ -26,7 +26,7 @@ export {
 } from './diagnostics.js'
 
 export { parseHttpFile } from './parse.js'
-export { serializeHttpFile } from './serialize.js'
+export { serializeHttpFile, serializeRequest } from './serialize.js'
 
 export type {
   VariableKind,

@@ -20,11 +20,14 @@ const requestB: RequestDtoType = {
   body: { kind: 'raw', content: 'hi' },
 }
 
+const FILE_A = 'GET https://httpbin.dev/get\n'
+
 describe('useRequestDraft', () => {
-  it('initializes from active request and is not dirty', () => {
-    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0:aaa'))
+  it('initializes from active request and content and is not dirty', () => {
+    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0', FILE_A))
 
     expect(result.current.draft).toMatchObject({
+      content: FILE_A,
       method: 'GET',
       url: 'https://httpbin.dev/get',
       headers: [{ name: 'Accept', value: 'application/json' }],
@@ -33,8 +36,18 @@ describe('useRequestDraft', () => {
     expect(result.current.canSave).toBe(false)
   })
 
+  it('marks dirty on content edit', () => {
+    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0', FILE_A))
+
+    act(() => {
+      result.current.setContent(`${FILE_A}\n# edited`)
+    })
+    expect(result.current.isDirty).toBe(true)
+    expect(result.current.canSave).toBe(true)
+  })
+
   it('marks dirty on edit and clean when reverted', () => {
-    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0:aaa'))
+    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0', FILE_A))
 
     act(() => {
       result.current.setUrl('https://httpbin.dev/uuid')
@@ -48,25 +61,55 @@ describe('useRequestDraft', () => {
     expect(result.current.isDirty).toBe(false)
   })
 
-  it('resets draft when selection identity changes', () => {
+  it('resets draft when selection identity changes including content', () => {
     const { result, rerender } = renderHook(
-      ({ req, id }: { req: RequestDtoType; id: string }) => useRequestDraft(req, id),
-      { initialProps: { req: requestA, id: 'demo:0:aaa' } },
+      ({ req, id, content }: { req: RequestDtoType; id: string; content: string }) =>
+        useRequestDraft(req, id, content),
+      { initialProps: { req: requestA, id: 'demo:0', content: FILE_A } },
     )
+
+    act(() => {
+      result.current.setContent('edited raw')
+    })
+    expect(result.current.isDirty).toBe(true)
+
+    rerender({
+      req: requestB,
+      id: 'demo:1',
+      content: 'POST https://httpbin.dev/post\n\nhi\n',
+    })
+    expect(result.current.draft?.method).toBe('POST')
+    expect(result.current.draft?.url).toBe('https://httpbin.dev/post')
+    expect(result.current.draft?.content).toBe('POST https://httpbin.dev/post\n\nhi\n')
+    expect(result.current.isDirty).toBe(false)
+  })
+
+  it('applySyncResult updates draft without requiring selection change', () => {
+    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0', FILE_A))
 
     act(() => {
       result.current.setUrl('https://edited')
     })
     expect(result.current.isDirty).toBe(true)
 
-    rerender({ req: requestB, id: 'demo:1:bbb' })
-    expect(result.current.draft?.method).toBe('POST')
-    expect(result.current.draft?.url).toBe('https://httpbin.dev/post')
-    expect(result.current.isDirty).toBe(false)
+    act(() => {
+      result.current.applySyncResult({
+        content: 'GET https://edited\n',
+        request: {
+          ...requestA,
+          url: 'https://edited',
+          fingerprint: 'c'.repeat(64),
+        },
+      })
+    })
+
+    expect(result.current.draft?.url).toBe('https://edited')
+    expect(result.current.draft?.content).toBe('GET https://edited\n')
+    expect(result.current.isDirty).toBe(true)
   })
 
   it('addBody and clearBody toggle body presence', () => {
-    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0:aaa'))
+    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0', FILE_A))
 
     act(() => {
       result.current.addBody()
@@ -87,8 +130,8 @@ describe('useRequestDraft', () => {
 
   it('preserves edits when activeRequest reference changes for same selection', () => {
     const { result, rerender } = renderHook(
-      ({ req, id }: { req: RequestDtoType; id: string }) => useRequestDraft(req, id),
-      { initialProps: { req: requestA, id: 'demo:0:aaa' } },
+      ({ req, id }: { req: RequestDtoType; id: string }) => useRequestDraft(req, id, FILE_A),
+      { initialProps: { req: requestA, id: 'demo:0' } },
     )
 
     act(() => {
@@ -96,13 +139,13 @@ describe('useRequestDraft', () => {
     })
     expect(result.current.isDirty).toBe(true)
 
-    rerender({ req: { ...requestA, headers: [...requestA.headers] }, id: 'demo:0:aaa' })
+    rerender({ req: { ...requestA, headers: [...requestA.headers] }, id: 'demo:0' })
     expect(result.current.draft?.url).toBe('https://edited')
     expect(result.current.isDirty).toBe(true)
   })
 
   it('surfaces validation for GET with body', () => {
-    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0:aaa'))
+    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0', FILE_A))
 
     act(() => {
       result.current.addBody()
@@ -114,11 +157,22 @@ describe('useRequestDraft', () => {
     expect(result.current.validation.message).toMatch(/should not include a body/i)
   })
 
+  it('blocks save when parseBlockingSave is set', () => {
+    const { result } = renderHook(() => useRequestDraft(requestA, 'demo:0', FILE_A))
+
+    act(() => {
+      result.current.setUrl('https://edited')
+      result.current.setParseBlockingSave(true)
+    })
+    expect(result.current.isDirty).toBe(true)
+    expect(result.current.canSave).toBe(false)
+  })
+
   it('clears draft when selection is null', () => {
     const { result, rerender } = renderHook(
       ({ req, id }: { req: RequestDtoType | null; id: string | null }) =>
-        useRequestDraft(req, id),
-      { initialProps: { req: requestA as RequestDtoType | null, id: 'demo:0:aaa' as string | null } },
+        useRequestDraft(req, id, FILE_A),
+      { initialProps: { req: requestA as RequestDtoType | null, id: 'demo:0' as string | null } },
     )
 
     rerender({ req: null, id: null })

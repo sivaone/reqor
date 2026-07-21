@@ -1,21 +1,33 @@
 import type {
+  DiagnosticDtoType,
   EnvironmentVariableDtoType,
   PreviewResponseType,
   RequestBodyDtoType,
   RequestHeaderDtoType,
+  SyncCollectionResponseType,
 } from '@reqor/shared-types'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { PREVIEW_DEBOUNCE_MS } from '../hooks/usePreviewRequest.js'
 import type { DraftSendOverrides } from '../types/draftSend.js'
 import type { RequestDraft } from '../utils/requestDraft.js'
+import {
+  buildSyncPayload,
+  isVisualTab,
+  matchRequestAfterSync,
+} from '../utils/syncOnTabSwitch.js'
 import { RequestBodyPanel } from './RequestBodyPanel.js'
 import { RequestHeadersPanel } from './RequestHeadersPanel.js'
 import { RequestLine } from './RequestLine.js'
 import { RequestParamsPanel } from './RequestParamsPanel.js'
+import { RequestRawPanel } from './RequestRawPanel.js'
 import { RequestSubTabs, type RequestSubTab } from './RequestSubTabs.js'
 
 type RequestEditorProps = {
   draft: RequestDraft
   selectionIdentity?: string | null
+  collectionId: string | null
+  requestIndex: number | null
+  requestFingerprint: string | null
   activeEnvironment?: string | null
   environmentVariables?: EnvironmentVariableDtoType[]
   onMethodChange: (method: string) => void
@@ -24,6 +36,13 @@ type RequestEditorProps = {
   onBodyChange: (body: RequestBodyDtoType | undefined) => void
   onAddBody: () => void
   onClearBody: () => void
+  onContentChange: (content: string) => void
+  onSyncSuccess: (response: SyncCollectionResponseType, matchedRequestIndex: number) => void
+  onParseDiagnostics: (diagnostics: DiagnosticDtoType[], parseStatus: 'ok' | 'error') => void
+  syncCollection: (input: {
+    collectionId: string
+    body: ReturnType<typeof buildSyncPayload>
+  }) => Promise<SyncCollectionResponseType>
   followRedirects: boolean
   onFollowRedirectsChange: (value: boolean) => void
   onSend: (overrides: DraftSendOverrides) => void
@@ -36,11 +55,16 @@ type RequestEditorProps = {
   preview?: PreviewResponseType | null
   unresolvedError?: string | null
   previewError?: string | null
+  parseDiagnostics?: DiagnosticDtoType[]
+  syncPending?: boolean
 }
 
 export function RequestEditor({
   draft,
   selectionIdentity = null,
+  collectionId,
+  requestIndex,
+  requestFingerprint,
   activeEnvironment,
   environmentVariables = [],
   onMethodChange,
@@ -49,6 +73,10 @@ export function RequestEditor({
   onBodyChange,
   onAddBody,
   onClearBody,
+  onContentChange,
+  onSyncSuccess,
+  onParseDiagnostics,
+  syncCollection,
   followRedirects,
   onFollowRedirectsChange,
   onSend,
@@ -61,16 +89,133 @@ export function RequestEditor({
   preview = null,
   unresolvedError = null,
   previewError = null,
+  parseDiagnostics = [],
+  syncPending = false,
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<RequestSubTab>('params')
   const [trackedSelection, setTrackedSelection] = useState(selectionIdentity)
+  const [localSyncPending, setLocalSyncPending] = useState(false)
+  const [localDiagnostics, setLocalDiagnostics] = useState<DiagnosticDtoType[]>(parseDiagnostics)
+  const draftRef = useRef(draft)
+
+  useEffect(() => {
+    draftRef.current = draft
+  }, [draft])
 
   if (selectionIdentity !== trackedSelection) {
     setTrackedSelection(selectionIdentity)
     setActiveTab('params')
+    setLocalDiagnostics([])
   }
 
+  const runSync = useCallback(
+    async (direction: 'to-raw' | 'to-visual') => {
+      if (!collectionId || requestIndex === null || requestFingerprint === null) {
+        return false
+      }
+      setLocalSyncPending(true)
+      try {
+        const body = buildSyncPayload(direction, draftRef.current, requestIndex)
+        const response = await syncCollection({ collectionId, body })
+        setLocalDiagnostics(response.diagnostics)
+        onParseDiagnostics(response.diagnostics, response.parseStatus)
+        if (response.parseStatus === 'error' && direction === 'to-visual') {
+          return false
+        }
+        const matched = matchRequestAfterSync(
+          response,
+          requestIndex,
+          requestFingerprint,
+        )
+        if (!matched) {
+          const fallback = [
+            {
+              line: 1,
+              message: 'Could not rematch request after sync',
+            },
+          ]
+          setLocalDiagnostics(
+            response.diagnostics.length > 0 ? response.diagnostics : fallback,
+          )
+          onParseDiagnostics(
+            response.diagnostics.length > 0 ? response.diagnostics : fallback,
+            'error',
+          )
+          return false
+        }
+        onSyncSuccess(response, matched.requestIndex)
+        return true
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to sync collection'
+        const fallback = [{ line: 1, message }]
+        setLocalDiagnostics(fallback)
+        onParseDiagnostics(fallback, 'error')
+        return false
+      } finally {
+        setLocalSyncPending(false)
+      }
+    },
+    [
+      collectionId,
+      onParseDiagnostics,
+      onSyncSuccess,
+      requestFingerprint,
+      requestIndex,
+      syncCollection,
+    ],
+  )
+
+  const handleTabChange = useCallback(
+    async (next: RequestSubTab) => {
+      const fromVisual = isVisualTab(activeTab)
+      const toVisual = isVisualTab(next)
+      const crossingToRaw = fromVisual && next === 'raw'
+      const crossingToVisual = activeTab === 'raw' && toVisual
+
+      if (crossingToRaw) {
+        const ok = await runSync('to-raw')
+        if (!ok) return
+      } else if (crossingToVisual) {
+        const ok = await runSync('to-visual')
+        if (!ok) {
+          // Keep raw tab; diagnostics already surfaced
+          return
+        }
+      }
+      setActiveTab(next)
+    },
+    [activeTab, runSync],
+  )
+
+  const runDiagnosticsSync = useCallback(async () => {
+    if (!collectionId || requestIndex === null) return
+    try {
+      const body = buildSyncPayload('to-visual', draftRef.current, requestIndex)
+      const response = await syncCollection({ collectionId, body })
+      setLocalDiagnostics(response.diagnostics)
+      onParseDiagnostics(response.diagnostics, response.parseStatus)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sync collection'
+      const fallback = [{ line: 1, message }]
+      setLocalDiagnostics(fallback)
+      onParseDiagnostics(fallback, 'error')
+    }
+  }, [collectionId, onParseDiagnostics, requestIndex, syncCollection])
+
+  useEffect(() => {
+    if (activeTab !== 'raw' || !collectionId || requestIndex === null) return
+
+    const handle = window.setTimeout(() => {
+      void runDiagnosticsSync()
+    }, PREVIEW_DEBOUNCE_MS)
+
+    return () => window.clearTimeout(handle)
+  }, [activeTab, collectionId, draft.content, requestIndex, runDiagnosticsSync])
+
   const draftBody: DraftSendOverrides['body'] = draft.body ?? null
+  const pending = syncPending || localSyncPending
+  const diagnosticsToShow =
+    localDiagnostics.length > 0 ? localDiagnostics : parseDiagnostics
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-auto">
@@ -98,7 +243,9 @@ export function RequestEditor({
       />
       <RequestSubTabs
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          void handleTabChange(tab)
+        }}
         headersCount={draft.headers.length}
       />
       <div
@@ -128,6 +275,26 @@ export function RequestEditor({
           onBodyChange={onBodyChange}
           onAddBody={onAddBody}
           onClearBody={onClearBody}
+        />
+      </div>
+      <div
+        role="tabpanel"
+        id="request-panel-raw"
+        aria-labelledby="request-tab-raw"
+        hidden={activeTab !== 'raw'}
+        className={activeTab === 'raw' ? 'flex min-h-0 flex-1 flex-col' : undefined}
+      >
+        <RequestRawPanel
+          content={draft.content}
+          onContentChange={(text) => {
+            draftRef.current = { ...draftRef.current, content: text }
+            onContentChange(text)
+          }}
+          onBlur={() => {
+            void runDiagnosticsSync()
+          }}
+          diagnostics={diagnosticsToShow}
+          syncPending={pending}
         />
       </div>
     </div>

@@ -12,6 +12,7 @@ const sampleRequest = {
 }
 
 const sampleDraft: RequestDraft = {
+  content: 'GET https://httpbin.dev/get\n',
   method: 'GET',
   url: 'https://httpbin.dev/get',
   headers: [],
@@ -23,6 +24,7 @@ const defaultExecuteProps = {
   environmentVariables: [] as import('@reqor/shared-types').EnvironmentVariableDtoType[],
   collectionId: 'demo.http' as string | null,
   requestIndex: 0 as number | null,
+  requestFingerprint: 'c'.repeat(64) as string | null,
   selectionIdentity: 'demo:0:aaa' as string | null,
   onMethodChange: vi.fn(),
   onUrlChange: vi.fn(),
@@ -30,6 +32,17 @@ const defaultExecuteProps = {
   onBodyChange: vi.fn(),
   onAddBody: vi.fn(),
   onClearBody: vi.fn(),
+  onContentChange: vi.fn(),
+  onSyncSuccess: vi.fn(),
+  onParseDiagnostics: vi.fn(),
+  syncCollection: vi.fn().mockResolvedValue({
+    content: 'GET https://httpbin.dev/get\n',
+    parseStatus: 'ok' as const,
+    requests: [sampleRequest],
+    diagnostics: [],
+  }),
+  parseDiagnostics: [] as import('@reqor/shared-types').DiagnosticDtoType[],
+  syncPending: false,
   followRedirects: true,
   onFollowRedirectsChange: vi.fn(),
   onSend: vi.fn(),
@@ -57,6 +70,7 @@ describe('WorkspaceShell', () => {
         draft={null}
         collectionId={null}
         requestIndex={null}
+        requestFingerprint={null}
         selectionIdentity={null}
       />,
     )

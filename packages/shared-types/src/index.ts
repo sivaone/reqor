@@ -207,3 +207,30 @@ export const ConfigUpdateRequest = Type.Object({
 })
 
 export type ConfigUpdateRequestType = Static<typeof ConfigUpdateRequest>
+
+export const SyncCollectionPatch = Type.Object({
+  method: Type.String(),
+  url: Type.String(),
+  headers: Type.Array(RequestHeaderDto),
+  /** `null` clears body; omit keeps body unchanged only when patch omitted entirely */
+  body: Type.Optional(Type.Union([RequestBodyDto, Type.Null()])),
+})
+
+export type SyncCollectionPatchType = Static<typeof SyncCollectionPatch>
+
+export const SyncCollectionRequest = Type.Object({
+  content: Type.String(),
+  requestIndex: Type.Optional(Type.Integer({ minimum: 0 })),
+  patch: Type.Optional(SyncCollectionPatch),
+})
+
+export type SyncCollectionRequestType = Static<typeof SyncCollectionRequest>
+
+export const SyncCollectionResponse = Type.Object({
+  content: Type.String(),
+  parseStatus: ParseStatus,
+  requests: Type.Array(RequestDto),
+  diagnostics: Type.Array(DiagnosticDto),
+})
+
+export type SyncCollectionResponseType = Static<typeof SyncCollectionResponse>

@@ -1,22 +1,45 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { RequestDraft } from '../utils/requestDraft.js'
 import { RequestEditor } from './RequestEditor.js'
 
 const draft: RequestDraft = {
+  content: 'GET https://httpbin.dev/get\n',
   method: 'GET',
   url: 'https://httpbin.dev/get',
   headers: [{ name: 'Accept', value: 'application/json' }],
 }
 
+const syncOk = {
+  content: 'GET https://httpbin.dev/get\n',
+  parseStatus: 'ok' as const,
+  requests: [
+    {
+      requestIndex: 0,
+      fingerprint: 'a'.repeat(64),
+      method: 'GET',
+      url: 'https://httpbin.dev/get',
+      headers: [{ name: 'Accept', value: 'application/json' }],
+    },
+  ],
+  diagnostics: [],
+}
+
 const baseProps = {
   draft,
+  collectionId: 'demo.http',
+  requestIndex: 0,
+  requestFingerprint: 'a'.repeat(64),
   onMethodChange: vi.fn(),
   onUrlChange: vi.fn(),
   onHeadersChange: vi.fn(),
   onBodyChange: vi.fn(),
   onAddBody: vi.fn(),
   onClearBody: vi.fn(),
+  onContentChange: vi.fn(),
+  onSyncSuccess: vi.fn(),
+  onParseDiagnostics: vi.fn(),
+  syncCollection: vi.fn().mockResolvedValue(syncOk),
   followRedirects: true,
   onFollowRedirectsChange: vi.fn(),
   onSend: vi.fn(),
@@ -85,5 +108,64 @@ describe('RequestEditor', () => {
     )
 
     expect(screen.getByRole('tab', { name: 'Params' })).toHaveProperty('ariaSelected', 'true')
+  })
+
+  it('syncs when switching to Raw tab', async () => {
+    const syncCollection = vi.fn().mockResolvedValue(syncOk)
+    const onSyncSuccess = vi.fn()
+    render(
+      <RequestEditor
+        {...baseProps}
+        syncCollection={syncCollection}
+        onSyncSuccess={onSyncSuccess}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw .http' }))
+
+    await waitFor(() => {
+      expect(syncCollection).toHaveBeenCalled()
+    })
+    expect(syncCollection.mock.calls[0]![0].body.patch).toBeDefined()
+    await waitFor(() => {
+      expect(onSyncSuccess).toHaveBeenCalled()
+    })
+    expect(screen.getByLabelText('Raw HTTP file')).toBeDefined()
+  })
+
+  it('shows parse error alert and stays on Raw when reparse fails', async () => {
+    const errorResponse = {
+      content: 'NOT_VALID',
+      parseStatus: 'error' as const,
+      requests: [],
+      diagnostics: [{ line: 1, message: 'Expected request line' }],
+    }
+    const syncCollection = vi.fn().mockImplementation(
+      async (input: { body: { patch?: unknown } }) => {
+        if (input.body.patch) return syncOk
+        return errorResponse
+      },
+    )
+
+    render(
+      <RequestEditor
+        {...baseProps}
+        draft={{ ...draft, content: 'NOT_VALID' }}
+        syncCollection={syncCollection}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw .http' }))
+    await waitFor(() => {
+      expect(screen.getByLabelText('Raw HTTP file')).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Headers (1)' }))
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toMatch(/Line 1:/)
+    })
+    expect(screen.getByRole('tab', { name: 'Raw .http' }).getAttribute('aria-selected')).toBe(
+      'true',
+    )
   })
 })

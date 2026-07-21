@@ -5,6 +5,7 @@ import type {
 } from '@reqor/shared-types'
 
 export type RequestDraft = {
+  content: string
   method: string
   url: string
   headers: RequestHeaderDtoType[]
@@ -44,8 +45,12 @@ function splitUrlParts(url: string): UrlParts {
   }
 }
 
-export function draftFromRequest(req: RequestDtoType): RequestDraft {
+export function draftFromRequest(
+  req: RequestDtoType,
+  content: string = '',
+): RequestDraft {
   return {
+    content,
     method: req.method.toUpperCase(),
     url: req.url,
     headers: req.headers.map((header) => ({ name: header.name, value: header.value })),
@@ -78,6 +83,7 @@ function normalizeDraftForCompare(draft: RequestDraft): RequestDraft {
 export function draftEquals(a: RequestDraft, b: RequestDraft): boolean {
   const left = normalizeDraftForCompare(a)
   const right = normalizeDraftForCompare(b)
+  if (left.content !== right.content) return false
   if (left.method !== right.method || left.url !== right.url) return false
   if (left.headers.length !== right.headers.length) return false
   for (let i = 0; i < left.headers.length; i++) {

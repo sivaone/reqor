@@ -1,10 +1,13 @@
 import type {
+  DiagnosticDtoType,
   ExecuteResponseType,
   EnvironmentVariableDtoType,
   PreviewResponseType,
   RequestBodyDtoType,
   RequestDtoType,
   RequestHeaderDtoType,
+  SyncCollectionRequestType,
+  SyncCollectionResponseType,
 } from '@reqor/shared-types'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import type { DraftSendOverrides } from '../types/draftSend.js'
@@ -22,6 +25,7 @@ type WorkspaceShellProps = {
   isDetailError: boolean
   collectionId: string | null
   requestIndex: number | null
+  requestFingerprint: string | null
   selectionIdentity: string | null
   onMethodChange: (method: string) => void
   onUrlChange: (url: string) => void
@@ -29,6 +33,15 @@ type WorkspaceShellProps = {
   onBodyChange: (body: RequestBodyDtoType | undefined) => void
   onAddBody: () => void
   onClearBody: () => void
+  onContentChange: (content: string) => void
+  onSyncSuccess: (response: SyncCollectionResponseType, matchedRequestIndex: number) => void
+  onParseDiagnostics: (diagnostics: DiagnosticDtoType[], parseStatus: 'ok' | 'error') => void
+  syncCollection: (input: {
+    collectionId: string
+    body: SyncCollectionRequestType
+  }) => Promise<SyncCollectionResponseType>
+  parseDiagnostics: DiagnosticDtoType[]
+  syncPending: boolean
   followRedirects: boolean
   onFollowRedirectsChange: (value: boolean) => void
   onSend: (overrides: DraftSendOverrides) => void
@@ -52,6 +65,9 @@ export function WorkspaceShell({
   environmentVariables,
   isDetailPending,
   isDetailError,
+  collectionId,
+  requestIndex,
+  requestFingerprint,
   selectionIdentity,
   onMethodChange,
   onUrlChange,
@@ -59,6 +75,12 @@ export function WorkspaceShell({
   onBodyChange,
   onAddBody,
   onClearBody,
+  onContentChange,
+  onSyncSuccess,
+  onParseDiagnostics,
+  syncCollection,
+  parseDiagnostics,
+  syncPending,
   followRedirects,
   onFollowRedirectsChange,
   onSend,
@@ -90,6 +112,9 @@ export function WorkspaceShell({
               <RequestEditor
                 draft={draft}
                 selectionIdentity={selectionIdentity}
+                collectionId={collectionId}
+                requestIndex={requestIndex}
+                requestFingerprint={requestFingerprint}
                 activeEnvironment={activeEnvironment}
                 environmentVariables={environmentVariables}
                 onMethodChange={onMethodChange}
@@ -98,6 +123,12 @@ export function WorkspaceShell({
                 onBodyChange={onBodyChange}
                 onAddBody={onAddBody}
                 onClearBody={onClearBody}
+                onContentChange={onContentChange}
+                onSyncSuccess={onSyncSuccess}
+                onParseDiagnostics={onParseDiagnostics}
+                syncCollection={syncCollection}
+                parseDiagnostics={parseDiagnostics}
+                syncPending={syncPending}
                 followRedirects={followRedirects}
                 onFollowRedirectsChange={onFollowRedirectsChange}
                 onSend={onSend}

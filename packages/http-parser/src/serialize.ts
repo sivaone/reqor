@@ -1,6 +1,6 @@
 import type { ParseResult, ParsedRequest } from './ast.js'
 
-function serializeRequest(request: ParsedRequest): string {
+export function serializeRequest(request: ParsedRequest): string {
   const lines: string[] = []
 
   let requestLine = request.method

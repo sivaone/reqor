@@ -3,13 +3,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { RequestSubTabs } from './RequestSubTabs.js'
 
 describe('RequestSubTabs', () => {
-  it('renders Params, Headers with badge, and Body tabs', () => {
+  it('renders Params, Headers with badge, Body, and Raw .http tabs', () => {
     render(<RequestSubTabs activeTab="params" onTabChange={vi.fn()} headersCount={2} />)
 
     expect(screen.getByRole('tab', { name: 'Params' }).getAttribute('aria-selected')).toBe('true')
     expect(screen.getByRole('tab', { name: 'Headers (2)' })).toBeDefined()
     expect(screen.getByRole('tab', { name: 'Body' })).toBeDefined()
-    expect(screen.queryByRole('tab', { name: /raw/i })).toBeNull()
+    expect(screen.getByRole('tab', { name: 'Raw .http' })).toBeDefined()
   })
 
   it('notifies on tab change', () => {

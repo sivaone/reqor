@@ -34,7 +34,12 @@ const listPayload = {
 
 const detailPayload = {
   id: 'demo.http',
-  content: '',
+  content: `GET https://httpbin.dev/get
+
+###
+
+POST https://httpbin.dev/post
+`,
   parseStatus: 'ok' as const,
   requests: [
     {
@@ -115,6 +120,47 @@ function createFetchMock(configState: { activeEnvironment: string | null }) {
       return Promise.resolve({
         ok: true,
         json: async () => detailPayload,
+      })
+    }
+    if (url === '/api/collections/demo.http/sync' && init?.method === 'POST') {
+      const body = JSON.parse(String(init.body)) as {
+        content: string
+        requestIndex?: number
+        patch?: { method: string; url: string; headers: unknown[]; body?: unknown }
+      }
+      const method = body.patch?.method ?? 'GET'
+      const requestUrl = body.patch?.url ?? 'https://httpbin.dev/get'
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          content: body.content.includes('NOT_VALID')
+            ? body.content
+            : body.patch
+              ? `${method} ${requestUrl}\n\n###\n\nPOST https://httpbin.dev/post\n`
+              : body.content,
+          parseStatus: body.content.includes('NOT_VALID') ? 'error' : 'ok',
+          requests: body.content.includes('NOT_VALID')
+            ? []
+            : [
+                {
+                  requestIndex: 0,
+                  fingerprint: 'd'.repeat(64),
+                  method,
+                  url: requestUrl,
+                  headers: body.patch?.headers ?? [],
+                },
+                {
+                  requestIndex: 1,
+                  fingerprint: 'e'.repeat(64),
+                  method: 'POST',
+                  url: 'https://httpbin.dev/post',
+                  headers: [],
+                },
+              ],
+          diagnostics: body.content.includes('NOT_VALID')
+            ? [{ line: 1, message: 'Expected request line' }]
+            : [],
+        }),
       })
     }
     if (url === '/api/preview' && init?.method === 'POST') {
@@ -642,6 +688,25 @@ describe('App', () => {
             }),
           })
         }
+        if (url === '/api/collections/demo.http/sync' && init?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              content: 'GET https://{{host}}/get\n',
+              parseStatus: 'ok',
+              requests: [
+                {
+                  requestIndex: 0,
+                  fingerprint: 'd'.repeat(64),
+                  method: 'GET',
+                  url: 'https://{{host}}/get',
+                  headers: [],
+                },
+              ],
+              diagnostics: [],
+            }),
+          })
+        }
         if (url === '/api/preview' && init?.method === 'POST') {
           return Promise.resolve({
             ok: true,
@@ -761,6 +826,26 @@ describe('App', () => {
             }),
           })
         }
+        if (url === '/api/collections/demo.http/sync' && init?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              content: 'POST https://httpbin.dev/post\n',
+              parseStatus: 'ok',
+              requests: [
+                {
+                  requestIndex: 0,
+                  fingerprint: 'd'.repeat(64),
+                  method: 'POST',
+                  url: 'https://httpbin.dev/post',
+                  headers: [{ name: 'Accept', value: 'text/plain' }],
+                  body: { kind: 'raw', content: 'disk' },
+                },
+              ],
+              diagnostics: [],
+            }),
+          })
+        }
         if (url === '/api/preview' && init?.method === 'POST') {
           return Promise.resolve({
             ok: true,
@@ -842,6 +927,17 @@ describe('App', () => {
         if (url === '/api/collections/demo.http') {
           return Promise.resolve({ ok: true, json: async () => detailPayload })
         }
+        if (url === '/api/collections/demo.http/sync' && init?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              content: detailPayload.content,
+              parseStatus: 'ok',
+              requests: detailPayload.requests,
+              diagnostics: [],
+            }),
+          })
+        }
         if (url === '/api/preview' && init?.method === 'POST') {
           previewCalls += 1
           if (previewCalls === 1) {
@@ -887,5 +983,60 @@ describe('App', () => {
       expect(screen.getByRole('status').textContent).toMatch(/failed to preview request/i)
       expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', false)
     })
+  })
+
+  it('shows raw file content and syncs visual edits when opening Raw tab', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Request URL')).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://httpbin.dev/get?raw=1' },
+    })
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Raw .http' }))
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/collections/demo.http/sync',
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Raw HTTP file')).toHaveProperty(
+        'value',
+        expect.stringContaining('raw=1'),
+      )
+    })
+  })
+
+  it('shows inline parse error when raw text is invalid', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Raw .http' }))
+    await waitFor(() => {
+      expect(screen.getByLabelText('Raw HTTP file')).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByLabelText('Raw HTTP file'), {
+      target: { value: 'NOT_VALID' },
+    })
+    fireEvent.click(screen.getByRole('tab', { name: /Headers/ }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toMatch(/Line 1:/)
+    })
+    expect(screen.getByRole('tab', { name: 'Raw .http' }).getAttribute('aria-selected')).toBe(
+      'true',
+    )
   })
 })
