@@ -234,3 +234,27 @@ export const SyncCollectionResponse = Type.Object({
 })
 
 export type SyncCollectionResponseType = Static<typeof SyncCollectionResponse>
+
+export const SaveCollectionRequest = Type.Object({
+  content: Type.String(),
+})
+
+export type SaveCollectionRequestType = Static<typeof SaveCollectionRequest>
+
+export const SaveCollectionWarning = Type.Object({
+  code: Type.Literal('FULL_REWRITE'),
+  message: Type.String(),
+})
+
+export type SaveCollectionWarningType = Static<typeof SaveCollectionWarning>
+
+export const SaveCollectionResponse = Type.Object({
+  savedAt: Type.String(),
+  content: Type.String(),
+  parseStatus: ParseStatus,
+  requests: Type.Array(RequestDto),
+  diagnostics: Type.Array(DiagnosticDto),
+  warning: Type.Optional(SaveCollectionWarning),
+})
+
+export type SaveCollectionResponseType = Static<typeof SaveCollectionResponse>

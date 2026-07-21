@@ -9,6 +9,12 @@ import { PreSendPreview } from './PreSendPreview.js'
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 
+type SaveStatus = {
+  kind: 'success' | 'warning' | 'error'
+  message: string
+  successMessage?: string
+}
+
 type RequestLineProps = {
   activeEnvironment?: string | null
   environmentVariables?: EnvironmentVariableDtoType[]
@@ -27,6 +33,9 @@ type RequestLineProps = {
   canSave?: boolean
   validationError?: string | null
   onSave?: () => void
+  saveStatus?: SaveStatus | null
+  savePending?: boolean
+  syncPending?: boolean
   preview?: PreviewResponseType | null
   unresolvedError?: string | null
   previewError?: string | null
@@ -50,12 +59,16 @@ export function RequestLine({
   canSave = false,
   validationError = null,
   onSave,
+  saveStatus = null,
+  savePending = false,
+  syncPending = false,
   preview = null,
   unresolvedError = null,
   previewError = null,
 }: RequestLineProps) {
   const showPreview = preview?.hasVariables === true
   const showSave = isDraftDirty
+  const saveDisabled = !canSave || savePending || syncPending
 
   return (
     <div className="flex flex-col gap-inset px-inset py-inset">
@@ -109,14 +122,34 @@ export function RequestLine({
           <button
             type="button"
             onClick={() => onSave?.()}
-            disabled={!canSave}
-            aria-disabled={!canSave}
+            disabled={saveDisabled}
+            aria-disabled={saveDisabled}
+            aria-busy={savePending}
             className="inline-flex shrink-0 items-center rounded-md border border-border bg-surface px-inset py-inset-sm text-body text-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:opacity-60"
           >
             Save
           </button>
         ) : null}
       </div>
+      {saveStatus?.successMessage ? (
+        <p className="text-body text-foreground" role="status">
+          {saveStatus.successMessage}
+        </p>
+      ) : null}
+      {saveStatus ? (
+        <p
+          className={`text-body ${
+            saveStatus.kind === 'error'
+              ? 'text-error'
+              : saveStatus.kind === 'warning'
+                ? 'text-warning'
+                : 'text-foreground'
+          }`}
+          role={saveStatus.kind === 'error' ? 'alert' : 'status'}
+        >
+          {saveStatus.message}
+        </p>
+      ) : null}
       {validationError ? (
         <p className="text-body text-error" role="alert">
           {validationError}

@@ -27,6 +27,8 @@ export type UseRequestDraftResult = {
   addBody: () => void
   clearBody: () => void
   applySyncResult: (result: SyncResultApply) => void
+  applySaveResult: (result: SyncResultApply) => void
+  commitBaseline: () => void
   setParseBlockingSave: (blocking: boolean) => void
 }
 
@@ -144,8 +146,21 @@ export function useRequestDraft(
   const applySyncResult = useCallback((result: SyncResultApply) => {
     const next = draftFromRequest(result.request, result.content)
     setDraftState(next)
-    // Keep baseline as disk-loaded state so Save stays dirty until Story 3.3 persists.
+    // Keep baseline as disk-loaded state so Save stays dirty until persisted.
   }, [])
+
+  const applySaveResult = useCallback((result: SyncResultApply) => {
+    const next = draftFromRequest(result.request, result.content)
+    setDraftState(next)
+    setBaseline(next)
+  }, [])
+
+  const commitBaseline = useCallback(() => {
+    setBaseline((prev) => {
+      if (!draft) return prev
+      return { ...draft }
+    })
+  }, [draft])
 
   const isDirty = useMemo(() => {
     if (!draft || !baseline) return false
@@ -174,6 +189,8 @@ export function useRequestDraft(
     addBody,
     clearBody,
     applySyncResult,
+    applySaveResult,
+    commitBaseline,
     setParseBlockingSave,
   }
 }

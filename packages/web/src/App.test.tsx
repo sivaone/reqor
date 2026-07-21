@@ -121,10 +121,43 @@ function createFetchMock(configState: { activeEnvironment: string | null }) {
         json: async () => ({ activeEnvironment: configState.activeEnvironment }),
       })
     }
-    if (url === '/api/collections/demo.http') {
+    if (url === '/api/collections/demo.http' && (!init?.method || init.method === 'GET')) {
       return Promise.resolve({
         ok: true,
         json: async () => detailPayload,
+      })
+    }
+    if (url === '/api/collections/demo.http' && init?.method === 'PUT') {
+      const body = JSON.parse(String(init.body)) as { content: string }
+      const firstLine =
+        body.content.split('\n').find((line) => line.trim() && !line.startsWith('#')) ?? ''
+      const parsed = firstLine.match(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+(\S+)/i)
+      const method = parsed?.[1]?.toUpperCase() ?? 'GET'
+      const requestUrl = parsed?.[2] ?? 'https://httpbin.dev/get'
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          savedAt: '2026-07-21T12:00:00.000Z',
+          content: body.content,
+          parseStatus: 'ok',
+          requests: [
+            {
+              requestIndex: 0,
+              fingerprint: fingerprint(method, requestUrl),
+              method,
+              url: requestUrl,
+              headers: [],
+            },
+            {
+              requestIndex: 1,
+              fingerprint: fingerprint('POST', 'https://httpbin.dev/post'),
+              method: 'POST',
+              url: 'https://httpbin.dev/post',
+              headers: [],
+            },
+          ],
+          diagnostics: [],
+        }),
       })
     }
     if (url === '/api/collections/demo.http/sync' && init?.method === 'POST') {
@@ -197,6 +230,12 @@ function createFetchMock(configState: { activeEnvironment: string | null }) {
 
 describe('App', () => {
   beforeEach(() => {
+    HTMLDialogElement.prototype.showModal = vi.fn(function showModal(this: HTMLDialogElement) {
+      this.open = true
+    })
+    HTMLDialogElement.prototype.close = vi.fn(function close(this: HTMLDialogElement) {
+      this.open = false
+    })
     vi.stubGlobal('fetch', createFetchMock({ activeEnvironment: null }))
   })
 
@@ -1079,5 +1118,99 @@ POST https://httpbin.dev/post
         'https://httpbin.dev/get?from=raw',
       )
     })
+  })
+
+  it('Ctrl+S saves raw edits and shows success copy', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Raw .http' }))
+    await waitFor(() => {
+      expect(screen.getByLabelText('Raw HTTP file')).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByLabelText('Raw HTTP file'), {
+      target: {
+        value: `GET https://httpbin.dev/get?saved=1
+
+###
+
+POST https://httpbin.dev/post
+`,
+      },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', false)
+    })
+
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/collections/demo.http',
+        expect.objectContaining({
+          method: 'PUT',
+          body: expect.stringContaining('saved=1'),
+        }),
+      )
+      expect(screen.getByText('Saved to demo.http')).toBeDefined()
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /^save$/i })).toBeNull()
+    })
+  })
+
+  it('visual-only save syncs before PUT', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://httpbin.dev/get?visual=1' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^save$/i })).toHaveProperty('disabled', false)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/collections/demo.http/sync',
+        expect.objectContaining({ method: 'POST' }),
+      )
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/collections/demo.http',
+        expect.objectContaining({ method: 'PUT' }),
+      )
+    })
+  })
+
+  it('prompts before navigating away with unsaved changes', async () => {
+    render(<App />, { wrapper: createWrapper() })
+
+    fireEvent.click(await screen.findByRole('button', { name: /demo\.http/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/get/i }))
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://httpbin.dev/get?dirty=1' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^save$/i })).toBeDefined()
+    })
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /https:\/\/httpbin\.dev\/post/i }),
+    )
+
+    expect(screen.getByRole('dialog')).toBeDefined()
+    expect(screen.getByText('Discard unsaved changes?')).toBeDefined()
   })
 })

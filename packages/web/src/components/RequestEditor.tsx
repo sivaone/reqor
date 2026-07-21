@@ -52,11 +52,17 @@ type RequestEditorProps = {
   canSave: boolean
   validationError: string | null
   onSave: () => void
+  saveStatus?: {
+    kind: 'success' | 'warning' | 'error'
+    message: string
+    successMessage?: string
+  } | null
+  savePending?: boolean
+  syncPending?: boolean
   preview?: PreviewResponseType | null
   unresolvedError?: string | null
   previewError?: string | null
   parseDiagnostics?: DiagnosticDtoType[]
-  syncPending?: boolean
 }
 
 export function RequestEditor({
@@ -86,11 +92,13 @@ export function RequestEditor({
   canSave,
   validationError,
   onSave,
+  saveStatus = null,
+  savePending = false,
+  syncPending = false,
   preview = null,
   unresolvedError = null,
   previewError = null,
   parseDiagnostics = [],
-  syncPending = false,
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<RequestSubTab>('params')
   const [trackedSelection, setTrackedSelection] = useState(draftSelectionKey)
@@ -326,6 +334,9 @@ export function RequestEditor({
         canSave={canSave}
         validationError={validationError}
         onSave={onSave}
+        saveStatus={saveStatus}
+        savePending={savePending}
+        syncPending={pending}
         preview={preview}
         unresolvedError={unresolvedError}
         previewError={previewError}

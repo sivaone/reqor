@@ -9,6 +9,7 @@ import type {
   SyncCollectionPatchType,
   SyncCollectionResponseType,
 } from '@reqor/shared-types'
+import { spliceRequestSpan } from './splice-request-span.js'
 import { toCollectionDetail } from './to-dto.js'
 
 export type VisualPatchInput = {
@@ -20,15 +21,6 @@ export type VisualPatchInput = {
 export type ApplyVisualPatchResult =
   | { ok: true; content: string }
   | { ok: false; code: 'INVALID_REQUEST_INDEX'; message: string }
-
-function splitLines(content: string): string[] {
-  return content.split(/\r?\n/)
-}
-
-function joinLines(lines: string[], original: string): string {
-  const newline = original.includes('\r\n') ? '\r\n' : '\n'
-  return lines.join(newline)
-}
 
 export function applyVisualPatch(input: VisualPatchInput): ApplyVisualPatchResult {
   const { content, requestIndex, patch } = input
@@ -67,13 +59,17 @@ export function applyVisualPatch(input: VisualPatchInput): ApplyVisualPatchResul
   }
 
   const serializedBlock = serializeRequest(updated)
-  const lines = splitLines(content)
-  const before = lines.slice(0, existing.span.startLine - 1)
-  const after = lines.slice(existing.span.endLine)
-  const blockLines = splitLines(serializedBlock)
+  const spliced = spliceRequestSpan(content, existing.span, serializedBlock)
+  if (!spliced.ok) {
+    return {
+      ok: false,
+      code: 'INVALID_REQUEST_INDEX',
+      message: `Request index ${requestIndex} span is invalid`,
+    }
+  }
   return {
     ok: true,
-    content: joinLines([...before, ...blockLines, ...after], content),
+    content: spliced.content,
   }
 }
 
