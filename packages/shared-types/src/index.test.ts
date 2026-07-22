@@ -16,6 +16,9 @@ import {
   EnvironmentDto,
   EnvironmentsListResponse,
   EnvironmentVariableDto,
+  HistoryEntryDetailDto,
+  HistoryEntrySummaryDto,
+  HistoryListResponse,
   HealthResponse,
   ParseStatus,
   PreviewRequest,
@@ -34,6 +37,8 @@ import {
   type ExecuteRequestType,
   type ExecuteResponseHeaderDtoType,
   type ExecuteResponseType,
+  type HistoryEntryDetailDtoType,
+  type HistoryEntrySummaryDtoType,
   type PreviewRequestType,
   type PreviewResponseType,
   type RequestBodyDtoType,
@@ -278,5 +283,34 @@ describe('@reqor/shared-types', () => {
     expect(Value.Check(ConfigUpdateRequest, update)).toBe(true)
     expect(Value.Check(ConfigUpdateRequest, { activeEnvironment: null })).toBe(true)
     expect(Value.Check(ConfigUpdateRequest, { activeEnvironment: '' })).toBe(false)
+  })
+
+  it('validates history DTO sample values', () => {
+    const summary: HistoryEntrySummaryDtoType = {
+      id: 1,
+      sentAt: '2026-07-22T12:00:00.000Z',
+      environmentName: 'development',
+      collectionId: 'demo.http',
+      fingerprint: 'a'.repeat(64),
+      method: 'GET',
+      url: 'https://httpbin.dev/get',
+      statusCode: 200,
+      durationMs: 12.3,
+      sizeBytes: 100,
+      body: '{"ok":true}',
+      bodyTruncated: false,
+    }
+    expect(Value.Check(HistoryEntrySummaryDto, summary)).toBe(true)
+
+    const detail: HistoryEntryDetailDtoType = {
+      ...summary,
+      statusText: 'OK',
+      responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+      bodyTruncated: false,
+    }
+    expect(Value.Check(HistoryEntryDetailDto, detail)).toBe(true)
+    expect(
+      Value.Check(HistoryListResponse, { entries: [summary], total: 1 }),
+    ).toBe(true)
   })
 })

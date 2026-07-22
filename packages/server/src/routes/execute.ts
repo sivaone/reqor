@@ -8,6 +8,8 @@ import type { CollectionStore } from '../collection-store.js'
 import type { ConfigStore } from '../config-store.js'
 import type { EnvResolver } from '../env-resolver.js'
 import type { EnvironmentStore } from '../environment-store.js'
+import type { HistoryStore } from '../history-store.js'
+import { recordHistoryEntry } from '../record-history-entry.js'
 import { ExecuteError, executeRequest } from '../proxy/execute-request.js'
 import { resolveEnvironmentName } from '../resolve-environment-name.js'
 
@@ -16,13 +18,15 @@ export interface ExecuteRouteOptions {
   configStore: ConfigStore
   environmentStore: EnvironmentStore
   envResolver: EnvResolver
+  historyStore: HistoryStore
 }
 
 export const executeRoutes: FastifyPluginAsyncTypebox<ExecuteRouteOptions> = async (
   app,
   options,
 ) => {
-  const { collectionStore, configStore, environmentStore, envResolver } = options
+  const { collectionStore, configStore, environmentStore, envResolver, historyStore } =
+    options
 
   app.post(
     '/api/execute',
@@ -61,7 +65,10 @@ export const executeRoutes: FastifyPluginAsyncTypebox<ExecuteRouteOptions> = asy
           { envResolver, environmentName },
           abortController.signal,
         )
-        return result
+
+        recordHistoryEntry(historyStore, result.history, result.response, app.log)
+
+        return result.response
       } catch (error) {
         if (error instanceof ExecuteError) {
           const status = error.httpStatus as 400 | 404 | 502
