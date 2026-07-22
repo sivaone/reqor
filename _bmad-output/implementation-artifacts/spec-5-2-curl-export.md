@@ -2,7 +2,7 @@
 title: 'Story 5.2: cURL Export'
 type: 'feature'
 created: '2026-07-22'
-status: 'review'
+status: 'done'
 baseline_commit: 'd06ffcf1df7fa53053eb1e8bc9d50c3850e06680'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md'
@@ -135,6 +135,14 @@ Story 5.3 reuses the route module and **`loadMergedRequestForExport`**: return *
 - Do not regress Import cURL, preview, execute, save, or history
 - Do not invent a new env resolution path — reuse `resolveRequest` + `resolveEnvironmentName`
 
+### Review Findings
+
+- [x] [Review][Patch] Prefer `--data-raw` when body content starts with `@` so curl does not treat it as a local file path [`packages/http-parser/src/serialize-curl.ts:54`]
+- [x] [Review][Patch] Match `Content-Type: application/json` exactly (not substring) when omitting the header for `--json` [`packages/http-parser/src/serialize-curl.ts:22`]
+- [x] [Review][Patch] Clear `copyCurlStatus` on request select/clear; guard in-flight Copy cURL with a generation token (and early-return if pending) so navigation/double-click cannot write the wrong clipboard/status [`packages/web/src/components/AppLayout.tsx:279`]
+- [x] [Review][Patch] Validate `typeof data.curl === 'string'` before treating export response as success [`packages/web/src/hooks/useExportCurl.ts:34`]
+- [x] [Review][Patch] Reuse `PreviewRequest` for `ExportCurlRequest` instead of duplicating the TypeBox shape [`packages/shared-types/src/index.ts:327`]
+
 ## Previous Story Intelligence (5.1)
 
 - cURL parse/serialize lives in `@reqor/http-parser`; server owns routes (AD-3)
@@ -207,6 +215,7 @@ Composer
 - Exposed `POST /api/export/curl` with `ExportCurlRequest`/`ExportCurlResponse` TypeBox schemas (PreviewRequest-shaped body).
 - Wired **Copy cURL** toolbar button (one-click copy, no modal) via `useExportCurl` + `copyToClipboard`; button omitted when no loaded request/draft.
 - Verification: `pnpm turbo build test typecheck` — all 15 tasks passed.
+- Code review patches (2026-07-22): `--data-raw` for `@`-prefix bodies; exact `application/json` Content-Type match; Copy cURL generation/pending guards + status clear on select; `curl` response field validation; `ExportCurlRequest = PreviewRequest`.
 
 ### File List
 

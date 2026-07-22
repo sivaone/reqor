@@ -32,7 +32,7 @@ export function useExportCurl() {
       }
 
       const data = (await res.json().catch(() => null)) as ExportCurlResponseType | null
-      if (!data) {
+      if (!data || typeof data.curl !== 'string') {
         throw new ExportCurlError('Invalid export response')
       }
       return data

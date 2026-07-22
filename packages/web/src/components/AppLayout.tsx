@@ -73,6 +73,7 @@ export function AppLayout() {
   const savingRef = useRef(false)
   const isReplayingRef = useRef(false)
   const replayGenerationRef = useRef(0)
+  const copyCurlGenerationRef = useRef(0)
   const selectedHistoryIdRef = useRef<number | null>(null)
 
   const collectionId = selectedRequest?.collectionId
@@ -279,7 +280,9 @@ export function AppLayout() {
   const handleSelectRequest = useCallback(
     (selection: NonNullable<SelectedRequest>) => {
       guardNavigation(() => {
+        copyCurlGenerationRef.current += 1
         setImportWarnings(null)
+        setCopyCurlStatus(null)
         setSelectedRequest(selection)
       })
     },
@@ -288,7 +291,9 @@ export function AppLayout() {
 
   const handleClearSelection = useCallback(() => {
     guardNavigation(() => {
+      copyCurlGenerationRef.current += 1
       setImportWarnings(null)
+      setCopyCurlStatus(null)
       setSelectedRequest(null)
     })
   }, [guardNavigation])
@@ -617,8 +622,9 @@ export function AppLayout() {
   )
 
   const handleCopyCurl = useCallback(async () => {
-    if (!selectedRequest || !draft) return
+    if (!selectedRequest || !draft || exportCurlMutation.isPending) return
 
+    const generation = ++copyCurlGenerationRef.current
     setCopyCurlStatus(null)
     try {
       const result = await exportCurlMutation.mutateAsync({
@@ -630,9 +636,12 @@ export function AppLayout() {
         headers: draft.headers,
         body: draft.body ?? null,
       })
+      if (generation !== copyCurlGenerationRef.current) return
       await copyToClipboard(result.curl)
+      if (generation !== copyCurlGenerationRef.current) return
       setCopyCurlStatus({ kind: 'success', message: 'cURL copied to clipboard' })
     } catch (error) {
+      if (generation !== copyCurlGenerationRef.current) return
       const message =
         error instanceof ExportCurlError || error instanceof CopyToClipboardError
           ? error.message

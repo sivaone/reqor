@@ -20,10 +20,9 @@ function shellQuote(value: string): string {
 }
 
 function isJsonContentType(header: SerializeCurlHeader): boolean {
-  return (
-    header.name.toLowerCase() === 'content-type' &&
-    header.value.toLowerCase().includes('application/json')
-  )
+  if (header.name.toLowerCase() !== 'content-type') return false
+  // Exact application/json only (optional params); do not match json-patch/jsonl/etc.
+  return /^application\/json(\s*;|$)/i.test(header.value.trim())
 }
 
 export function serializeCurl(input: SerializeCurlInput): string {
@@ -49,7 +48,8 @@ export function serializeCurl(input: SerializeCurlInput): string {
     const { content } = input.body
     if (input.body.kind === 'json') {
       parts.push('--json', shellQuote(content))
-    } else if (content.includes('\n')) {
+    } else if (content.includes('\n') || content.startsWith('@')) {
+      // --data-raw: multiline, or leading @ (curl would treat -d @path as a file)
       parts.push('--data-raw', shellQuote(content))
     } else {
       parts.push('-d', shellQuote(content))

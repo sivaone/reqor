@@ -79,6 +79,35 @@ describe('serializeCurl', () => {
     expect(curl).toBe(`curl -X POST 'https://api.example.com' -d 'it'\\''s fine'`)
   })
 
+  it('uses --data-raw for single-line body content starting with @', () => {
+    const curl = serializeCurl({
+      method: 'POST',
+      url: 'https://api.example.com/users',
+      headers: [],
+      body: { kind: 'raw', content: '@not-a-file' },
+    })
+
+    expect(curl).toBe(
+      `curl -X POST 'https://api.example.com/users' --data-raw '@not-a-file'`,
+    )
+  })
+
+  it('keeps non-exact JSON Content-Type headers when emitting --json', () => {
+    const curl = serializeCurl({
+      method: 'POST',
+      url: 'https://api.example.com/users',
+      headers: [
+        { name: 'Content-Type', value: 'application/json-patch+json' },
+        { name: 'Accept', value: 'application/json' },
+      ],
+      body: { kind: 'json', content: '[{"op":"add","path":"/a","value":1}]' },
+    })
+
+    expect(curl).toBe(
+      `curl -X POST 'https://api.example.com/users' -H 'Content-Type: application/json-patch+json' -H 'Accept: application/json' --json '[{"op":"add","path":"/a","value":1}]'`,
+    )
+  })
+
   it('roundtrips happy paths without embedded single quotes', () => {
     const input = {
       method: 'POST',
