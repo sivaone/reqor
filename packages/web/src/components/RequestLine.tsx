@@ -41,6 +41,9 @@ type RequestLineProps = {
   previewError?: string | null
   onImportCurl?: () => void
   importWarnings?: string[] | null
+  onCopyCurl?: () => void
+  copyCurlPending?: boolean
+  copyCurlStatus?: { kind: 'success' | 'error'; message: string } | null
 }
 
 export function RequestLine({
@@ -69,6 +72,9 @@ export function RequestLine({
   previewError = null,
   onImportCurl,
   importWarnings = null,
+  onCopyCurl,
+  copyCurlPending = false,
+  copyCurlStatus = null,
 }: RequestLineProps) {
   const showPreview = preview?.hasVariables === true
   const showSave = isDraftDirty
@@ -144,6 +150,18 @@ export function RequestLine({
             Import cURL
           </button>
         ) : null}
+        {onCopyCurl ? (
+          <button
+            type="button"
+            onClick={onCopyCurl}
+            disabled={copyCurlPending}
+            aria-busy={copyCurlPending}
+            aria-label="Copy cURL"
+            className="inline-flex shrink-0 items-center rounded-md border border-border bg-surface px-inset py-inset-sm text-body text-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:opacity-60"
+          >
+            Copy cURL
+          </button>
+        ) : null}
       </div>
       {saveStatus?.successMessage ? (
         <p className="text-body text-foreground" role="status">
@@ -185,6 +203,14 @@ export function RequestLine({
             <li key={`${warning}-${index}`}>{warning}</li>
           ))}
         </ul>
+      ) : null}
+      {copyCurlStatus ? (
+        <p
+          className={`text-body ${copyCurlStatus.kind === 'error' ? 'text-error' : 'text-foreground'}`}
+          role={copyCurlStatus.kind === 'error' ? 'alert' : 'status'}
+        >
+          {copyCurlStatus.message}
+        </p>
       ) : null}
       {showPreview && preview ? <PreSendPreview preview={preview} /> : null}
       <label className="inline-flex items-center gap-inset-sm text-body text-foreground">

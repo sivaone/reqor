@@ -16,6 +16,7 @@ import { useCollectionDetail } from '../hooks/useCollectionDetail.js'
 import { useConfig } from '../hooks/useConfig.js'
 import { useEnvironments } from '../hooks/useEnvironments.js'
 import { useExecuteRequest, ExecuteRequestError } from '../hooks/useExecuteRequest.js'
+import { ExportCurlError, useExportCurl } from '../hooks/useExportCurl.js'
 import { usePreviewRequest } from '../hooks/usePreviewRequest.js'
 import { useRequestDraft } from '../hooks/useRequestDraft.js'
 import { SaveCollectionError, useSaveCollection } from '../hooks/useSaveCollection.js'
@@ -32,6 +33,7 @@ import { structuredFieldsDifferFromBaseline } from '../utils/requestDraft.js'
 import { historyToExecuteResponse } from '../utils/historyToExecuteResponse.js'
 import { findByFingerprint } from '../utils/rematchRequest.js'
 import { replayHistoryEntry } from '../utils/replayHistoryEntry.js'
+import { copyToClipboard, CopyToClipboardError } from '../utils/copyToClipboard.js'
 import { SidebarShell } from './SidebarShell.js'
 import { CurlImportDialog } from './CurlImportDialog.js'
 import { UnsavedChangesDialog } from './UnsavedChangesDialog.js'
@@ -63,6 +65,10 @@ export function AppLayout() {
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false)
   const [curlImportOpen, setCurlImportOpen] = useState(false)
   const [importWarnings, setImportWarnings] = useState<string[] | null>(null)
+  const [copyCurlStatus, setCopyCurlStatus] = useState<{
+    kind: 'success' | 'error'
+    message: string
+  } | null>(null)
   const pendingNavigationRef = useRef<(() => void) | null>(null)
   const savingRef = useRef(false)
   const isReplayingRef = useRef(false)
@@ -77,6 +83,7 @@ export function AppLayout() {
   } = useCollectionDetail(collectionId)
 
   const executeMutation = useExecuteRequest()
+  const exportCurlMutation = useExportCurl()
   const { mutateAsync: syncMutateAsync, isPending: syncPending } = useSyncCollection()
   const saveMutation = useSaveCollection()
   const savePending = saveMutation.isPending
@@ -609,6 +616,31 @@ export function AppLayout() {
     [clearBody, setBody, setHeaders, setMethod, setUrl],
   )
 
+  const handleCopyCurl = useCallback(async () => {
+    if (!selectedRequest || !draft) return
+
+    setCopyCurlStatus(null)
+    try {
+      const result = await exportCurlMutation.mutateAsync({
+        collectionId: selectedRequest.collectionId,
+        requestIndex: selectedRequest.requestIndex,
+        environment: activeEnvironment,
+        method: draft.method,
+        url: draft.url,
+        headers: draft.headers,
+        body: draft.body ?? null,
+      })
+      await copyToClipboard(result.curl)
+      setCopyCurlStatus({ kind: 'success', message: 'cURL copied to clipboard' })
+    } catch (error) {
+      const message =
+        error instanceof ExportCurlError || error instanceof CopyToClipboardError
+          ? error.message
+          : 'Failed to export cURL'
+      setCopyCurlStatus({ kind: 'error', message })
+    }
+  }, [activeEnvironment, draft, exportCurlMutation, selectedRequest])
+
   const handleParseDiagnostics = useCallback(
     (diagnostics: DiagnosticDtoType[], parseStatus: 'ok' | 'error') => {
       setParseDiagnostics(diagnostics)
@@ -740,6 +772,9 @@ export function AppLayout() {
         isExpandingBody={isExpandingBody}
         onImportCurl={activeRequest && draft ? () => setCurlImportOpen(true) : undefined}
         importWarnings={importWarnings}
+        onCopyCurl={activeRequest && draft ? () => void handleCopyCurl() : undefined}
+        copyCurlPending={exportCurlMutation.isPending}
+        copyCurlStatus={copyCurlStatus}
       />
       <CurlImportDialog
         open={curlImportOpen}

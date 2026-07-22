@@ -2,7 +2,8 @@
 title: 'Story 5.2: cURL Export'
 type: 'feature'
 created: '2026-07-22'
-status: 'ready-for-dev'
+status: 'review'
+baseline_commit: 'd06ffcf1df7fa53053eb1e8bc9d50c3850e06680'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/spec-5-1-curl-import.md'
@@ -96,20 +97,20 @@ Story 5.3 reuses the route module and **`loadMergedRequestForExport`**: return *
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `packages/http-parser/src/serialize-curl.ts` — `-X` (omit for GET), `-H`, `-d`/`--data-raw`, `--json`
-- [ ] `packages/http-parser/src/serialize-curl.test.ts` — POST+JSON, GET, headers, Basic header form, shell escaping emit, roundtrip without embedded `'`
-- [ ] `packages/http-parser/src/index.ts` — export public API
-- [ ] `packages/shared-types/src/index.ts` — schemas + `index.test.ts` smoke
-- [ ] `packages/server/src/load-export-request.ts` — merge + resolve + execute-style unresolved block + redact url/headers/body → redacted fields
-- [ ] `packages/server/src/routes/export.ts` — POST handler
-- [ ] `packages/server/src/app.ts` — register with preview-like deps
-- [ ] `packages/server/src/export.test.ts` — env, secret mask (import `SECRET_MASK`), unresolved 400, draft, not-found, empty collection, body redaction
-- [ ] `packages/web/src/hooks/useExportCurl.ts` — mutation hook
-- [ ] `packages/web/src/utils/copyToClipboard.ts` — clipboard helper
-- [ ] `packages/web/src/components/RequestLine.tsx` — Copy cURL; optional callback; pending disable; status
-- [ ] `packages/web/src/components/RequestEditor.tsx` / `WorkspaceShell.tsx` — wire props
-- [ ] `packages/web/src/components/AppLayout.tsx` — preview-shaped payload; hide when no selection; copy on success only
-- [ ] `pnpm turbo build test typecheck` — workspace passes
+- [x] `packages/http-parser/src/serialize-curl.ts` — `-X` (omit for GET), `-H`, `-d`/`--data-raw`, `--json`
+- [x] `packages/http-parser/src/serialize-curl.test.ts` — POST+JSON, GET, headers, Basic header form, shell escaping emit, roundtrip without embedded `'`
+- [x] `packages/http-parser/src/index.ts` — export public API
+- [x] `packages/shared-types/src/index.ts` — schemas + `index.test.ts` smoke
+- [x] `packages/server/src/load-export-request.ts` — merge + resolve + execute-style unresolved block + redact url/headers/body → redacted fields
+- [x] `packages/server/src/routes/export.ts` — POST handler
+- [x] `packages/server/src/app.ts` — register with preview-like deps
+- [x] `packages/server/src/export.test.ts` — env, secret mask (import `SECRET_MASK`), unresolved 400, draft, not-found, empty collection, body redaction
+- [x] `packages/web/src/hooks/useExportCurl.ts` — mutation hook
+- [x] `packages/web/src/utils/copyToClipboard.ts` — clipboard helper
+- [x] `packages/web/src/components/RequestLine.tsx` — Copy cURL; optional callback; pending disable; status
+- [x] `packages/web/src/components/RequestEditor.tsx` / `WorkspaceShell.tsx` — wire props
+- [x] `packages/web/src/components/AppLayout.tsx` — preview-shaped payload; hide when no selection; copy on success only
+- [x] `pnpm turbo build test typecheck` — workspace passes
 
 **Acceptance Criteria:**
 - Given a loaded request with active environment, when I click **Copy cURL**, then the clipboard receives a cURL command with variables substituted and known secrets as `••••••`
@@ -193,10 +194,38 @@ Story 5.3 reuses the route module and **`loadMergedRequestForExport`**: return *
 
 ### Agent Model Used
 
-(pending dev-story)
+Composer
 
 ### Debug Log References
 
+(none)
+
 ### Completion Notes List
 
+- Implemented `serializeCurl` in `@reqor/http-parser` with shell-safe quoting, `--json` for JSON bodies, and Content-Type omission when emitting `--json`.
+- Added `loadMergedRequestForExport` shared helper: merge draft → resolve env → block unresolved (execute semantics) → redact url/headers/body with `SECRET_MASK`.
+- Exposed `POST /api/export/curl` with `ExportCurlRequest`/`ExportCurlResponse` TypeBox schemas (PreviewRequest-shaped body).
+- Wired **Copy cURL** toolbar button (one-click copy, no modal) via `useExportCurl` + `copyToClipboard`; button omitted when no loaded request/draft.
+- Verification: `pnpm turbo build test typecheck` — all 15 tasks passed.
+
 ### File List
+
+- `packages/http-parser/src/serialize-curl.ts` (new)
+- `packages/http-parser/src/serialize-curl.test.ts` (new)
+- `packages/http-parser/src/index.ts` (modified)
+- `packages/shared-types/src/index.ts` (modified)
+- `packages/shared-types/src/index.test.ts` (modified)
+- `packages/server/src/load-export-request.ts` (new)
+- `packages/server/src/routes/export.ts` (new)
+- `packages/server/src/export.test.ts` (new)
+- `packages/server/src/app.ts` (modified)
+- `packages/web/src/hooks/useExportCurl.ts` (new)
+- `packages/web/src/utils/copyToClipboard.ts` (new)
+- `packages/web/src/components/RequestLine.tsx` (modified)
+- `packages/web/src/components/RequestEditor.tsx` (modified)
+- `packages/web/src/components/WorkspaceShell.tsx` (modified)
+- `packages/web/src/components/AppLayout.tsx` (modified)
+
+## Change Log
+
+- 2026-07-22: Story 5.2 cURL export — server-side serialize + draft-aware export API + Copy cURL toolbar action with secret redaction.

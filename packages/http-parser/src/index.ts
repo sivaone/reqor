@@ -28,6 +28,12 @@ export {
 export { parseHttpFile } from './parse.js'
 export { parseCurl } from './parse-curl.js'
 export type { ParseCurlResult, ParsedCurlBody, ParsedCurlHeader } from './parse-curl.js'
+export { serializeCurl } from './serialize-curl.js'
+export type {
+  SerializeCurlBody,
+  SerializeCurlHeader,
+  SerializeCurlInput,
+} from './serialize-curl.js'
 export { serializeHttpFile, serializeRequest } from './serialize.js'
 
 export type {

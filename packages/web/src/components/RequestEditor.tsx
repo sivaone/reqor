@@ -65,6 +65,9 @@ type RequestEditorProps = {
   parseDiagnostics?: DiagnosticDtoType[]
   onImportCurl?: () => void
   importWarnings?: string[] | null
+  onCopyCurl?: () => void
+  copyCurlPending?: boolean
+  copyCurlStatus?: { kind: 'success' | 'error'; message: string } | null
 }
 
 export function RequestEditor({
@@ -103,6 +106,9 @@ export function RequestEditor({
   parseDiagnostics = [],
   onImportCurl,
   importWarnings = null,
+  onCopyCurl,
+  copyCurlPending = false,
+  copyCurlStatus = null,
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<RequestSubTab>('params')
   const [trackedSelection, setTrackedSelection] = useState(draftSelectionKey)
@@ -355,6 +361,9 @@ export function RequestEditor({
         previewError={previewError}
         onImportCurl={onImportCurl}
         importWarnings={importWarnings}
+        onCopyCurl={onCopyCurl}
+        copyCurlPending={copyCurlPending}
+        copyCurlStatus={copyCurlStatus}
       />
       <RequestSubTabs
         activeTab={activeTab}
