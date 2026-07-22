@@ -323,3 +323,23 @@ export const ImportCurlResponse = Type.Object({
 })
 
 export type ImportCurlResponseType = Static<typeof ImportCurlResponse>
+
+export const ExportCurlRequest = Type.Object({
+  collectionId: Type.String(),
+  requestIndex: Type.Integer({ minimum: 0 }),
+  environment: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  method: Type.Optional(Type.String()),
+  url: Type.Optional(Type.String()),
+  /** Draft header override; omit to use disk request headers */
+  headers: Type.Optional(Type.Array(RequestHeaderDto)),
+  /** Draft body override; `null` clears disk body; omit to keep disk body */
+  body: Type.Optional(Type.Union([RequestBodyDto, Type.Null()])),
+})
+
+export type ExportCurlRequestType = Static<typeof ExportCurlRequest>
+
+export const ExportCurlResponse = Type.Object({
+  curl: Type.String(),
+})
+
+export type ExportCurlResponseType = Static<typeof ExportCurlResponse>

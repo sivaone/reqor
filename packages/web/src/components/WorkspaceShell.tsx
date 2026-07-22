@@ -62,6 +62,9 @@ type WorkspaceShellProps = {
   previewError: string | null
   onImportCurl?: () => void
   importWarnings?: string[] | null
+  onCopyCurl?: () => void
+  copyCurlPending?: boolean
+  copyCurlStatus?: { kind: 'success' | 'error'; message: string } | null
   displayResult: ExecuteResponseType | null
   displayError: { code?: string; message: string } | null
   historyReplayError: string | null
@@ -109,6 +112,9 @@ export function WorkspaceShell({
   previewError,
   onImportCurl,
   importWarnings = null,
+  onCopyCurl,
+  copyCurlPending = false,
+  copyCurlStatus = null,
   displayResult,
   displayError,
   historyReplayError,
@@ -170,6 +176,9 @@ export function WorkspaceShell({
                 previewError={previewError}
                 onImportCurl={onImportCurl}
                 importWarnings={importWarnings}
+                onCopyCurl={onCopyCurl}
+                copyCurlPending={copyCurlPending}
+                copyCurlStatus={copyCurlStatus}
               />
             ) : isDetailPending ? (
               <p className="px-inset py-inset text-foreground-muted text-body">

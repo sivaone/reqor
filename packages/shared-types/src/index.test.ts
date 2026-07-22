@@ -13,6 +13,8 @@ import {
   ExecuteErrorCode,
   ExecuteResponse,
   ExecuteResponseHeaderDto,
+  ExportCurlRequest,
+  ExportCurlResponse,
   EnvironmentDto,
   EnvironmentsListResponse,
   EnvironmentVariableDto,
@@ -37,6 +39,8 @@ import {
   type ExecuteRequestType,
   type ExecuteResponseHeaderDtoType,
   type ExecuteResponseType,
+  type ExportCurlRequestType,
+  type ExportCurlResponseType,
   type HistoryEntryDetailDtoType,
   type HistoryEntrySummaryDtoType,
   type PreviewRequestType,
@@ -283,6 +287,24 @@ describe('@reqor/shared-types', () => {
     expect(Value.Check(ConfigUpdateRequest, update)).toBe(true)
     expect(Value.Check(ConfigUpdateRequest, { activeEnvironment: null })).toBe(true)
     expect(Value.Check(ConfigUpdateRequest, { activeEnvironment: '' })).toBe(false)
+  })
+
+  it('validates export cURL request/response schemas', () => {
+    const request: ExportCurlRequestType = {
+      collectionId: 'demo.http',
+      requestIndex: 0,
+      environment: 'development',
+      method: 'POST',
+      url: 'https://example.com',
+      headers: [{ name: 'Accept', value: 'application/json' }],
+      body: { kind: 'json', content: '{}' },
+    }
+    expect(Value.Check(ExportCurlRequest, request)).toBe(true)
+
+    const response: ExportCurlResponseType = {
+      curl: "curl -X POST 'https://example.com'",
+    }
+    expect(Value.Check(ExportCurlResponse, response)).toBe(true)
   })
 
   it('validates history DTO sample values', () => {
