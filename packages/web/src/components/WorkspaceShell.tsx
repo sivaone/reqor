@@ -62,6 +62,12 @@ type WorkspaceShellProps = {
   previewError: string | null
   executeResult: ExecuteResponseType | null
   executeError: { code?: string; message: string } | null
+  displayResult: ExecuteResponseType | null
+  displayError: { code?: string; message: string } | null
+  historyReplayError: string | null
+  bodyTruncated?: boolean
+  onExpandBody?: () => void
+  isExpandingBody?: boolean
 }
 
 export function WorkspaceShell({
@@ -101,8 +107,12 @@ export function WorkspaceShell({
   preview,
   unresolvedError,
   previewError,
-  executeResult,
-  executeError,
+  displayResult,
+  displayError,
+  historyReplayError,
+  bodyTruncated = false,
+  onExpandBody,
+  isExpandingBody = false,
 }: WorkspaceShellProps) {
   return (
     <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Workspace">
@@ -112,6 +122,11 @@ export function WorkspaceShell({
             aria-label="Request"
             className="flex h-full flex-col bg-background"
           >
+            {historyReplayError ? (
+              <p role="alert" className="border-b border-border px-inset py-inset-sm text-error text-body">
+                {historyReplayError}
+              </p>
+            ) : null}
             {isDetailError ? (
               <p className="px-inset py-inset text-foreground-muted text-body">
                 Could not load request
@@ -170,9 +185,12 @@ export function WorkspaceShell({
         <Panel defaultSize={50} minSize={20} className="min-h-0">
           <section aria-label="Response" className="h-full bg-surface">
             <ResponsePanel
-              result={executeResult}
+              result={displayResult}
               isPending={isSending}
-              error={executeError}
+              error={displayError}
+              bodyTruncated={bodyTruncated}
+              onExpandBody={onExpandBody}
+              isExpandingBody={isExpandingBody}
             />
           </section>
         </Panel>

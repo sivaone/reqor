@@ -1,12 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query'
-import type { CollectionDetailDtoType } from '@reqor/shared-types'
+import type {
+  CollectionDetailDtoType,
+  HistoryEntrySummaryDtoType,
+} from '@reqor/shared-types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCollections } from '../hooks/useCollections.js'
+import { useHistory } from '../hooks/useHistory.js'
 import { useRefreshCollections } from '../hooks/useRefreshCollections.js'
 import type { SelectedRequest } from '../types/selection.js'
 import { filterCollections } from '../utils/filterCollections.js'
+import { filterHistory } from '../utils/filterHistory.js'
 import { CollectionTree } from './CollectionTree.js'
 import { CollectionsEmptyState } from './CollectionsEmptyState.js'
+import { HistoryList } from './HistoryList.js'
 import { RefreshCollectionsButton } from './RefreshCollectionsButton.js'
 import { SidebarSearch } from './SidebarSearch.js'
 import { SidebarSkeleton } from './SidebarSkeleton.js'
@@ -16,17 +22,26 @@ type SidebarShellProps = {
   selectedRequest: SelectedRequest
   onSelectRequest: (selection: NonNullable<SelectedRequest>) => void
   onClearSelection: () => void
+  selectedHistoryId: number | null
+  onReplayHistory: (entry: HistoryEntrySummaryDtoType) => void
 }
 
 export function SidebarShell({
   selectedRequest,
   onSelectRequest,
   onClearSelection,
+  selectedHistoryId,
+  onReplayHistory,
 }: SidebarShellProps) {
   const queryClient = useQueryClient()
   const { data, isPending, isError, isRefetchError } = useCollections()
+  const {
+    data: historyData,
+    isPending: isHistoryPending,
+    isError: isHistoryError,
+  } = useHistory()
   const refreshMutation = useRefreshCollections()
-  const showError = isError || isRefetchError
+  const showCollectionsError = isError || isRefetchError
 
   const [activeTab, setActiveTab] = useState<SidebarTab>('collections')
   const [collectionsSearch, setCollectionsSearch] = useState('')
@@ -38,6 +53,7 @@ export function SidebarShell({
   const historyScrollTop = useRef(0)
 
   const collections = data?.collections ?? []
+  const historyEntries = historyData?.entries ?? []
 
   useEffect(() => {
     return queryClient.getQueryCache().subscribe((event) => {
@@ -49,9 +65,7 @@ export function SidebarShell({
         return
       }
       if (event.type !== 'updated') return
-      // `success` covers fetch resolves and `setQueryData`; ignore observer-only noise.
       if (event.action.type !== 'success') return
-      // Defer — cache updates can fire while child queries are rendering.
       queueMicrotask(() => {
         setDetailCacheVersion((version) => version + 1)
       })
@@ -75,6 +89,11 @@ export function SidebarShell({
   const filteredItems = useMemo(
     () => filterCollections(collections, detailById, collectionsSearch),
     [collections, detailById, collectionsSearch],
+  )
+
+  const filteredHistoryEntries = useMemo(
+    () => filterHistory(historyEntries, historySearch),
+    [historyEntries, historySearch],
   )
 
   useEffect(() => {
@@ -110,7 +129,7 @@ export function SidebarShell({
     })
   }
 
-  const showCollectionsContent = !isPending && !showError
+  const showInitialSkeleton = isPending && !data
 
   return (
     <aside
@@ -118,21 +137,21 @@ export function SidebarShell({
       aria-label="Sidebar"
       className="flex h-full w-sidebar-width shrink-0 flex-col border-r border-border bg-surface"
     >
-      {isPending ? <SidebarSkeleton /> : null}
-      {showError ? (
-        <p
-          role="alert"
-          aria-live="assertive"
-          className="px-inset py-inset-sm text-foreground-muted text-body"
-        >
-          Could not load collections
-        </p>
-      ) : null}
-      {showCollectionsContent ? (
+      {showInitialSkeleton ? <SidebarSkeleton /> : null}
+      {!showInitialSkeleton ? (
         <div className="flex min-h-0 flex-1 flex-col">
           <SidebarTabs activeTab={activeTab} onTabChange={handleTabChange} />
           {activeTab === 'collections' ? (
             <div className="flex min-h-0 flex-1 flex-col gap-inset-sm p-inset-sm">
+              {showCollectionsError ? (
+                <p
+                  role="alert"
+                  aria-live="assertive"
+                  className="text-foreground-muted text-body"
+                >
+                  Could not load collections
+                </p>
+              ) : null}
               <div className="flex flex-col gap-inset-sm">
                 <SidebarSearch
                   value={collectionsSearch}
@@ -146,7 +165,11 @@ export function SidebarShell({
                 />
               </div>
               <div className="flex min-h-0 flex-1 flex-col">
-                {collections.length === 0 ? (
+                {showCollectionsError ? null : isPending ? (
+                  <p className="px-inset py-inset-sm text-foreground-muted text-body">
+                    Loading collections…
+                  </p>
+                ) : collections.length === 0 ? (
                   <CollectionsEmptyState
                     onRefresh={handleRefresh}
                     isRefreshing={refreshMutation.isPending}
@@ -166,16 +189,31 @@ export function SidebarShell({
               </div>
             </div>
           ) : (
-            <div
-              ref={historyScrollRef}
-              className="flex min-h-0 flex-1 flex-col gap-inset-sm overflow-y-auto p-inset-sm"
-            >
+            <div className="flex min-h-0 flex-1 flex-col gap-inset-sm p-inset-sm">
               <SidebarSearch
                 value={historySearch}
                 onChange={setHistorySearch}
                 placeholder="Filter history…"
               />
-              <p className="text-foreground-muted text-body">No sent requests yet.</p>
+              {historyEntries.length === 0 && !isHistoryPending && !isHistoryError ? (
+                <p className="px-inset py-inset-sm text-foreground-muted text-body">
+                  No sent requests yet.
+                </p>
+              ) : historyEntries.length > 0 && filteredHistoryEntries.length === 0 ? (
+                <p className="px-inset py-inset-sm text-foreground-muted text-body">
+                  No matching history
+                </p>
+              ) : (
+                <HistoryList
+                  entries={historyEntries}
+                  filteredEntries={filteredHistoryEntries}
+                  selectedHistoryId={selectedHistoryId}
+                  onReplay={onReplayHistory}
+                  scrollContainerRef={historyScrollRef}
+                  isLoading={isHistoryPending}
+                  isError={isHistoryError}
+                />
+              )}
             </div>
           )}
         </div>
