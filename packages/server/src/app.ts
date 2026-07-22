@@ -14,6 +14,7 @@ import { configRoutes } from './routes/config.js'
 import { environmentsRoutes } from './routes/environments.js'
 import { executeRoutes } from './routes/execute.js'
 import { historyRoutes } from './routes/history.js'
+import { importRoutes } from './routes/import.js'
 import { previewRoutes } from './routes/preview.js'
 
 export { DEFAULT_HOST, DEFAULT_PORT } from './constants.js'
@@ -101,6 +102,8 @@ export async function buildApp(options: BuildAppOptions) {
   await app.register(historyRoutes, {
     historyStore,
   })
+
+  await app.register(importRoutes)
 
   app.addHook('onClose', async () => {
     historyStore.close()

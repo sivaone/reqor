@@ -63,6 +63,8 @@ type RequestEditorProps = {
   unresolvedError?: string | null
   previewError?: string | null
   parseDiagnostics?: DiagnosticDtoType[]
+  onImportCurl?: () => void
+  importWarnings?: string[] | null
 }
 
 export function RequestEditor({
@@ -99,6 +101,8 @@ export function RequestEditor({
   unresolvedError = null,
   previewError = null,
   parseDiagnostics = [],
+  onImportCurl,
+  importWarnings = null,
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<RequestSubTab>('params')
   const [trackedSelection, setTrackedSelection] = useState(draftSelectionKey)
@@ -349,6 +353,8 @@ export function RequestEditor({
         preview={preview}
         unresolvedError={unresolvedError}
         previewError={previewError}
+        onImportCurl={onImportCurl}
+        importWarnings={importWarnings}
       />
       <RequestSubTabs
         activeTab={activeTab}

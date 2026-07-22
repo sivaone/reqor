@@ -26,6 +26,8 @@ export {
 } from './diagnostics.js'
 
 export { parseHttpFile } from './parse.js'
+export { parseCurl } from './parse-curl.js'
+export type { ParseCurlResult, ParsedCurlBody, ParsedCurlHeader } from './parse-curl.js'
 export { serializeHttpFile, serializeRequest } from './serialize.js'
 
 export type {

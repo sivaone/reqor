@@ -60,6 +60,8 @@ type WorkspaceShellProps = {
   preview: PreviewResponseType | null
   unresolvedError: string | null
   previewError: string | null
+  onImportCurl?: () => void
+  importWarnings?: string[] | null
   displayResult: ExecuteResponseType | null
   displayError: { code?: string; message: string } | null
   historyReplayError: string | null
@@ -105,6 +107,8 @@ export function WorkspaceShell({
   preview,
   unresolvedError,
   previewError,
+  onImportCurl,
+  importWarnings = null,
   displayResult,
   displayError,
   historyReplayError,
@@ -164,6 +168,8 @@ export function WorkspaceShell({
                 preview={preview}
                 unresolvedError={unresolvedError}
                 previewError={previewError}
+                onImportCurl={onImportCurl}
+                importWarnings={importWarnings}
               />
             ) : isDetailPending ? (
               <p className="px-inset py-inset text-foreground-muted text-body">

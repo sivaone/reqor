@@ -301,3 +301,25 @@ export const HistoryListResponse = Type.Object({
 })
 
 export type HistoryListResponseType = Static<typeof HistoryListResponse>
+
+export const ImportedRequestDto = Type.Object({
+  method: Type.String(),
+  url: Type.String(),
+  headers: Type.Array(RequestHeaderDto),
+  body: Type.Optional(RequestBodyDto),
+})
+
+export type ImportedRequestDtoType = Static<typeof ImportedRequestDto>
+
+export const ImportCurlRequest = Type.Object({
+  curl: Type.String(),
+})
+
+export type ImportCurlRequestType = Static<typeof ImportCurlRequest>
+
+export const ImportCurlResponse = Type.Object({
+  request: ImportedRequestDto,
+  warnings: Type.Array(Type.String()),
+})
+
+export type ImportCurlResponseType = Static<typeof ImportCurlResponse>

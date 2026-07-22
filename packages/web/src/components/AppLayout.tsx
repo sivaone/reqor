@@ -3,6 +3,7 @@ import type {
   DiagnosticDtoType,
   ExecuteResponseType,
   HistoryEntrySummaryDtoType,
+  ImportCurlResponseType,
   PreviewResponseType,
   RequestDtoType,
   RequestHeaderDtoType,
@@ -32,6 +33,7 @@ import { historyToExecuteResponse } from '../utils/historyToExecuteResponse.js'
 import { findByFingerprint } from '../utils/rematchRequest.js'
 import { replayHistoryEntry } from '../utils/replayHistoryEntry.js'
 import { SidebarShell } from './SidebarShell.js'
+import { CurlImportDialog } from './CurlImportDialog.js'
 import { UnsavedChangesDialog } from './UnsavedChangesDialog.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
 
@@ -59,6 +61,8 @@ export function AppLayout() {
   const [parseDiagnostics, setParseDiagnostics] = useState<DiagnosticDtoType[]>([])
   const [saveStatus, setSaveStatus] = useState<SaveStatus | null>(null)
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false)
+  const [curlImportOpen, setCurlImportOpen] = useState(false)
+  const [importWarnings, setImportWarnings] = useState<string[] | null>(null)
   const pendingNavigationRef = useRef<(() => void) | null>(null)
   const savingRef = useRef(false)
   const isReplayingRef = useRef(false)
@@ -267,13 +271,19 @@ export function AppLayout() {
 
   const handleSelectRequest = useCallback(
     (selection: NonNullable<SelectedRequest>) => {
-      guardNavigation(() => setSelectedRequest(selection))
+      guardNavigation(() => {
+        setImportWarnings(null)
+        setSelectedRequest(selection)
+      })
     },
     [guardNavigation],
   )
 
   const handleClearSelection = useCallback(() => {
-    guardNavigation(() => setSelectedRequest(null))
+    guardNavigation(() => {
+      setImportWarnings(null)
+      setSelectedRequest(null)
+    })
   }, [guardNavigation])
 
   const fetchCollectionDetail = useCallback(
@@ -583,6 +593,22 @@ export function AppLayout() {
     syncMutateAsync,
   ])
 
+  const handleCurlImported = useCallback(
+    (result: ImportCurlResponseType) => {
+      setMethod(result.request.method)
+      setUrl(result.request.url)
+      setHeaders(result.request.headers)
+      if (result.request.body) {
+        setBody(result.request.body)
+      } else {
+        clearBody()
+      }
+      setImportWarnings(result.warnings.length > 0 ? result.warnings : null)
+      setSaveStatus(null)
+    },
+    [clearBody, setBody, setHeaders, setMethod, setUrl],
+  )
+
   const handleParseDiagnostics = useCallback(
     (diagnostics: DiagnosticDtoType[], parseStatus: 'ok' | 'error') => {
       setParseDiagnostics(diagnostics)
@@ -712,6 +738,13 @@ export function AppLayout() {
         bodyTruncated={historyBodyTruncated}
         onExpandBody={historyBodyTruncated ? handleExpandBody : undefined}
         isExpandingBody={isExpandingBody}
+        onImportCurl={activeRequest && draft ? () => setCurlImportOpen(true) : undefined}
+        importWarnings={importWarnings}
+      />
+      <CurlImportDialog
+        open={curlImportOpen}
+        onClose={() => setCurlImportOpen(false)}
+        onImported={handleCurlImported}
       />
       <UnsavedChangesDialog
         open={unsavedDialogOpen}

@@ -39,6 +39,8 @@ type RequestLineProps = {
   preview?: PreviewResponseType | null
   unresolvedError?: string | null
   previewError?: string | null
+  onImportCurl?: () => void
+  importWarnings?: string[] | null
 }
 
 export function RequestLine({
@@ -65,6 +67,8 @@ export function RequestLine({
   preview = null,
   unresolvedError = null,
   previewError = null,
+  onImportCurl,
+  importWarnings = null,
 }: RequestLineProps) {
   const showPreview = preview?.hasVariables === true
   const showSave = isDraftDirty
@@ -130,6 +134,16 @@ export function RequestLine({
             Save
           </button>
         ) : null}
+        {onImportCurl ? (
+          <button
+            type="button"
+            onClick={onImportCurl}
+            aria-label="Import cURL"
+            className="inline-flex shrink-0 items-center rounded-md border border-border bg-surface px-inset py-inset-sm text-body text-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+          >
+            Import cURL
+          </button>
+        ) : null}
       </div>
       {saveStatus?.successMessage ? (
         <p className="text-body text-foreground" role="status">
@@ -164,6 +178,13 @@ export function RequestLine({
         <p className="text-body text-foreground-muted" role="status">
           {previewError}
         </p>
+      ) : null}
+      {importWarnings && importWarnings.length > 0 ? (
+        <ul className="text-body text-warning" role="status">
+          {importWarnings.map((warning, index) => (
+            <li key={`${warning}-${index}`}>{warning}</li>
+          ))}
+        </ul>
       ) : null}
       {showPreview && preview ? <PreSendPreview preview={preview} /> : null}
       <label className="inline-flex items-center gap-inset-sm text-body text-foreground">
