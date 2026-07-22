@@ -71,4 +71,30 @@ describe('parseCurl', () => {
     expect(result.warnings).toContain('File references in -d are not supported')
     expect(result.body?.content).toBe('@payload.json')
   })
+
+  it('does not swallow URL after boolean unsupported flags', () => {
+    const result = parseCurl(`curl -L -v https://api.example.com/path`)
+    expect(result.url).toBe('https://api.example.com/path')
+    expect(result.warnings).toContain('Unsupported flag: -L')
+    expect(result.warnings).toContain('Unsupported flag: -v')
+  })
+
+  it('still skips values for unsupported flags that take arguments', () => {
+    const result = parseCurl(`curl --cookie foo=bar https://api.example.com/path`)
+    expect(result.url).toBe('https://api.example.com/path')
+    expect(result.warnings).toContain('Unsupported flag: --cookie')
+  })
+
+  it('preserves explicit GET when data flags are present', () => {
+    const result = parseCurl(`curl -X GET https://api.example.com -d 'hello'`)
+    expect(result.method).toBe('GET')
+    expect(result.body?.content).toBe('hello')
+  })
+
+  it('warns on empty inline method value', () => {
+    const result = parseCurl(`curl -X= https://api.example.com`)
+    expect(result.warnings).toContain('Missing value for flag: -X')
+    expect(result.url).toBe('https://api.example.com')
+    expect(result.method).toBe('GET')
+  })
 })

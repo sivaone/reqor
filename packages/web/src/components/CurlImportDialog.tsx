@@ -1,5 +1,5 @@
 import type { ImportCurlResponseType } from '@reqor/shared-types'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ImportCurlError, useImportCurl } from '../hooks/useImportCurl.js'
 
 type CurlImportDialogProps = {
@@ -11,9 +11,16 @@ type CurlImportDialogProps = {
 export function CurlImportDialog({ open, onClose, onImported }: CurlImportDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const importGenerationRef = useRef(0)
   const [curlText, setCurlText] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [importWarnings, setImportWarnings] = useState<string[]>([])
   const importMutation = useImportCurl()
+
+  const handleClose = useCallback(() => {
+    importGenerationRef.current += 1
+    onClose()
+  }, [onClose])
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -22,9 +29,11 @@ export function CurlImportDialog({ open, onClose, onImported }: CurlImportDialog
       dialog.showModal()
       setCurlText('')
       setError(null)
+      setImportWarnings([])
       queueMicrotask(() => textareaRef.current?.focus())
     }
     if (!open && dialog.open) {
+      importGenerationRef.current += 1
       dialog.close()
     }
   }, [open])
@@ -35,20 +44,32 @@ export function CurlImportDialog({ open, onClose, onImported }: CurlImportDialog
 
     const onCancelEvent = (event: Event) => {
       event.preventDefault()
-      onClose()
+      handleClose()
     }
 
     dialog.addEventListener('cancel', onCancelEvent)
     return () => dialog.removeEventListener('cancel', onCancelEvent)
-  }, [onClose])
+  }, [handleClose])
 
   const handleImport = async () => {
     setError(null)
+    setImportWarnings([])
+    const generation = importGenerationRef.current
     try {
       const result = await importMutation.mutateAsync({ curl: curlText })
+      if (generation !== importGenerationRef.current) {
+        return
+      }
       onImported(result)
+      if (result.warnings.length > 0) {
+        setImportWarnings(result.warnings)
+        return
+      }
       onClose()
     } catch (err) {
+      if (generation !== importGenerationRef.current) {
+        return
+      }
       const message =
         err instanceof ImportCurlError ? err.message : 'Failed to import cURL command'
       setError(message)
@@ -84,13 +105,20 @@ export function CurlImportDialog({ open, onClose, onImported }: CurlImportDialog
           {error}
         </p>
       ) : null}
+      {importWarnings.length > 0 ? (
+        <ul className="mt-inset-sm text-body text-warning" role="status">
+          {importWarnings.map((warning, index) => (
+            <li key={`${warning}-${index}`}>{warning}</li>
+          ))}
+        </ul>
+      ) : null}
       <div className="mt-inset flex justify-end gap-inset-sm">
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           className="rounded-md border border-border bg-background px-inset py-inset-sm text-body"
         >
-          Cancel
+          {importWarnings.length > 0 ? 'Close' : 'Cancel'}
         </button>
         <button
           type="button"

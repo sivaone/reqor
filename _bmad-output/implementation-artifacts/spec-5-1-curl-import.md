@@ -3,10 +3,10 @@ title: 'Story 5.1: cURL Import'
 type: 'feature'
 created: '2026-07-22'
 status: 'done'
-review_loop_iteration: 0
+review_loop_iteration: 1
 followup_review_recommended: false
 baseline_commit: '47691c45645e77344305f5e8cee86a74d96c87ea'
-final_revision: '435f9056975709f5e5984030aaa9f72caee76178'
+final_revision: 'd9e2127'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-5-context.md'
 warnings: []
@@ -80,9 +80,34 @@ warnings: []
 - Given the import modal is open, when I press Esc, then the modal closes without changing draft
 - Given import succeeds, when I inspect the modal, then it uses backdrop overlay and white card without drop shadow
 
+### Review Findings
+- [x] [Review][Patch] Boolean unsupported flags swallow the following URL token [`packages/http-parser/src/parse-curl.ts:157`]
+- [x] [Review][Patch] Explicit `-X GET` with `-d` is forced to POST [`packages/http-parser/src/parse-curl.ts:216`]
+- [x] [Review][Patch] Unsupported-flag warnings are not shown in the import modal [`packages/web/src/components/CurlImportDialog.tsx:45`]
+- [x] [Review][Patch] Closing the dialog while import is in flight still applies the result [`packages/web/src/components/CurlImportDialog.tsx:45`]
+- [x] [Review][Patch] Empty `-X`/`--request` value is accepted instead of treated as missing [`packages/http-parser/src/parse-curl.ts:165`]
+- [x] [Review][Defer] Unclosed quotes produce silent wrong tokens [`packages/http-parser/src/parse-curl.ts:47`] — deferred, pre-existing
+- [x] [Review][Defer] Scheme-less / non-http URL detection is brittle [`packages/http-parser/src/parse-curl.ts:76`] — deferred, pre-existing
+- [x] [Review][Defer] Single-quote backslash escapes do not match shell semantics [`packages/http-parser/src/parse-curl.ts:52`] — deferred, pre-existing
+- [x] [Review][Defer] Leading noise tokens can be captured as the URL [`packages/http-parser/src/parse-curl.ts:147`] — deferred, pre-existing
+- [x] [Review][Defer] Import warnings linger after the user edits the draft [`packages/web/src/components/RequestLine.tsx:179`] — deferred, pre-existing
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+### 2026-07-22 — Review pass 2 (latest commit)
+- intent_gap: 1 → patched (warnings in modal)
+- bad_spec: 0
+- patch: 5: (high 1, medium 3, low 1) — all applied
+- defer: 5: (high 0, medium 0, low 5)
+- reject: 7
+- addressed_findings:
+  - `[high]` `[patch]` Do not swallow URL after boolean unsupported flags
+  - `[medium]` `[patch]` Preserve explicit `-X GET` when data flags present
+  - `[medium]` `[patch]` Show unsupported-flag warnings in CurlImportDialog
+  - `[medium]` `[patch]` Ignore in-flight import result after dialog close
+  - `[low]` `[patch]` Treat empty `-X=` as missing value
 
 ### 2026-07-22 — Review pass
 - intent_gap: 0

@@ -1,5 +1,13 @@
 # Deferred Work Log
 
+## Deferred from: code review of spec-5-1-curl-import.md (2026-07-22)
+
+- **Unclosed quotes produce silent wrong tokens** [packages/http-parser/src/parse-curl.ts:47] — tokenizer accepts unclosed quotes without a warning; malformed paste can yield wrong tokens
+- **Scheme-less / non-http URL detection is brittle** [packages/http-parser/src/parse-curl.ts:76] — `looksLikeUrl` only matches http(s)/`{{`/`$`; first non-flag fallback covers common cases but mis-orders are possible
+- **Single-quote backslash escapes do not match shell semantics** [packages/http-parser/src/parse-curl.ts:52] — single- and double-quoted tokens share escape rules; bash single-quote pastes may corrupt
+- **Leading noise tokens can be captured as the URL** [packages/http-parser/src/parse-curl.ts:147] — env assignments or bare words before the URL can become `url` when no http URL is present
+- **Import warnings linger after the user edits the draft** [packages/web/src/components/RequestLine.tsx:179] — warnings clear on request select/clear but not on subsequent draft edits or save
+
 ## Deferred from: code review of 3-2-raw-http-editor-with-syntax-highlighting (2026-07-21)
 
 - **Visual patch re-serialization drops intra-request `#` comments** [packages/server/src/sync-collection.ts] — known MVP span/serializer limitation; Story 3.3 improves line tracking

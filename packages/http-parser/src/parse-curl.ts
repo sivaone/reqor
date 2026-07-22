@@ -133,6 +133,7 @@ export function parseCurl(input: string): ParseCurlResult {
 
   const tokens = tokenizeCurl(trimmed)
   let method = 'GET'
+  let methodExplicit = false
   let url = ''
   const headers: ParsedCurlHeader[] = []
   let bodyContent: string | undefined
@@ -156,14 +157,23 @@ export function parseCurl(input: string): ParseCurlResult {
 
     if (!SUPPORTED_FLAGS.has(flag)) {
       warnings.push(`Unsupported flag: ${flag}`)
-      if (inlineValue === undefined && i + 1 < tokens.length && !tokens[i + 1]!.startsWith('-')) {
-        i++
+      // Skip a following value token for flags like --cookie foo=bar, but never
+      // consume a URL (boolean flags such as -L/-v/-k commonly precede the URL).
+      if (inlineValue === undefined && i + 1 < tokens.length) {
+        const next = tokens[i + 1]!
+        if (!next.startsWith('-') && !looksLikeUrl(next)) {
+          i++
+        }
       }
       continue
     }
 
     const value = inlineValue ?? tokens[++i]
-    if (value === undefined || (!inlineValue && value.startsWith('-'))) {
+    if (
+      value === undefined ||
+      value === '' ||
+      (!inlineValue && value.startsWith('-'))
+    ) {
       warnings.push(`Missing value for flag: ${flag}`)
       if (!inlineValue && value?.startsWith('-')) i--
       continue
@@ -176,6 +186,7 @@ export function parseCurl(input: string): ParseCurlResult {
           warnings.push(`Unknown HTTP method: ${value}`)
         }
         method = normalizeMethod(value)
+        methodExplicit = true
         break
       case '-H':
       case '--header': {
@@ -213,7 +224,8 @@ export function parseCurl(input: string): ParseCurlResult {
     }
   }
 
-  if (hasDataFlag && method === 'GET') {
+  // curl defaults to POST when data is present only if method was not set via -X/--request
+  if (hasDataFlag && method === 'GET' && !methodExplicit) {
     method = 'POST'
   }
 
