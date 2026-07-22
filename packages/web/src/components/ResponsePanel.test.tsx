@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { ResponsePanel } from './ResponsePanel.js'
 
 const sampleResult = {
@@ -64,5 +64,24 @@ describe('ResponsePanel', () => {
   it('shows empty placeholder when no send yet', () => {
     render(<ResponsePanel result={null} isPending={false} error={null} />)
     expect(screen.getByText('Response will appear here')).toBeDefined()
+  })
+
+  it('shows truncation marker and expand callback', () => {
+    const onExpandBody = vi.fn()
+    render(
+      <ResponsePanel
+        result={sampleResult}
+        isPending={false}
+        error={null}
+        bodyTruncated
+        onExpandBody={onExpandBody}
+      />,
+    )
+
+    expect(
+      screen.getByText('Response body truncated (>1MB). Expand to load full body.'),
+    ).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
+    expect(onExpandBody).toHaveBeenCalledOnce()
   })
 })

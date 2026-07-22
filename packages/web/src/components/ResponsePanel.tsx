@@ -13,6 +13,9 @@ type ResponsePanelProps = {
   result: ExecuteResponseType | null
   isPending: boolean
   error: { code?: string; message: string } | null
+  bodyTruncated?: boolean
+  onExpandBody?: () => void
+  isExpandingBody?: boolean
 }
 
 type ResponseTab = 'body' | 'headers'
@@ -135,7 +138,14 @@ function ResponseBodyContent({ result }: { result: ExecuteResponseType }) {
   return <PlainBody body={result.body} />
 }
 
-export function ResponsePanel({ result, isPending, error }: ResponsePanelProps) {
+export function ResponsePanel({
+  result,
+  isPending,
+  error,
+  bodyTruncated = false,
+  onExpandBody,
+  isExpandingBody = false,
+}: ResponsePanelProps) {
   const [activeTab, setActiveTab] = useState<ResponseTab>('body')
 
   const statusClass =
@@ -198,6 +208,19 @@ export function ResponsePanel({ result, isPending, error }: ResponsePanelProps) 
             hidden={activeTab !== 'body'}
             className="min-h-0 flex-1 overflow-auto bg-surface p-inset text-mono"
           >
+            {bodyTruncated && onExpandBody ? (
+              <div className="mb-inset flex items-center gap-inset-sm text-body text-foreground-muted">
+                <span>Response body truncated (&gt;1MB). Expand to load full body.</span>
+                <button
+                  type="button"
+                  className="text-primary underline"
+                  disabled={isExpandingBody}
+                  onClick={onExpandBody}
+                >
+                  {isExpandingBody ? 'Expanding…' : 'Expand'}
+                </button>
+              </div>
+            ) : null}
             <ResponseBodyContent result={result} />
           </div>
           <div

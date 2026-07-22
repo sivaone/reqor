@@ -22,6 +22,8 @@ const defaultProps = {
   selectedRequest: null,
   onSelectRequest: vi.fn(),
   onClearSelection: vi.fn(),
+  selectedHistoryId: null,
+  onReplayHistory: vi.fn(),
 }
 
 describe('SidebarShell collections load', () => {
@@ -53,12 +55,20 @@ describe('SidebarShell collections load', () => {
     })
   })
 
-  it('shows muted error when collections fetch fails', async () => {
+  it('shows muted error when collections fetch fails but history tab remains available', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/history') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ entries: [], total: 0 }),
+          })
+        }
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+        })
       }),
     )
 
@@ -68,6 +78,10 @@ describe('SidebarShell collections load', () => {
       expect(screen.getByText('Could not load collections')).toBeDefined()
     })
     expect(screen.queryByTestId('sidebar-skeleton')).toBeNull()
+    expect(screen.getByRole('tab', { name: 'History' })).toBeDefined()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }))
+    expect(screen.getByText('No sent requests yet.')).toBeDefined()
   })
 
   it('shows Collections tab and empty state on success', async () => {
@@ -144,6 +158,60 @@ describe('SidebarShell collections load', () => {
 
     expect(screen.getByText('No matching collections')).toBeDefined()
     expect(screen.queryByRole('button', { name: 'demo.http' })).toBeNull()
+  })
+
+  it('shows history entries and supports search filter', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/history') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              entries: [
+                {
+                  id: 1,
+                  sentAt: '2026-07-22T10:00:00.000Z',
+                  environmentName: 'dev',
+                  collectionId: 'demo.http',
+                  fingerprint: 'a'.repeat(64),
+                  method: 'GET',
+                  url: 'https://api.example.com/users',
+                  statusCode: 200,
+                  durationMs: 50,
+                  sizeBytes: 100,
+                  body: '{}',
+                  bodyTruncated: false,
+                },
+              ],
+              total: 1,
+            }),
+          })
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ collections: [] }),
+        })
+      }),
+    )
+
+    render(<SidebarShell {...defaultProps} />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'History' })).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('https://api.example.com/users')).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter history…' }), {
+      target: { value: 'zzz-no-match' },
+    })
+
+    expect(screen.getByText('No matching history')).toBeDefined()
   })
 
   it('does not show skeleton during refresh', async () => {

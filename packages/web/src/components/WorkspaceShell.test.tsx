@@ -57,6 +57,9 @@ const defaultExecuteProps = {
   previewError: null,
   executeResult: null,
   executeError: null,
+  displayResult: null,
+  displayError: null,
+  historyReplayError: null,
 }
 
 describe('WorkspaceShell', () => {
@@ -125,6 +128,14 @@ describe('WorkspaceShell', () => {
           timingMs: 50,
           sizeBytes: 11,
         }}
+        displayResult={{
+          status: 200,
+          statusText: 'OK',
+          headers: [{ name: 'content-type', value: 'application/json' }],
+          body: '{"ok":true}',
+          timingMs: 50,
+          sizeBytes: 11,
+        }}
       />,
     )
 
@@ -151,5 +162,21 @@ describe('WorkspaceShell', () => {
 
     expect(screen.getByRole('button', { name: /^send$/i })).toHaveProperty('disabled', true)
     expect(screen.getByText('Unresolved variable: {{host}}')).toBeDefined()
+  })
+
+  it('shows history replay error banner above editors', () => {
+    render(
+      <WorkspaceShell
+        activeRequest={sampleRequest}
+        isDetailPending={false}
+        isDetailError={false}
+        {...defaultExecuteProps}
+        historyReplayError="Could not find request in collection for this history entry."
+      />,
+    )
+
+    expect(
+      screen.getByText('Could not find request in collection for this history entry.'),
+    ).toBeDefined()
   })
 })

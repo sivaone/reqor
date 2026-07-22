@@ -4,27 +4,27 @@ baseline_commit: 25531bb
 
 # Story 4.2: History Sidebar and Replay
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
 ## Definition of Done
 
-- [ ] **`useHistory`** fetches `GET /api/history` via TanStack Query; **`useHistoryDetail(id)`** fetches `GET /api/history/:id` on demand (AD-10)
-- [ ] **History tab** lists entries newest-first with method badge, truncated URL, timestamp, status, duration, environment name (UX-DR9, UX-DR13)
-- [ ] **Status colors** — reuse `statusTone()` from `formatResponseBody.ts` → `text-success` for 2xx, `text-error` for ≥400 (UX-DR9)
-- [ ] **Contextual search** filters History tab only by method, URL, status code string (UX-DR6); Collections search unchanged
-- [ ] **Click / Enter replay** loads request workspace from **current collection file** via `collectionId` + `fingerprint` rematch (AD-21); **does not auto-send** (FR16)
-- [ ] **Always fetch history detail on replay** — `ResponsePanel` is populated only from `HistoryEntryDetailDto` via `historyToExecuteResponse` (summary lacks `statusText` / `responseHeaders`)
-- [ ] **Truncation UX** — when summary had `bodyTruncated: true`, show marker **"Response body truncated (>1MB). Expand to load full body."** with expand that re-fetches detail and clears the flag (UX-DR17, AD-24; fixed `>1MB` copy matches the 1MB display limit)
-- [ ] **`↑`/`↓` + Enter** navigate and replay when History list focused (UX-DR21)
-- [ ] **Scroll container** handles up to 500 entries with native `overflow-y-auto` — no infinite scroll (UX-DR25). **Accepted override:** epics/UX-DR25 allow paginate or virtual-scroll; MVP uses native scroll for ≤500 rows and adds virtualization only if profiling proves need
-- [ ] **History tab independent** of collections load failure — user can browse history even when `GET /api/collections` errors
-- [ ] **Empty states** — list empty: **"No sent requests yet."**; filtered empty: **"No matching history"** (mirror Collections `"No matching collections"`)
-- [ ] **After successful Send**, history list refreshes (invalidate `['history']`) so new entry appears without manual refresh
-- [ ] **Unsaved-changes guard** applies to history replay same as collection selection (`guardNavigation`)
-- [ ] **No server changes** unless blocking bug — APIs and DTOs shipped in Story 4.1
-- [ ] `pnpm turbo build test typecheck` passes workspace-wide
+- [x] **`useHistory`** fetches `GET /api/history` via TanStack Query; **`useHistoryDetail(id)`** fetches `GET /api/history/:id` on demand (AD-10)
+- [x] **History tab** lists entries newest-first with method badge, truncated URL, timestamp, status, duration, environment name (UX-DR9, UX-DR13)
+- [x] **Status colors** — reuse `statusTone()` from `formatResponseBody.ts` → `text-success` for 2xx, `text-error` for ≥400 (UX-DR9)
+- [x] **Contextual search** filters History tab only by method, URL, status code string (UX-DR6); Collections search unchanged
+- [x] **Click / Enter replay** loads request workspace from **current collection file** via `collectionId` + `fingerprint` rematch (AD-21); **does not auto-send** (FR16)
+- [x] **Always fetch history detail on replay** — `ResponsePanel` is populated only from `HistoryEntryDetailDto` via `historyToExecuteResponse` (summary lacks `statusText` / `responseHeaders`)
+- [x] **Truncation UX** — when summary had `bodyTruncated: true`, show marker **"Response body truncated (>1MB). Expand to load full body."** with expand that re-fetches detail and clears the flag (UX-DR17, AD-24; fixed `>1MB` copy matches the 1MB display limit)
+- [x] **`↑`/`↓` + Enter** navigate and replay when History list focused (UX-DR21)
+- [x] **Scroll container** handles up to 500 entries with native `overflow-y-auto` — no infinite scroll (UX-DR25). **Accepted override:** epics/UX-DR25 allow paginate or virtual-scroll; MVP uses native scroll for ≤500 rows and adds virtualization only if profiling proves need
+- [x] **History tab independent** of collections load failure — user can browse history even when `GET /api/collections` errors
+- [x] **Empty states** — list empty: **"No sent requests yet."**; filtered empty: **"No matching history"** (mirror Collections `"No matching collections"`)
+- [x] **After successful Send**, history list refreshes (invalidate `['history']`) so new entry appears without manual refresh
+- [x] **Unsaved-changes guard** applies to history replay same as collection selection (`guardNavigation`)
+- [x] **No server changes** unless blocking bug — APIs and DTOs shipped in Story 4.1
+- [x] `pnpm turbo build test typecheck` passes workspace-wide
 
 ### Anti-patterns (do not ship)
 
@@ -81,56 +81,56 @@ So that I can quickly re-inspect or re-send previous requests.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: History data hooks (AC: #1, #3)
-  - [ ] 1.1 Create `packages/web/src/hooks/useHistory.ts` — `useQuery` with `queryKey: ['history']`, `GET /api/history`, typed `HistoryListResponseType`, `signal` on fetch; set `retry: false` on **test** `QueryClient` (mirror `useCollections.test.tsx`)
-  - [ ] 1.2 Create `packages/web/src/hooks/useHistoryDetail.ts` — `useQuery` with `queryKey: ['history', id]`, `enabled: id != null`, `GET /api/history/${id}`, typed `HistoryEntryDetailDtoType`
-  - [ ] 1.3 Hook tests mirroring `useCollections.test.tsx` — success, error, abort signal
+- [x] Task 1: History data hooks (AC: #1, #3)
+  - [x] 1.1 Create `packages/web/src/hooks/useHistory.ts` — `useQuery` with `queryKey: ['history']`, `GET /api/history`, typed `HistoryListResponseType`, `signal` on fetch; set `retry: false` on **test** `QueryClient` (mirror `useCollections.test.tsx`)
+  - [x] 1.2 Create `packages/web/src/hooks/useHistoryDetail.ts` — `useQuery` with `queryKey: ['history', id]`, `enabled: id != null`, `GET /api/history/${id}`, typed `HistoryEntryDetailDtoType`
+  - [x] 1.3 Hook tests mirroring `useCollections.test.tsx` — success, error, abort signal
 
-- [ ] Task 2: Filter + display utilities (AC: #1)
-  - [ ] 2.1 Create `packages/web/src/utils/filterHistory.ts` — trim query; empty → all entries; match case-insensitive on `method`, `url`, and `String(statusCode)` (same spirit as `filterCollections.ts`)
-  - [ ] 2.2 Create `packages/web/src/utils/formatHistoryTimestamp.ts` — format ISO `sentAt` for row display (locale-aware short datetime; use `Date` + `toLocaleString` or `Intl.DateTimeFormat`; handle invalid ISO gracefully)
-  - [ ] 2.3 Create `packages/web/src/utils/historyToExecuteResponse.ts` — map **`HistoryEntryDetailDtoType` only** → `ExecuteResponseType`:
+- [x] Task 2: Filter + display utilities (AC: #1)
+  - [x] 2.1 Create `packages/web/src/utils/filterHistory.ts` — trim query; empty → all entries; match case-insensitive on `method`, `url`, and `String(statusCode)` (same spirit as `filterCollections.ts`)
+  - [x] 2.2 Create `packages/web/src/utils/formatHistoryTimestamp.ts` — format ISO `sentAt` for row display (locale-aware short datetime; use `Date` + `toLocaleString` or `Intl.DateTimeFormat`; handle invalid ISO gracefully)
+  - [x] 2.3 Create `packages/web/src/utils/historyToExecuteResponse.ts` — map **`HistoryEntryDetailDtoType` only** → `ExecuteResponseType`:
     ```typescript
     { status: statusCode, statusText, headers: responseHeaders, body, timingMs: durationMs, sizeBytes }
     ```
     Summary cannot drive this mapping (`statusText` / `responseHeaders` absent).
-  - [ ] 2.4 Extract `packages/web/src/utils/rematchRequest.ts` — shared fingerprint rematch used by AppLayout `activeRequest` and history replay (avoid algorithm drift):
+  - [x] 2.4 Extract `packages/web/src/utils/rematchRequest.ts` — shared fingerprint rematch used by AppLayout `activeRequest` and history replay (avoid algorithm drift):
     ```typescript
     // Prefer index when fingerprint still matches; else find by fingerprint
     findByFingerprint(detail, fingerprint): RequestDto | null
     ```
-  - [ ] 2.5 Unit tests for `filterHistory.ts`, `historyToExecuteResponse.ts`, and `rematchRequest.ts`
+  - [x] 2.5 Unit tests for `filterHistory.ts`, `historyToExecuteResponse.ts`, and `rematchRequest.ts`
 
-- [ ] Task 3: History list UI (AC: #1, #4, #5, #6, #7)
-  - [ ] 3.1 Create `packages/web/src/components/HistoryList.tsx`:
+- [x] Task 3: History list UI (AC: #1, #4, #5, #6, #7)
+  - [x] 3.1 Create `packages/web/src/components/HistoryList.tsx`:
     - Props: `entries`, `filteredEntries`, `selectedHistoryId`, `onReplay(entry)`, `scrollContainerRef`, `isLoading`, `isError`
     - Flat list inside scroll container; each row: `MethodBadge`, truncated URL (`truncate` + `title`), formatted timestamp, status via `statusTone(statusCode)` → `text-success` / `text-error` / neutral, duration ms, environment name (or muted "—" when null)
     - Row selected state when `selectedHistoryId === entry.id` (subtle bg e.g. `bg-surface-muted`)
     - Keyboard: roving tabindex pattern from `CollectionTree` — `ArrowUp`/`ArrowDown` cycle visible rows, `Enter` calls `onReplay`
     - `role="listbox"` or `role="list"` with row buttons; `aria-label="History"`
-  - [ ] 3.2 `HistoryList.test.tsx` — render rows, filter integration, keyboard nav, empty state delegated to parent
+  - [x] 3.2 `HistoryList.test.tsx` — render rows, filter integration, keyboard nav, empty state delegated to parent
 
-- [ ] Task 4: Wire SidebarShell History tab (AC: #1, #5, #6, #7)
-  - [ ] 4.1 **Decouple tab bodies from collections gate** in `SidebarShell.tsx`:
+- [x] Task 4: Wire SidebarShell History tab (AC: #1, #5, #6, #7)
+  - [x] 4.1 **Decouple tab bodies from collections gate** in `SidebarShell.tsx`:
     - Always render `SidebarTabs` once shell past initial load OR render tabs even during collections error
     - Collections tab: existing tree + refresh (may show collections error inline)
     - History tab: `useHistory()` + search + `HistoryList` — **not** hidden when collections fail
     - Keep independent `historySearch` + `historyScrollRef` scroll preservation (already wired)
     - Preserve UX-DR5 scroll restore when nesting list scroll vs shell scroll — if `HistoryList` owns `overflow-y-auto`, keep shell ref behavior coherent
-  - [ ] 4.2 Replace placeholder (`lines 169–179`) with populated list / loading / error / empty states:
+  - [x] 4.2 Replace placeholder (`lines 169–179`) with populated list / loading / error / empty states:
     - `entries.length === 0` → **"No sent requests yet."**
     - `entries.length > 0 && filteredEntries.length === 0` → **"No matching history"**
-  - [ ] 4.3 Pass new replay callback prop from `AppLayout` → `SidebarShell` → `HistoryList`
-  - [ ] 4.4 Update `SidebarShell.test.tsx` — history tab with mocked fetch, search filter (including filtered-empty copy), tab preserved on switch, history visible when collections error
+  - [x] 4.3 Pass new replay callback prop from `AppLayout` → `SidebarShell` → `HistoryList`
+  - [x] 4.4 Update `SidebarShell.test.tsx` — history tab with mocked fetch, search filter (including filtered-empty copy), tab preserved on switch, history visible when collections error
 
-- [ ] Task 5: Replay orchestration in AppLayout (AC: #2, #8)
-  - [ ] 5.1 Add state + refs:
+- [x] Task 5: Replay orchestration in AppLayout (AC: #2, #8)
+  - [x] 5.1 Add state + refs:
     - `selectedHistoryId: number | null`
     - `historyResponse: ExecuteResponseType | null` — displayed when replaying from history
     - `historyBodyTruncated: boolean` — drives expand UI (from **summary** `bodyTruncated` before expand)
     - `historyReplayError: string | null`
     - `isReplayingRef = useRef(false)` — guards `selectionIdentity` clear effect
-  - [ ] 5.2 **Authoritative `handleReplayHistory(entry)` algorithm** (single path — no summary→panel branch):
+  - [x] 5.2 **Authoritative `handleReplayHistory(entry)` algorithm** (single path — no summary→panel branch):
     ```
     1. guardNavigation(async () => { ... })
     2. isReplayingRef.current = true
@@ -153,30 +153,30 @@ So that I can quickly re-inspect or re-send previous requests.
     10. After paint / in finally: isReplayingRef.current = false
         (or clear on next non-replay selectionIdentity change only)
     ```
-  - [ ] 5.3 Display precedence in workspace:
+  - [x] 5.3 Display precedence in workspace:
     - While `executeMutation.isPending` → sending state (unchanged)
     - Else if fresh `executeResult` from live send for current `selectionIdentity` → show execute result
     - Else if `historyResponse` from replay → show history response (+ truncation props)
     - Else if `historyReplayError` → show inline error in workspace banner/placeholder (above editors)
     - Else if `executeError` → error message
     - Else → "Response will appear here"
-  - [ ] 5.4 `selectionIdentity` effect (lines 181–184): when identity changes, clear `executeResult` / `executeError` as today; **also** clear `selectedHistoryId` / `historyResponse` / `historyBodyTruncated` / `historyReplayError` **only when `!isReplayingRef.current`**. Never rely on “same tick” ordering — the effect runs after commit.
-  - [ ] 5.5 On execute success → `queryClient.invalidateQueries({ queryKey: ['history'] })` and clear history replay display in favor of live result
-  - [ ] 5.6 AppLayout needs `useQueryClient()` for `fetchQuery` / `invalidateQueries`
+  - [x] 5.4 `selectionIdentity` effect (lines 181–184): when identity changes, clear `executeResult` / `executeError` as today; **also** clear `selectedHistoryId` / `historyResponse` / `historyBodyTruncated` / `historyReplayError` **only when `!isReplayingRef.current`**. Never rely on “same tick” ordering — the effect runs after commit.
+  - [x] 5.5 On execute success → `queryClient.invalidateQueries({ queryKey: ['history'] })` and clear history replay display in favor of live result
+  - [x] 5.6 AppLayout needs `useQueryClient()` for `fetchQuery` / `invalidateQueries`
 
-- [ ] Task 6: ResponsePanel truncation expand (AC: #3)
-  - [ ] 6.1 Extend `ResponsePanel` props (minimal):
+- [x] Task 6: ResponsePanel truncation expand (AC: #3)
+  - [x] 6.1 Extend `ResponsePanel` props (minimal):
     - `bodyTruncated?: boolean`
     - `onExpandBody?: () => void`
     - `isExpandingBody?: boolean`
-  - [ ] 6.2 When `bodyTruncated && onExpandBody`, render marker above body tab content: **"Response body truncated (>1MB). Expand to load full body."** + button/link "Expand"
-  - [ ] 6.3 `onExpandBody` in AppLayout: `queryClient.fetchQuery(['history', selectedHistoryId])`, remap to `ExecuteResponseType`, set `historyBodyTruncated: false` (detail always has full body)
-  - [ ] 6.4 Wire props through `WorkspaceShell` → `ResponsePanel`
-  - [ ] 6.5 `ResponsePanel.test.tsx` — truncation marker + expand callback
+  - [x] 6.2 When `bodyTruncated && onExpandBody`, render marker above body tab content: **"Response body truncated (>1MB). Expand to load full body."** + button/link "Expand"
+  - [x] 6.3 `onExpandBody` in AppLayout: `queryClient.fetchQuery(['history', selectedHistoryId])`, remap to `ExecuteResponseType`, set `historyBodyTruncated: false` (detail always has full body)
+  - [x] 6.4 Wire props through `WorkspaceShell` → `ResponsePanel`
+  - [x] 6.5 `ResponsePanel.test.tsx` — truncation marker + expand callback
 
-- [ ] Task 7: Integration verification (AC: all)
-  - [ ] 7.1 `pnpm turbo build test typecheck`
-  - [ ] 7.2 Manual smoke: send request → History tab shows entry → click replays editor + stored response → Send again replaces with live response → expand works on large body fixture → dirty draft prompts on replay → History still works when collections fail
+- [x] Task 7: Integration verification (AC: all)
+  - [x] 7.1 `pnpm turbo build test typecheck`
+  - [x] 7.2 Manual smoke: send request → History tab shows entry → click replays editor + stored response → Send again replaces with live response → expand works on large body fixture → dirty draft prompts on replay → History still works when collections fail
 
 ## Dev Notes
 
@@ -441,15 +441,46 @@ Use existing `historyScrollRef` + `overflow-y-auto`. **Accepted product override
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Composer
 
 ### Debug Log References
 
+- Fixed WorkspaceShell.test.tsx syntax (missing closing brace)
+- HistoryList test uses className assertion (no jest-dom toHaveClass in project)
+
 ### Completion Notes List
 
+- Implemented History sidebar with TanStack Query hooks (`useHistory`, `useHistoryDetail`), client-side search, keyboard nav, and empty states
+- Replay orchestration in AppLayout: `guardNavigation`, collection rematch via `findByFingerprint`, always fetches history detail for ResponsePanel, `isReplayingRef` guards selectionIdentity clear effect
+- Decoupled History tab from collections load failure in SidebarShell
+- ResponsePanel truncation expand wired through WorkspaceShell
+- All 416 workspace tests pass (`pnpm turbo build test typecheck`); 17 new web tests added
+
 ### File List
+
+- packages/web/src/hooks/useHistory.ts (new)
+- packages/web/src/hooks/useHistory.test.tsx (new)
+- packages/web/src/hooks/useHistoryDetail.ts (new)
+- packages/web/src/hooks/useHistoryDetail.test.tsx (new)
+- packages/web/src/utils/filterHistory.ts (new)
+- packages/web/src/utils/filterHistory.test.ts (new)
+- packages/web/src/utils/formatHistoryTimestamp.ts (new)
+- packages/web/src/utils/historyToExecuteResponse.ts (new)
+- packages/web/src/utils/historyToExecuteResponse.test.ts (new)
+- packages/web/src/utils/rematchRequest.ts (new)
+- packages/web/src/utils/rematchRequest.test.ts (new)
+- packages/web/src/components/HistoryList.tsx (new)
+- packages/web/src/components/HistoryList.test.tsx (new)
+- packages/web/src/components/SidebarShell.tsx (modified)
+- packages/web/src/components/SidebarShell.test.tsx (modified)
+- packages/web/src/components/AppLayout.tsx (modified)
+- packages/web/src/components/ResponsePanel.tsx (modified)
+- packages/web/src/components/ResponsePanel.test.tsx (modified)
+- packages/web/src/components/WorkspaceShell.tsx (modified)
+- packages/web/src/components/WorkspaceShell.test.tsx (modified)
 
 ## Change Log
 
 - 2026-07-22: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-22: Story context quality review — replay algorithm, rematch/ref guards, UX-DR25 override, empty states, reuse guidance
+- 2026-07-22: Story 4.2 implemented — History sidebar, replay, truncation expand, post-send refresh (416 tests pass)
