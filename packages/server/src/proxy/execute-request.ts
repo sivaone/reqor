@@ -42,6 +42,20 @@ export interface ExecuteRequestDeps {
   environmentName: string | null
 }
 
+export interface ExecuteHistoryContext {
+  collectionId: string
+  fingerprint: string
+  environmentName: string | null
+  method: string
+  url: string
+  secrets: readonly string[]
+}
+
+export interface ExecuteSuccessResult {
+  response: ExecuteResponseType
+  history: ExecuteHistoryContext
+}
+
 function isRedirect(status: number): boolean {
   return status === 301 || status === 302 || status === 303 || status === 307 || status === 308
 }
@@ -98,7 +112,7 @@ export async function executeRequest(
   body: ExecuteRequestType,
   deps: ExecuteRequestDeps,
   requestAbort?: AbortSignal,
-): Promise<ExecuteResponseType> {
+): Promise<ExecuteSuccessResult> {
   const collection = collectionStore.get(body.collectionId)
   if (!collection) {
     throw new ExecuteError('NOT_FOUND', 'Collection not found', 404, {
@@ -163,6 +177,9 @@ export async function executeRequest(
       400,
     )
   }
+
+  const historyMethod = resolution.resolved.method
+  const historyUrl = resolution.resolved.url
 
   const headers = new Headers()
   for (const h of resolution.resolved.headers) {
@@ -240,12 +257,22 @@ export async function executeRequest(
     const timingMs = performance.now() - started
 
     return {
-      status: response.status,
-      statusText: response.statusText ?? '',
-      headers: headersToDto(response.headers),
-      body: responseBody,
-      timingMs,
-      sizeBytes: byteLength(responseBody),
+      response: {
+        status: response.status,
+        statusText: response.statusText ?? '',
+        headers: headersToDto(response.headers),
+        body: responseBody,
+        timingMs,
+        sizeBytes: byteLength(responseBody),
+      },
+      history: {
+        collectionId: body.collectionId,
+        fingerprint: req.fingerprint,
+        environmentName: deps.environmentName,
+        method: historyMethod,
+        url: historyUrl,
+        secrets: resolution.secrets,
+      },
     }
   } catch (error) {
     if (error instanceof ExecuteError) throw error

@@ -8,10 +8,12 @@ import { ConfigStore } from './config-store.js'
 import { DotenvStore } from './dotenv-store.js'
 import { EnvResolver } from './env-resolver.js'
 import { EnvironmentStore } from './environment-store.js'
+import { HistoryStore } from './history-store.js'
 import { collectionsRoutes } from './routes/collections.js'
 import { configRoutes } from './routes/config.js'
 import { environmentsRoutes } from './routes/environments.js'
 import { executeRoutes } from './routes/execute.js'
+import { historyRoutes } from './routes/history.js'
 import { previewRoutes } from './routes/preview.js'
 
 export { DEFAULT_HOST, DEFAULT_PORT } from './constants.js'
@@ -31,6 +33,9 @@ export async function buildApp(options: BuildAppOptions) {
   const envResolver = new EnvResolver(dotenvStore, environmentStore)
   const configStore = new ConfigStore(
     path.join(options.repositoryRoot, '.reqor', 'config.json'),
+  )
+  const historyStore = new HistoryStore(
+    path.join(options.repositoryRoot, '.reqor', 'history.db'),
   )
 
   if (options.scanOnStart !== false) {
@@ -90,6 +95,15 @@ export async function buildApp(options: BuildAppOptions) {
     configStore,
     environmentStore,
     envResolver,
+    historyStore,
+  })
+
+  await app.register(historyRoutes, {
+    historyStore,
+  })
+
+  app.addHook('onClose', async () => {
+    historyStore.close()
   })
 
   if (options.staticRoot) {

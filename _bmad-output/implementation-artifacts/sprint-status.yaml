@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-21T16:00:00
+last_updated: 2026-07-22T13:20:00
 project: reqor
 project_key: NOKEY
 tracking_system: file-system
@@ -73,8 +73,8 @@ development_status:
   3-3-server-side-save-with-minimal-diff-write: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-history-persistence-in-sqlite: backlog
+  epic-4: in-progress
+  4-1-history-persistence-in-sqlite: done
   4-2-history-sidebar-and-replay: backlog
   epic-4-retrospective: optional
 

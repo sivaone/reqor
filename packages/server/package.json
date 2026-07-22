@@ -21,11 +21,13 @@
     "@reqor/http-parser": "workspace:*",
     "@reqor/shared-types": "workspace:*",
     "@sinclair/typebox": "catalog:",
+    "better-sqlite3": "catalog:",
     "fast-glob": "catalog:",
     "fastify": "catalog:",
     "ignore": "catalog:"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

@@ -258,3 +258,46 @@ export const SaveCollectionResponse = Type.Object({
 })
 
 export type SaveCollectionResponseType = Static<typeof SaveCollectionResponse>
+
+export const HistoryEntrySummaryDto = Type.Object({
+  id: Type.Integer({ minimum: 1 }),
+  sentAt: Type.String(),
+  environmentName: Type.Union([Type.String(), Type.Null()]),
+  collectionId: Type.String(),
+  fingerprint: Type.String({ pattern: '^[a-f0-9]{64}$' }),
+  method: Type.String(),
+  url: Type.String(),
+  statusCode: Type.Integer(),
+  durationMs: Type.Number(),
+  sizeBytes: Type.Integer({ minimum: 0 }),
+  body: Type.String(),
+  bodyTruncated: Type.Boolean(),
+})
+
+export type HistoryEntrySummaryDtoType = Static<typeof HistoryEntrySummaryDto>
+
+export const HistoryEntryDetailDto = Type.Object({
+  id: Type.Integer({ minimum: 1 }),
+  sentAt: Type.String(),
+  environmentName: Type.Union([Type.String(), Type.Null()]),
+  collectionId: Type.String(),
+  fingerprint: Type.String({ pattern: '^[a-f0-9]{64}$' }),
+  method: Type.String(),
+  url: Type.String(),
+  statusCode: Type.Integer(),
+  statusText: Type.String(),
+  durationMs: Type.Number(),
+  sizeBytes: Type.Integer({ minimum: 0 }),
+  responseHeaders: Type.Array(ExecuteResponseHeaderDto),
+  body: Type.String(),
+  bodyTruncated: Type.Literal(false),
+})
+
+export type HistoryEntryDetailDtoType = Static<typeof HistoryEntryDetailDto>
+
+export const HistoryListResponse = Type.Object({
+  entries: Type.Array(HistoryEntrySummaryDto),
+  total: Type.Integer({ minimum: 0 }),
+})
+
+export type HistoryListResponseType = Static<typeof HistoryListResponse>
