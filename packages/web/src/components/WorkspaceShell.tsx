@@ -60,8 +60,6 @@ type WorkspaceShellProps = {
   preview: PreviewResponseType | null
   unresolvedError: string | null
   previewError: string | null
-  executeResult: ExecuteResponseType | null
-  executeError: { code?: string; message: string } | null
   displayResult: ExecuteResponseType | null
   displayError: { code?: string; message: string } | null
   historyReplayError: string | null

@@ -195,25 +195,21 @@ export function SidebarShell({
                 onChange={setHistorySearch}
                 placeholder="Filter history…"
               />
-              {historyEntries.length === 0 && !isHistoryPending && !isHistoryError ? (
-                <p className="px-inset py-inset-sm text-foreground-muted text-body">
-                  No sent requests yet.
-                </p>
-              ) : historyEntries.length > 0 && filteredHistoryEntries.length === 0 ? (
-                <p className="px-inset py-inset-sm text-foreground-muted text-body">
-                  No matching history
-                </p>
-              ) : (
-                <HistoryList
-                  entries={historyEntries}
-                  filteredEntries={filteredHistoryEntries}
-                  selectedHistoryId={selectedHistoryId}
-                  onReplay={onReplayHistory}
-                  scrollContainerRef={historyScrollRef}
-                  isLoading={isHistoryPending}
-                  isError={isHistoryError}
-                />
-              )}
+              <HistoryList
+                filteredEntries={filteredHistoryEntries}
+                selectedHistoryId={selectedHistoryId}
+                onReplay={onReplayHistory}
+                scrollContainerRef={historyScrollRef}
+                isLoading={isHistoryPending}
+                isError={isHistoryError}
+                emptyMessage={
+                  historyEntries.length === 0 && !isHistoryPending && !isHistoryError
+                    ? 'No sent requests yet.'
+                    : historyEntries.length > 0 && filteredHistoryEntries.length === 0
+                      ? 'No matching history'
+                      : null
+                }
+              />
             </div>
           )}
         </div>

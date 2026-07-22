@@ -37,7 +37,6 @@ describe('HistoryList', () => {
   it('renders history rows with method badge and status colors', () => {
     render(
       <HistoryList
-        entries={sampleEntries}
         filteredEntries={sampleEntries}
         selectedHistoryId={null}
         onReplay={vi.fn()}
@@ -58,7 +57,6 @@ describe('HistoryList', () => {
     const onReplay = vi.fn()
     render(
       <HistoryList
-        entries={sampleEntries}
         filteredEntries={sampleEntries}
         selectedHistoryId={null}
         onReplay={onReplay}
@@ -75,7 +73,6 @@ describe('HistoryList', () => {
     const onReplay = vi.fn()
     render(
       <HistoryList
-        entries={sampleEntries}
         filteredEntries={sampleEntries}
         selectedHistoryId={null}
         onReplay={onReplay}
@@ -90,29 +87,46 @@ describe('HistoryList', () => {
     expect(onReplay).toHaveBeenCalled()
   })
 
-  it('shows loading and error states', () => {
+  it('shows loading, error, and empty states while keeping scroll container mounted', () => {
+    const scrollRef = { current: null as HTMLDivElement | null }
     const { rerender } = render(
       <HistoryList
-        entries={[]}
         filteredEntries={[]}
         selectedHistoryId={null}
         onReplay={vi.fn()}
+        scrollContainerRef={scrollRef}
         isLoading={true}
         isError={false}
       />,
     )
     expect(screen.getByText('Loading history…')).toBeDefined()
+    expect(scrollRef.current).not.toBeNull()
 
     rerender(
       <HistoryList
-        entries={[]}
         filteredEntries={[]}
         selectedHistoryId={null}
         onReplay={vi.fn()}
+        scrollContainerRef={scrollRef}
         isLoading={false}
         isError={true}
       />,
     )
     expect(screen.getByText('Could not load history')).toBeDefined()
+    expect(scrollRef.current).not.toBeNull()
+
+    rerender(
+      <HistoryList
+        filteredEntries={[]}
+        selectedHistoryId={null}
+        onReplay={vi.fn()}
+        scrollContainerRef={scrollRef}
+        isLoading={false}
+        isError={false}
+        emptyMessage="No sent requests yet."
+      />,
+    )
+    expect(screen.getByText('No sent requests yet.')).toBeDefined()
+    expect(scrollRef.current).not.toBeNull()
   })
 })

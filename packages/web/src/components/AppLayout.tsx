@@ -30,6 +30,7 @@ import {
 import { structuredFieldsDifferFromBaseline } from '../utils/requestDraft.js'
 import { historyToExecuteResponse } from '../utils/historyToExecuteResponse.js'
 import { findByFingerprint } from '../utils/rematchRequest.js'
+import { replayHistoryEntry } from '../utils/replayHistoryEntry.js'
 import { SidebarShell } from './SidebarShell.js'
 import { UnsavedChangesDialog } from './UnsavedChangesDialog.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
@@ -61,6 +62,8 @@ export function AppLayout() {
   const pendingNavigationRef = useRef<(() => void) | null>(null)
   const savingRef = useRef(false)
   const isReplayingRef = useRef(false)
+  const replayGenerationRef = useRef(0)
+  const selectedHistoryIdRef = useRef<number | null>(null)
 
   const collectionId = selectedRequest?.collectionId
   const {
@@ -191,6 +194,7 @@ export function AppLayout() {
     if (isReplayingRef.current) return
     setExecuteResult(null)
     setExecuteError(null)
+    selectedHistoryIdRef.current = null
     setSelectedHistoryId(null)
     setHistoryResponse(null)
     setHistoryBodyTruncated(false)
@@ -306,44 +310,52 @@ export function AppLayout() {
     [queryClient],
   )
 
+  const clearHistoryDisplay = useCallback(() => {
+    selectedHistoryIdRef.current = null
+    setSelectedHistoryId(null)
+    setHistoryResponse(null)
+    setHistoryBodyTruncated(false)
+    setHistoryReplayError(null)
+  }, [])
+
   const handleReplayHistory = useCallback(
     (entry: HistoryEntrySummaryDtoType) => {
       guardNavigation(() => {
+        const generation = ++replayGenerationRef.current
+        isReplayingRef.current = true
+        setExecuteResult(null)
+        setExecuteError(null)
+        setHistoryReplayError(null)
+        setHistoryResponse(null)
+        setHistoryBodyTruncated(false)
+        selectedHistoryIdRef.current = entry.id
+        setSelectedHistoryId(entry.id)
+
         void (async () => {
-          isReplayingRef.current = true
-          setHistoryReplayError(null)
-          setSelectedHistoryId(entry.id)
-
           try {
-            let collectionDetail: CollectionDetailDtoType
-            try {
-              collectionDetail = await fetchCollectionDetail(entry.collectionId)
-            } catch {
-              setHistoryReplayError(
-                'Could not find request in collection for this history entry.',
-              )
-              return
-            }
-
-            const matched = findByFingerprint(collectionDetail, entry.fingerprint)
-            if (!matched) {
-              setHistoryReplayError(
-                'Could not find request in collection for this history entry.',
-              )
-              return
-            }
-
-            setSelectedRequest({
-              collectionId: entry.collectionId,
-              requestIndex: matched.requestIndex,
-              fingerprint: matched.fingerprint,
+            const result = await replayHistoryEntry({
+              entry,
+              fetchCollectionDetail,
+              fetchHistoryDetail,
             })
+            if (generation !== replayGenerationRef.current) return
 
-            const detailDto = await fetchHistoryDetail(entry.id)
-            setHistoryResponse(historyToExecuteResponse(detailDto))
-            setHistoryBodyTruncated(entry.bodyTruncated)
+            if (!result.ok) {
+              setHistoryResponse(null)
+              setHistoryBodyTruncated(false)
+              setHistoryReplayError(result.error)
+              return
+            }
+
+            setSelectedRequest(result.selection)
+            setHistoryResponse(result.response)
+            // Detail always includes the full stored body — never keep summary truncation.
+            setHistoryBodyTruncated(false)
+            setHistoryReplayError(null)
           } finally {
-            isReplayingRef.current = false
+            if (generation === replayGenerationRef.current) {
+              isReplayingRef.current = false
+            }
           }
         })()
       })
@@ -353,13 +365,21 @@ export function AppLayout() {
 
   const handleExpandBody = useCallback(async () => {
     if (selectedHistoryId == null) return
+    const expandingId = selectedHistoryId
     setIsExpandingBody(true)
     try {
-      const detailDto = await fetchHistoryDetail(selectedHistoryId)
+      const detailDto = await fetchHistoryDetail(expandingId)
+      if (selectedHistoryIdRef.current !== expandingId) return
       setHistoryResponse(historyToExecuteResponse(detailDto))
       setHistoryBodyTruncated(false)
+      setHistoryReplayError(null)
+    } catch {
+      if (selectedHistoryIdRef.current !== expandingId) return
+      setHistoryReplayError('Failed to load full response body')
     } finally {
-      setIsExpandingBody(false)
+      if (selectedHistoryIdRef.current === expandingId) {
+        setIsExpandingBody(false)
+      }
     }
   }, [fetchHistoryDetail, selectedHistoryId])
 
@@ -370,6 +390,7 @@ export function AppLayout() {
       const sentIdentity = selectionIdentity
       setExecuteResult(null)
       setExecuteError(null)
+      clearHistoryDisplay()
 
       executeMutation.mutate(
         {
@@ -387,11 +408,8 @@ export function AppLayout() {
             if (selectionIdentityRef.current !== sentIdentity) return
             setExecuteResult(result)
             setExecuteError(null)
-            setSelectedHistoryId(null)
-            setHistoryResponse(null)
-            setHistoryBodyTruncated(false)
-            setHistoryReplayError(null)
-            void queryClient.invalidateQueries({ queryKey: ['history'] })
+            clearHistoryDisplay()
+            void queryClient.invalidateQueries({ queryKey: ['history'], exact: true })
           },
           onError: (error) => {
             if (selectionIdentityRef.current !== sentIdentity) return
@@ -404,7 +422,15 @@ export function AppLayout() {
         },
       )
     },
-    [activeEnvironment, executeMutation, followRedirects, queryClient, selectedRequest, selectionIdentity],
+    [
+      activeEnvironment,
+      clearHistoryDisplay,
+      executeMutation,
+      followRedirects,
+      queryClient,
+      selectedRequest,
+      selectionIdentity,
+    ],
   )
 
   const handleSave = useCallback(async () => {
@@ -680,8 +706,6 @@ export function AppLayout() {
         preview={previewData}
         unresolvedError={unresolvedError}
         previewError={previewError}
-        executeResult={executeResult}
-        executeError={executeError}
         displayResult={displayResult}
         displayError={displayError}
         historyReplayError={historyReplayError}

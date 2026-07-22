@@ -4,7 +4,7 @@ baseline_commit: 25531bb
 
 # Story 4.2: History Sidebar and Replay
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -177,6 +177,22 @@ So that I can quickly re-inspect or re-send previous requests.
 - [x] Task 7: Integration verification (AC: all)
   - [x] 7.1 `pnpm turbo build test typecheck`
   - [x] 7.2 Manual smoke: send request → History tab shows entry → click replays editor + stored response → Send again replaces with live response → expand works on large body fixture → dirty draft prompts on replay → History still works when collections fail
+
+### Review Findings
+
+- [x] [Review][Patch] Clear `historyBodyTruncated` when detail is applied on replay (decision: honest UI) [`AppLayout.tsx:344`]
+- [x] [Review][Patch] Stale `executeResult` masks history replay response [`AppLayout.tsx:631`]
+- [x] [Review][Patch] History detail fetch failure after rematch is silent [`AppLayout.tsx:342`]
+- [x] [Review][Patch] Failed Send remasks execute error with leftover `historyResponse` [`AppLayout.tsx:396`]
+- [x] [Review][Patch] Rematch failure leaves prior `historyResponse` visible [`AppLayout.tsx:321`]
+- [x] [Review][Patch] Concurrent replays race without generation/abort token [`AppLayout.tsx:311`]
+- [x] [Review][Patch] Expand-body fetch failure is silent [`AppLayout.tsx:354`]
+- [x] [Review][Patch] Expand can apply body to a superseded `selectedHistoryId` [`AppLayout.tsx:354`]
+- [x] [Review][Patch] Missing AppLayout/replay orchestration test for rematch + detail + banner error [`AppLayout.tsx`]
+- [x] [Review][Patch] `invalidateQueries(['history'])` also drops every detail cache [`AppLayout.tsx:394`]
+- [x] [Review][Patch] Unused `entries` prop on `HistoryList` [`HistoryList.tsx:8`]
+- [x] [Review][Patch] Dead `executeResult` / `executeError` props still required on `WorkspaceShell` [`WorkspaceShell.tsx:63`]
+- [x] [Review][Patch] History scroll restore no-ops when list is unmounted (empty/loading/error) [`HistoryList.tsx:115`]
 
 ## Dev Notes
 
@@ -455,6 +471,7 @@ Composer
 - Decoupled History tab from collections load failure in SidebarShell
 - ResponsePanel truncation expand wired through WorkspaceShell
 - All 416 workspace tests pass (`pnpm turbo build test typecheck`); 17 new web tests added
+- Code review patches applied: clear stale execute/history state on replay/send, generation-token races, detail/expand error UX, truncation honest UI, exact history list invalidation, scroll-container always mounted, `replayHistoryEntry` helper + tests
 
 ### File List
 
@@ -469,6 +486,8 @@ Composer
 - packages/web/src/utils/historyToExecuteResponse.test.ts (new)
 - packages/web/src/utils/rematchRequest.ts (new)
 - packages/web/src/utils/rematchRequest.test.ts (new)
+- packages/web/src/utils/replayHistoryEntry.ts (new)
+- packages/web/src/utils/replayHistoryEntry.test.ts (new)
 - packages/web/src/components/HistoryList.tsx (new)
 - packages/web/src/components/HistoryList.test.tsx (new)
 - packages/web/src/components/SidebarShell.tsx (modified)
@@ -484,3 +503,4 @@ Composer
 - 2026-07-22: Ultimate context engine analysis completed — comprehensive developer guide created
 - 2026-07-22: Story context quality review — replay algorithm, rematch/ref guards, UX-DR25 override, empty states, reuse guidance
 - 2026-07-22: Story 4.2 implemented — History sidebar, replay, truncation expand, post-send refresh (416 tests pass)
+- 2026-07-22: Code review patches applied — replay/display correctness, races, expand/detail errors, honest truncation UX

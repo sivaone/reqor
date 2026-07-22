@@ -55,8 +55,6 @@ const defaultExecuteProps = {
   preview: null,
   unresolvedError: null,
   previewError: null,
-  executeResult: null,
-  executeError: null,
   displayResult: null,
   displayError: null,
   historyReplayError: null,
@@ -120,14 +118,6 @@ describe('WorkspaceShell', () => {
         isDetailPending={false}
         isDetailError={false}
         {...defaultExecuteProps}
-        executeResult={{
-          status: 200,
-          statusText: 'OK',
-          headers: [{ name: 'content-type', value: 'application/json' }],
-          body: '{"ok":true}',
-          timingMs: 50,
-          sizeBytes: 11,
-        }}
         displayResult={{
           status: 200,
           statusText: 'OK',
