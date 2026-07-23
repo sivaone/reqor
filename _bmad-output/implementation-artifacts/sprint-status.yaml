@@ -1,5 +1,5 @@
 # generated: 2026-07-09
-# last_updated: 2026-07-22T17:46:00
+# last_updated: 2026-07-23T08:53:00
 # project: reqor
 # project_key: NOKEY
 # tracking_system: file-system
@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-22T17:46:00
+last_updated: 2026-07-23T08:53:00
 project: reqor
 project_key: NOKEY
 tracking_system: file-system
@@ -73,13 +73,31 @@ development_status:
   3-3-server-side-save-with-minimal-diff-write: done
   epic-3-retrospective: optional
 
-  epic-4: in-progress
+  epic-4: done
   4-1-history-persistence-in-sqlite: done
   4-2-history-sidebar-and-replay: done
   epic-4-retrospective: optional
 
-  epic-5: in-progress
+  epic-5: done
   5-1-curl-import: done
   5-2-curl-export: done
   5-3-code-snippet-export: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
+
+action_items:
+  - epic: 5
+    action: "Treat generation-token / stale-response guards as a shared pattern for toolbar async actions"
+    owner: "Amelia"
+    status: open
+  - epic: 5
+    action: "Prefer epic-context API contracts over planning stubs when they conflict"
+    owner: "Alice + Winston"
+    status: open
+  - epic: 5
+    action: "Add focused web tests for SnippetExportPopover (open / Esc / stale-tab / copy)"
+    owner: "Murat + Amelia"
+    status: open
+  - epic: 5
+    action: "Keep cURL tokenizer edge cases parked in deferred-work until a deliberate polish story"
+    owner: "Alice"
+    status: open
