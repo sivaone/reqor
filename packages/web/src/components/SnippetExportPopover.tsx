@@ -24,6 +24,8 @@ export function SnippetExportPopover({
 }: SnippetExportPopoverProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const tabGenerationRef = useRef(0)
+  const onFetchSnippetRef = useRef(onFetchSnippet)
+  onFetchSnippetRef.current = onFetchSnippet
   const [activeTab, setActiveTab] = useState<SnippetLanguageType>('javascript')
   const [snippets, setSnippets] = useState<Partial<Record<SnippetLanguageType, string>>>({})
   const [loading, setLoading] = useState(false)
@@ -84,7 +86,7 @@ export function SnippetExportPopover({
       return next
     })
 
-    void onFetchSnippet(activeTab)
+    void onFetchSnippetRef.current(activeTab)
       .then((snippet) => {
         if (cancelled || session !== sessionGeneration || tabGeneration !== tabGenerationRef.current) {
           return
@@ -115,7 +117,7 @@ export function SnippetExportPopover({
     return () => {
       cancelled = true
     }
-  }, [activeTab, onFetchSnippet, open, sessionGeneration])
+  }, [activeTab, open, sessionGeneration])
 
   const handleTabChange = (language: SnippetLanguageType) => {
     if (language === activeTab) return
