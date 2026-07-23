@@ -334,3 +334,30 @@ export const ExportCurlResponse = Type.Object({
 })
 
 export type ExportCurlResponseType = Static<typeof ExportCurlResponse>
+
+/** Placeholder for secrets in exported code snippets (Story 5.3). */
+export const SECRET_SNIPPET_PLACEHOLDER = '/* SECRET */'
+
+export const SnippetLanguage = Type.Union([
+  Type.Literal('javascript'),
+  Type.Literal('python'),
+  Type.Literal('curl'),
+])
+
+export type SnippetLanguageType = Static<typeof SnippetLanguage>
+
+export const ExportSnippetRequest = Type.Composite([
+  PreviewRequest,
+  Type.Object({
+    language: SnippetLanguage,
+  }),
+])
+
+export type ExportSnippetRequestType = Static<typeof ExportSnippetRequest>
+
+export const ExportSnippetResponse = Type.Object({
+  language: SnippetLanguage,
+  snippet: Type.String(),
+})
+
+export type ExportSnippetResponseType = Static<typeof ExportSnippetResponse>

@@ -1,4 +1,4 @@
-import { SECRET_MASK } from '@reqor/shared-types'
+import { SECRET_MASK, SECRET_SNIPPET_PLACEHOLDER } from '@reqor/shared-types'
 import { describe, expect, it } from 'vitest'
 import { redactObject, redactSecrets } from './redact-secrets.js'
 
@@ -16,6 +16,17 @@ describe('redactSecrets', () => {
 
   it('returns text unchanged when no secrets provided', () => {
     expect(redactSecrets('plain text', [])).toBe('plain text')
+  })
+
+  it('supports custom replacement such as SECRET_SNIPPET_PLACEHOLDER', () => {
+    const result = redactSecrets('Bearer super-secret-token', ['super-secret-token'], SECRET_SNIPPET_PLACEHOLDER)
+    expect(result).toBe(`Bearer ${SECRET_SNIPPET_PLACEHOLDER}`)
+    expect(result).not.toContain('super-secret-token')
+  })
+
+  it('defaults to SECRET_MASK when replacement is omitted', () => {
+    const result = redactSecrets('token=abc123', ['abc123'])
+    expect(result).toBe(`token=${SECRET_MASK}`)
   })
 })
 

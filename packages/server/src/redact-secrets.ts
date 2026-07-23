@@ -9,7 +9,11 @@ function escapeRegExp(value: string): string {
  *
  * Story 2.4: unit-tested scaffold for NFR6. Wire into Pino / preview / execute paths in Story 2.5.
  */
-export function redactSecrets(text: string, secrets: readonly string[]): string {
+export function redactSecrets(
+  text: string,
+  secrets: readonly string[],
+  replacement: string = SECRET_MASK,
+): string {
   if (!text || secrets.length === 0) {
     return text
   }
@@ -20,7 +24,7 @@ export function redactSecrets(text: string, secrets: readonly string[]): string 
 
   let result = text
   for (const secret of unique) {
-    result = result.replace(new RegExp(escapeRegExp(secret), 'g'), SECRET_MASK)
+    result = result.replace(new RegExp(escapeRegExp(secret), 'g'), replacement)
   }
   return result
 }

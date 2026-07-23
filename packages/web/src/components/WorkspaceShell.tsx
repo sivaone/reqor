@@ -65,6 +65,7 @@ type WorkspaceShellProps = {
   onCopyCurl?: () => void
   copyCurlPending?: boolean
   copyCurlStatus?: { kind: 'success' | 'error'; message: string } | null
+  onExportSnippet?: () => void
   displayResult: ExecuteResponseType | null
   displayError: { code?: string; message: string } | null
   historyReplayError: string | null
@@ -115,6 +116,7 @@ export function WorkspaceShell({
   onCopyCurl,
   copyCurlPending = false,
   copyCurlStatus = null,
+  onExportSnippet,
   displayResult,
   displayError,
   historyReplayError,
@@ -179,6 +181,7 @@ export function WorkspaceShell({
                 onCopyCurl={onCopyCurl}
                 copyCurlPending={copyCurlPending}
                 copyCurlStatus={copyCurlStatus}
+                onExportSnippet={onExportSnippet}
               />
             ) : isDetailPending ? (
               <p className="px-inset py-inset text-foreground-muted text-body">

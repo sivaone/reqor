@@ -44,6 +44,7 @@ type RequestLineProps = {
   onCopyCurl?: () => void
   copyCurlPending?: boolean
   copyCurlStatus?: { kind: 'success' | 'error'; message: string } | null
+  onExportSnippet?: () => void
 }
 
 export function RequestLine({
@@ -75,6 +76,7 @@ export function RequestLine({
   onCopyCurl,
   copyCurlPending = false,
   copyCurlStatus = null,
+  onExportSnippet,
 }: RequestLineProps) {
   const showPreview = preview?.hasVariables === true
   const showSave = isDraftDirty
@@ -160,6 +162,16 @@ export function RequestLine({
             className="inline-flex shrink-0 items-center rounded-md border border-border bg-surface px-inset py-inset-sm text-body text-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 disabled:opacity-60"
           >
             Copy cURL
+          </button>
+        ) : null}
+        {onExportSnippet ? (
+          <button
+            type="button"
+            onClick={onExportSnippet}
+            aria-label="Export code snippet"
+            className="inline-flex shrink-0 items-center rounded-md border border-border bg-surface px-inset py-inset-sm text-body text-foreground focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+          >
+            Export
           </button>
         ) : null}
       </div>

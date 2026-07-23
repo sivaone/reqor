@@ -1,5 +1,10 @@
 # Deferred Work Log
 
+## Deferred from: code review of 5-3-code-snippet-export.md (2026-07-22)
+
+- **No web component/hook tests for popover** [packages/web/src/components/SnippetExportPopover.tsx] — AC #3–#5 Esc/stale/copy behavior relies on manual verification; matches project pattern of server-heavy test coverage
+- **Form body percent-encoding not decoded in serializers** [packages/server/src/serialize-snippet-javascript.ts:30-31] — exported form snippets pass raw `a=b%26c=d` strings; URL-decoding would improve fidelity but is not specified for MVP
+
 ## Deferred from: code review of spec-5-1-curl-import.md (2026-07-22)
 
 - **Unclosed quotes produce silent wrong tokens** [packages/http-parser/src/parse-curl.ts:47] — tokenizer accepts unclosed quotes without a warning; malformed paste can yield wrong tokens

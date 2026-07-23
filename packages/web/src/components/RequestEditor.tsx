@@ -68,6 +68,7 @@ type RequestEditorProps = {
   onCopyCurl?: () => void
   copyCurlPending?: boolean
   copyCurlStatus?: { kind: 'success' | 'error'; message: string } | null
+  onExportSnippet?: () => void
 }
 
 export function RequestEditor({
@@ -109,6 +110,7 @@ export function RequestEditor({
   onCopyCurl,
   copyCurlPending = false,
   copyCurlStatus = null,
+  onExportSnippet,
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<RequestSubTab>('params')
   const [trackedSelection, setTrackedSelection] = useState(draftSelectionKey)
@@ -364,6 +366,7 @@ export function RequestEditor({
         onCopyCurl={onCopyCurl}
         copyCurlPending={copyCurlPending}
         copyCurlStatus={copyCurlStatus}
+        onExportSnippet={onExportSnippet}
       />
       <RequestSubTabs
         activeTab={activeTab}
