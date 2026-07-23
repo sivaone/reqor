@@ -1,4 +1,8 @@
-import type { ExportCurlRequestType } from '@reqor/shared-types'
+import {
+  SECRET_MASK,
+  SECRET_SNIPPET_PLACEHOLDER,
+  type PreviewRequestType,
+} from '@reqor/shared-types'
 import type { CollectionStore } from './collection-store.js'
 import type { ConfigStore } from './config-store.js'
 import type { EnvResolver } from './env-resolver.js'
@@ -25,13 +29,20 @@ function isHttpUrl(url: string): boolean {
 
 export type RedactedExportRequest = MergedRequestFields
 
-export function loadMergedRequestForExport(
+type LoadMergedRequestOptions = {
+  secretReplacement?: string
+}
+
+function loadMergedRequest(
   collectionStore: CollectionStore,
-  body: ExportCurlRequestType,
+  body: PreviewRequestType,
   configStore: ConfigStore,
   environmentStore: EnvironmentStore,
   envResolver: EnvResolver,
+  options: LoadMergedRequestOptions = {},
 ): RedactedExportRequest {
+  const secretReplacement = options.secretReplacement ?? SECRET_MASK
+
   const collection = collectionStore.get(body.collectionId)
   if (!collection) {
     throw new ExecuteError('NOT_FOUND', 'Collection not found', 404, {
@@ -104,20 +115,54 @@ export function loadMergedRequestForExport(
   const secrets = resolution.secrets
   const redactedHeaders = resolution.resolved.headers.map((header) => ({
     name: header.name,
-    value: redactSecrets(header.value, secrets),
+    value: redactSecrets(header.value, secrets, secretReplacement),
   }))
 
   const redactedBody = resolution.resolved.body
     ? {
         kind: resolution.resolved.body.kind,
-        content: redactSecrets(resolution.resolved.body.content, secrets),
+        content: redactSecrets(resolution.resolved.body.content, secrets, secretReplacement),
       }
     : undefined
 
   return {
     method: resolution.resolved.method,
-    url: redactSecrets(url, secrets),
+    url: redactSecrets(url, secrets, secretReplacement),
     headers: redactedHeaders,
     ...(redactedBody ? { body: redactedBody } : {}),
   }
+}
+
+export function loadMergedRequestForExport(
+  collectionStore: CollectionStore,
+  body: PreviewRequestType,
+  configStore: ConfigStore,
+  environmentStore: EnvironmentStore,
+  envResolver: EnvResolver,
+): RedactedExportRequest {
+  return loadMergedRequest(
+    collectionStore,
+    body,
+    configStore,
+    environmentStore,
+    envResolver,
+    { secretReplacement: SECRET_MASK },
+  )
+}
+
+export function loadMergedRequestForSnippetExport(
+  collectionStore: CollectionStore,
+  body: PreviewRequestType,
+  configStore: ConfigStore,
+  environmentStore: EnvironmentStore,
+  envResolver: EnvResolver,
+): RedactedExportRequest {
+  return loadMergedRequest(
+    collectionStore,
+    body,
+    configStore,
+    environmentStore,
+    envResolver,
+    { secretReplacement: SECRET_SNIPPET_PLACEHOLDER },
+  )
 }

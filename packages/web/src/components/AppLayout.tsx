@@ -8,6 +8,7 @@ import type {
   RequestDtoType,
   RequestHeaderDtoType,
   SaveCollectionResponseType,
+  SnippetLanguageType,
   SyncCollectionResponseType,
 } from '@reqor/shared-types'
 import { useQueryClient } from '@tanstack/react-query'
@@ -17,6 +18,7 @@ import { useConfig } from '../hooks/useConfig.js'
 import { useEnvironments } from '../hooks/useEnvironments.js'
 import { useExecuteRequest, ExecuteRequestError } from '../hooks/useExecuteRequest.js'
 import { ExportCurlError, useExportCurl } from '../hooks/useExportCurl.js'
+import { ExportSnippetError, useExportSnippet } from '../hooks/useExportSnippet.js'
 import { usePreviewRequest } from '../hooks/usePreviewRequest.js'
 import { useRequestDraft } from '../hooks/useRequestDraft.js'
 import { SaveCollectionError, useSaveCollection } from '../hooks/useSaveCollection.js'
@@ -36,6 +38,7 @@ import { replayHistoryEntry } from '../utils/replayHistoryEntry.js'
 import { copyToClipboard, CopyToClipboardError } from '../utils/copyToClipboard.js'
 import { SidebarShell } from './SidebarShell.js'
 import { CurlImportDialog } from './CurlImportDialog.js'
+import { SnippetExportPopover } from './SnippetExportPopover.js'
 import { UnsavedChangesDialog } from './UnsavedChangesDialog.js'
 import { WorkspaceShell } from './WorkspaceShell.js'
 
@@ -64,6 +67,8 @@ export function AppLayout() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus | null>(null)
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false)
   const [curlImportOpen, setCurlImportOpen] = useState(false)
+  const [snippetExportOpen, setSnippetExportOpen] = useState(false)
+  const [snippetSessionGeneration, setSnippetSessionGeneration] = useState(0)
   const [importWarnings, setImportWarnings] = useState<string[] | null>(null)
   const [copyCurlStatus, setCopyCurlStatus] = useState<{
     kind: 'success' | 'error'
@@ -74,6 +79,7 @@ export function AppLayout() {
   const isReplayingRef = useRef(false)
   const replayGenerationRef = useRef(0)
   const copyCurlGenerationRef = useRef(0)
+  const snippetFetchGenerationRef = useRef(0)
   const selectedHistoryIdRef = useRef<number | null>(null)
 
   const collectionId = selectedRequest?.collectionId
@@ -85,6 +91,7 @@ export function AppLayout() {
 
   const executeMutation = useExecuteRequest()
   const exportCurlMutation = useExportCurl()
+  const exportSnippetMutation = useExportSnippet()
   const { mutateAsync: syncMutateAsync, isPending: syncPending } = useSyncCollection()
   const saveMutation = useSaveCollection()
   const savePending = saveMutation.isPending
@@ -281,6 +288,9 @@ export function AppLayout() {
     (selection: NonNullable<SelectedRequest>) => {
       guardNavigation(() => {
         copyCurlGenerationRef.current += 1
+        snippetFetchGenerationRef.current += 1
+        setSnippetSessionGeneration((value) => value + 1)
+        setSnippetExportOpen(false)
         setImportWarnings(null)
         setCopyCurlStatus(null)
         setSelectedRequest(selection)
@@ -292,6 +302,9 @@ export function AppLayout() {
   const handleClearSelection = useCallback(() => {
     guardNavigation(() => {
       copyCurlGenerationRef.current += 1
+      snippetFetchGenerationRef.current += 1
+      setSnippetSessionGeneration((value) => value + 1)
+      setSnippetExportOpen(false)
       setImportWarnings(null)
       setCopyCurlStatus(null)
       setSelectedRequest(null)
@@ -650,6 +663,45 @@ export function AppLayout() {
     }
   }, [activeEnvironment, draft, exportCurlMutation, selectedRequest])
 
+  const handleFetchSnippet = useCallback(
+    async (language: SnippetLanguageType) => {
+      if (!selectedRequest || !draft) {
+        throw new ExportSnippetError('No request loaded')
+      }
+
+      const generation = ++snippetFetchGenerationRef.current
+      const result = await exportSnippetMutation.mutateAsync({
+        collectionId: selectedRequest.collectionId,
+        requestIndex: selectedRequest.requestIndex,
+        environment: activeEnvironment,
+        method: draft.method,
+        url: draft.url,
+        headers: draft.headers,
+        body: draft.body ?? null,
+        language,
+      })
+
+      if (generation !== snippetFetchGenerationRef.current) {
+        throw new ExportSnippetError('Stale snippet export', 'STALE')
+      }
+
+      return result.snippet
+    },
+    [activeEnvironment, draft, exportSnippetMutation, selectedRequest],
+  )
+
+  const handleOpenSnippetExport = useCallback(() => {
+    snippetFetchGenerationRef.current += 1
+    setSnippetSessionGeneration((value) => value + 1)
+    setSnippetExportOpen(true)
+  }, [])
+
+  const handleCloseSnippetExport = useCallback(() => {
+    snippetFetchGenerationRef.current += 1
+    setSnippetSessionGeneration((value) => value + 1)
+    setSnippetExportOpen(false)
+  }, [])
+
   const handleParseDiagnostics = useCallback(
     (diagnostics: DiagnosticDtoType[], parseStatus: 'ok' | 'error') => {
       setParseDiagnostics(diagnostics)
@@ -784,11 +836,18 @@ export function AppLayout() {
         onCopyCurl={activeRequest && draft ? () => void handleCopyCurl() : undefined}
         copyCurlPending={exportCurlMutation.isPending}
         copyCurlStatus={copyCurlStatus}
+        onExportSnippet={activeRequest && draft ? handleOpenSnippetExport : undefined}
       />
       <CurlImportDialog
         open={curlImportOpen}
         onClose={() => setCurlImportOpen(false)}
         onImported={handleCurlImported}
+      />
+      <SnippetExportPopover
+        open={snippetExportOpen}
+        onClose={handleCloseSnippetExport}
+        sessionGeneration={snippetSessionGeneration}
+        onFetchSnippet={handleFetchSnippet}
       />
       <UnsavedChangesDialog
         open={unsavedDialogOpen}

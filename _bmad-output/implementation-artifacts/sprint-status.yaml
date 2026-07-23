@@ -1,5 +1,5 @@
 # generated: 2026-07-09
-# last_updated: 2026-07-22
+# last_updated: 2026-07-22T17:46:00
 # project: reqor
 # project_key: NOKEY
 # tracking_system: file-system
@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-22T14:45:00
+last_updated: 2026-07-22T17:46:00
 project: reqor
 project_key: NOKEY
 tracking_system: file-system
@@ -81,5 +81,5 @@ development_status:
   epic-5: in-progress
   5-1-curl-import: done
   5-2-curl-export: done
-  5-3-code-snippet-export: backlog
+  5-3-code-snippet-export: done
   epic-5-retrospective: optional

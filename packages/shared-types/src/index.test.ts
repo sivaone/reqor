@@ -15,6 +15,10 @@ import {
   ExecuteResponseHeaderDto,
   ExportCurlRequest,
   ExportCurlResponse,
+  ExportSnippetRequest,
+  ExportSnippetResponse,
+  SECRET_SNIPPET_PLACEHOLDER,
+  SnippetLanguage,
   EnvironmentDto,
   EnvironmentsListResponse,
   EnvironmentVariableDto,
@@ -41,6 +45,9 @@ import {
   type ExecuteResponseType,
   type ExportCurlRequestType,
   type ExportCurlResponseType,
+  type ExportSnippetRequestType,
+  type ExportSnippetResponseType,
+  type SnippetLanguageType,
   type HistoryEntryDetailDtoType,
   type HistoryEntrySummaryDtoType,
   type PreviewRequestType,
@@ -305,6 +312,36 @@ describe('@reqor/shared-types', () => {
       curl: "curl -X POST 'https://example.com'",
     }
     expect(Value.Check(ExportCurlResponse, response)).toBe(true)
+  })
+
+  it('validates export snippet request/response schemas', () => {
+    expect(SECRET_SNIPPET_PLACEHOLDER).toBe('/* SECRET */')
+    expect(Value.Check(SnippetLanguage, 'javascript')).toBe(true)
+    expect(Value.Check(SnippetLanguage, 'python')).toBe(true)
+    expect(Value.Check(SnippetLanguage, 'curl')).toBe(true)
+    expect(Value.Check(SnippetLanguage, 'go')).toBe(false)
+
+    const request: ExportSnippetRequestType = {
+      collectionId: 'demo.http',
+      requestIndex: 0,
+      environment: 'development',
+      method: 'POST',
+      url: 'https://example.com',
+      headers: [{ name: 'Accept', value: 'application/json' }],
+      body: { kind: 'json', content: '{}' },
+      language: 'javascript',
+    }
+    expect(Value.Check(ExportSnippetRequest, request)).toBe(true)
+
+    const response: ExportSnippetResponseType = {
+      language: 'javascript',
+      snippet: "fetch('https://example.com')",
+    }
+    expect(Value.Check(ExportSnippetResponse, response)).toBe(true)
+    expect(Value.Check(ExportSnippetResponse, { language: 'go', snippet: 'x' })).toBe(false)
+
+    const language: SnippetLanguageType = 'python'
+    expect(Value.Check(SnippetLanguage, language)).toBe(true)
   })
 
   it('validates history DTO sample values', () => {
