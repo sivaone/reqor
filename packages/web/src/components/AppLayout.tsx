@@ -91,7 +91,7 @@ export function AppLayout() {
 
   const executeMutation = useExecuteRequest()
   const exportCurlMutation = useExportCurl()
-  const exportSnippetMutation = useExportSnippet()
+  const { mutateAsync: exportSnippetMutateAsync } = useExportSnippet()
   const { mutateAsync: syncMutateAsync, isPending: syncPending } = useSyncCollection()
   const saveMutation = useSaveCollection()
   const savePending = saveMutation.isPending
@@ -670,7 +670,7 @@ export function AppLayout() {
       }
 
       const generation = ++snippetFetchGenerationRef.current
-      const result = await exportSnippetMutation.mutateAsync({
+      const result = await exportSnippetMutateAsync({
         collectionId: selectedRequest.collectionId,
         requestIndex: selectedRequest.requestIndex,
         environment: activeEnvironment,
@@ -687,7 +687,7 @@ export function AppLayout() {
 
       return result.snippet
     },
-    [activeEnvironment, draft, exportSnippetMutation, selectedRequest],
+    [activeEnvironment, draft, exportSnippetMutateAsync, selectedRequest],
   )
 
   const handleOpenSnippetExport = useCallback(() => {
